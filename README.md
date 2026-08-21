@@ -10,7 +10,8 @@ control plane is the management tier.
 This is the `rutba` meta-repo - the workspace root. It carries the estate
 records ([PLAN.md](PLAN.md), [MIGRATION.md](MIGRATION.md)), the repo map and
 clone script ([REPOS.md](REPOS.md)), and the root dev launchers (`rutba.cmd`,
-`dev.cmd`, `dev-stop.bat`). Every other directory in the assembled workspace is
+`dev.cmd`, `dev-stop.bat`, `dev-clean.bat` - clears the regenerable `.next`
+build caches). Every other directory in the assembled workspace is
 its own repository, cloned into place - no submodules.
 
 ## The estate

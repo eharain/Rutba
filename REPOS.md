@@ -39,7 +39,7 @@ An arrow means "this repo's directory contains the child repo's working tree" (a
 
 | # | Repo (`github.com/eharain/…`) | Clone into | Owns |
 |---|---|---|---|
-| 1 | `rutba` | `.` (workspace root) | PLAN.md, MIGRATION.md, REPOS.md, root launchers (`rutba.cmd`, `dev.cmd`, `dev-stop.bat`) |
+| 1 | `rutba` | `.` (workspace root) | PLAN.md, MIGRATION.md, REPOS.md, root launchers (`rutba.cmd`, `dev.cmd`, `dev-stop.bat`, `dev-clean.bat`) |
 | 2 | `rutba-suite` | `consumer/` | the engine + glue: `api/`, `devkit/`, `config/`, `docs/`, `infra/`, consumer root files |
 | 3 | `rutba-commons` | `consumer/packages/` | shared packages: `@rutba/ui`, `api-client`, `video`, `sync`, `marketplace-engine`, `interactions`, … |
 | 4 | `rutba-console` | `consumer/console/` | admin suite + the consolidated consumer auth modules |
