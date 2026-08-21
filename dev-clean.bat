@@ -13,7 +13,7 @@ rem ============================================================
 cd /d "%~dp0"
 set COUNT=0
 echo Cleaning .next build caches under %CD% ...
-for /f "delims=" %%D in ('dir /b /s /a:d .next 2^>nul ^| findstr /v /i /c:"\node_modules\"') do (
+for /f "delims=" %%D in ('dir /b /s /a:d .next 2^>nul ^| findstr /v /i "node_modules"') do (
     rd /s /q "%%D" 2>nul
     if exist "%%D" (
         echo   LOCKED   %%D   ^(dev server running? try dev-stop.bat^)
