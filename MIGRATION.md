@@ -2,6 +2,16 @@
 
 Legend: ☑ done · ✔ done and verified
 
+**Contents:**
+[Consumer - the ERP line](#consumer--the-erp-line-engine--six-suites) ·
+[Consumer - standalone products](#consumer--standalone-products) ·
+[Workers tier](#workers-tier-extracted-after-the-consumer-pass) ·
+[Core extension program](#core-extension-program-2026-08-22--one-system-all-consumer-apps-on-core) ·
+[Management](#management) ·
+[Verification](#verification-final-numbers) ·
+[Known follow-ups](#known-follow-ups-deliberate-not-blockers) ·
+[Left behind](#left-behind-in-drutba-deliberate)
+
 ## Consumer — the ERP line (engine + six suites)
 
 | Repo | Status | Notes |

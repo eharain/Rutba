@@ -7,6 +7,34 @@ occupies in the workspace is **not** its repo name — this file is the rename m
 Nesting model: plain nested working trees. Each parent repo `.gitignore`s the directories
 that belong to child repos. No submodules.
 
+```mermaid
+flowchart TD
+    rutba["rutba<br/>(workspace root)"]
+    suite["rutba-suite<br/>consumer/"]
+    commons["rutba-commons<br/>consumer/packages/"]
+    suites["6 suite repos<br/>console, sales, inventory,<br/>finance, people, content"]
+    products["6 product repos<br/>comms, drive, mail,<br/>relay, studio, workspace"]
+    workersR["rutba-workers<br/>workers/"]
+    mta["rutba-mta<br/>workers/mta/"]
+    media["rutba-media<br/>workers/media/"]
+    mgmt["rutba-management<br/>management/"]
+    portal["rutba-portal<br/>management/portal/"]
+    authR["rutba-auth<br/>management/auth/"]
+    rutba --> suite
+    suite --> commons
+    suite --> suites
+    suite --> products
+    rutba --> workersR
+    workersR --> mta
+    workersR --> media
+    rutba --> mgmt
+    mgmt --> portal
+    mgmt --> authR
+```
+
+An arrow means "this repo's directory contains the child repo's working tree" (and
+`.gitignore`s it).
+
 ## The map
 
 | # | Repo (`github.com/eharain/…`) | Clone into | Owns |

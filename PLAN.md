@@ -2,6 +2,19 @@
 
 **Date:** 2026-08-21 · **Source estate:** `D:\Rutba` (17 git repos) · **Target:** `D:\Rutba2.0`
 
+**Contents:**
+[1. The line-up](#1-the-line-up) ·
+[2. One pattern, one tech](#2-one-pattern-one-tech) ·
+[3. The ERP line](#3-the-erp-line--engine--suites)
+([3a-pre. Backend decisions](#3a-pre-backend-decisions-for-the-planned-services-decided-2026-08-22) ·
+[3a. Consolidated consumer auth](#3a-consolidated-consumer-auth-the-console-suite) ·
+[3b. The workers tier](#3b-the-workers-tier)) ·
+[4. The platform APIs](#4-the-platform-apis-collected-management-side) ·
+[5. Old-to-new map](#5-old--new-map) ·
+[6. Copy rules](#6-copy-rules-applied) ·
+[7. Cross-repo wiring](#7-cross-repo-wiring) ·
+[8. Status & next](#8-status--next)
+
 Rutba 2.0 is a clean re-layout of the whole suite around **one distinction**:
 
 - **`consumer/`** — products customers use, *including each product's own admin console*.
