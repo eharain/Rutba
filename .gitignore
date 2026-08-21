@@ -1,0 +1,16 @@
+# The `rutba` meta-repo owns only the estate root. The three tiers are their
+# own git repositories — see REPOS.md for the full repo ⇄ directory map.
+/consumer/
+/workers/
+/management/
+
+node_modules/
+*.log
+
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+.ai/
+.vs/
