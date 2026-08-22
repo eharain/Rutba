@@ -60,17 +60,20 @@ Port bands: ERP line 4000-4099, control plane 4100-4199, other products
 
 ## The repositories
 
-All repos live at `github.com/eharain` and are named `rutba-*`. The directory a
-repo occupies is not its repo name - [REPOS.md](REPOS.md) is the exact map.
+All repos live at `github.com/eharain` and are named `rutba-*` (some capitalized
+on GitHub, e.g. `Rutba-Workers`). The directory a repo occupies is not its repo
+name - [REPOS.md](REPOS.md) is the exact map.
+
+Fourteen of the original repos (the consumer commons, every ERP suite/product,
+and `rutba-auth`) were merged into their parent repo as ordinary tracked
+content on 2026-08-22 and are retired - see REPOS.md's History section.
 
 | Tier | Repos |
 |---|---|
 | Root | [rutba](https://github.com/eharain/rutba) (this repo - records + launchers) |
-| Consumer - engine + glue | [rutba-suite](https://github.com/eharain/rutba-suite) (`consumer/` - the engine), [rutba-commons](https://github.com/eharain/rutba-commons) (`consumer/packages/` - shared packages) |
-| Consumer - ERP suites | [rutba-console](https://github.com/eharain/rutba-console), [rutba-sales](https://github.com/eharain/rutba-sales), [rutba-inventory](https://github.com/eharain/rutba-inventory), [rutba-finance](https://github.com/eharain/rutba-finance), [rutba-people](https://github.com/eharain/rutba-people), [rutba-content](https://github.com/eharain/rutba-content) |
-| Consumer - products | [rutba-relay](https://github.com/eharain/rutba-relay), [rutba-studio](https://github.com/eharain/rutba-studio), [rutba-workspace](https://github.com/eharain/rutba-workspace), [rutba-drive](https://github.com/eharain/rutba-drive), [rutba-mail](https://github.com/eharain/rutba-mail), [rutba-comms](https://github.com/eharain/rutba-comms) |
-| Workers | [rutba-workers](https://github.com/eharain/rutba-workers) (tier root), [rutba-mta](https://github.com/eharain/rutba-mta), [rutba-media](https://github.com/eharain/rutba-media) |
-| Management | [rutba-management](https://github.com/eharain/rutba-management) (tier root), [rutba-portal](https://github.com/eharain/rutba-portal), [rutba-auth](https://github.com/eharain/rutba-auth) |
+| Consumer | [rutba-suite](https://github.com/eharain/rutba-suite) (`consumer/` - engine, commons, and all 12 ERP suites/products) |
+| Workers | [rutba-workers](https://github.com/eharain/Rutba-Workers) (tier root), [rutba-mta](https://github.com/eharain/Rutba-MTA), [rutba-media](https://github.com/eharain/Rutba-Media-FileServer) |
+| Management | [rutba-management](https://github.com/eharain/Rutba-Management) (tier root + `auth/`), [rutba-portal](https://github.com/eharain/rutba-portal) |
 
 ## Quickstart
 
@@ -96,4 +99,4 @@ the backends and apps.
   repo boundaries, and the old -> new map from the previous estate.
 - [MIGRATION.md](MIGRATION.md) - the migration ledger: what moved, what was
   verified, and the known follow-ups.
-- [REPOS.md](REPOS.md) - how the 21 repos assemble into one workspace.
+- [REPOS.md](REPOS.md) - how the 7 repos assemble into one workspace.
