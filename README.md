@@ -44,7 +44,7 @@ flowchart LR
 
 - **Apps talk to the engine.** Every suite app calls the Core engine
   ([consumer/api/core](https://github.com/eharain/rutba-suite)) - a Koa 3 + knex
-  kernel that mounts 19 domain modules from the suite and product repos via one
+  kernel that mounts 20 domain modules from the suite and product repos via one
   fixed manifest, against one MySQL database per instance, with one
   user/permission provider seeded from `@rutba/api-client` descriptors. Legacy
   Strapi runs beside it on the same database and retires tranche by tranche.
