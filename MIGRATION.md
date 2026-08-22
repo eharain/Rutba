@@ -168,3 +168,79 @@ source. Brief: `consumer/docs/todo/core-extension-program.md`.
 strapi-plugins (excluded), JSON-Compress, secure-keystore, nvr, data, Drive/prototype,
 ERP/deploy/strapi-provider-upload-media (duplicate), all build/runtime state (~3.3 GB+),
 tracked junk and secrets per PLAN.md §5.
+
+## Not merged, and why (2026-08-23)
+
+The estate was swept for anything sitting off a mainline: every branch, every
+worktree, every stash, in all six repos. Two things could not simply be merged.
+Both are recorded here rather than in a commit message, because the evidence is
+the point — a deleted branch cannot argue for itself later.
+
+### `origin/feat/media-platform-layer` — deleted, nothing lost
+
+**What it had.** One commit, `b6e3e74` (2026-07-13), 30 files, +4184/−50: the
+DAM platform layer that grew the masters-only image origin into a platform.
+Accounts and RBAC with scrypt passwords and hashed session/API tokens, the audit
+log, the file metadata index (`src/db.js`, `auth.js`, `schema.js`,
+`fileindex.js`, `handlers/api.js`); the console at `/_ui/`; public share links at
+`/_s/<token>` with password, expiry and an atomic download cap; duplicate
+detection by sha256 on upload; EXIF into `file_metadata`; tags and tag search;
+per-user storage quotas; trash and recovery (`src/trash.js`); multi-volume
+storage with a free/fill/route placement policy (`src/storage.js`); ffmpeg
+poster/thumb/transcode and ffprobe metadata; and WebDAV at `/_dav/` with the
+full method set including LOCK/UNLOCK/PROPPATCH.
+
+**Why it could not be merged.** It carries a `Co-Authored-By:` AI attribution
+trailer — the thing the `.githooks/` `commit-msg` and `pre-push` hooks exist to
+reject, and that this estate's history was rewritten on 2026-08-22 to remove.
+Merging it would have reintroduced exactly what was taken out.
+
+**Why nothing had to be rebuilt.** It had already been re-landed on `main` as
+`d2773d5`, the same day, with the trailer stripped and nothing else changed:
+
+| check | result |
+|---|---|
+| tree SHA | `867f5194…` — **identical** on both commits |
+| patch-id | `e6c47a3e…` — **identical** on both commits |
+| `git cherry main <branch>` | `-` (already upstream) |
+
+Eleven commits have built on `d2773d5` since. Verified against today's `main`
+before deleting: 30 of 30 files still present, 53 of 53 exported symbols still
+referenced, and every capability marker (`_api`, `_ui`, `_s/`, `_dav`,
+`STORAGE_VOLUMES`, `PROPFIND`, `PROPPATCH`, `UNLOCK`, `transcode`, `ffprobe`,
+`exif`, `sha256`, `scrypt`, download caps, quotas, trash, audit) still live. The
+branch held no unique work at all; it held a trailer.
+
+Deleted from the remote. Recoverable from the sha above if that is ever doubted,
+though the tree it points at is the tree `main` already has.
+
+### `consumer` worktree `clever-bell-6a2001` — uncommitted delta lost
+
+Removing the worktree needed `--force`, which deleted its uncommitted files
+before they were looked at. Every **commit** survived — the branch tip
+`40a987b` ("docs: mark the paths that will never resolve, and verify-docs runs
+clean") was already fully merged into `dev`, and `dev..40a987b` is empty. The
+two unreachable commits `git fsck` still finds there (`19177bf`, `0a99b7f`) are
+pre-rewrite orphans from the 2026-08-22 consolidation, patch-equivalent to what
+is upstream. Nothing was ever staged, so no blob survives in the object
+database: the working-tree delta is unrecoverable, and it was never seen.
+
+### What the loss actually cost, and what got built back better
+
+One warning, in `workspace/CONTRACT-NOTES.md`: a `verify-docs: runtime`
+directive naming `.ai/worktrees/` that "nothing in this file needed".
+
+Chasing it found a flaw in `verify-docs` rather than a lost edit. `runtime`
+means, in that script's own words, "created when something runs, never present
+in a checkout" — so on the days the directory happens to exist, the claim
+resolves by itself, the directive suppresses nothing, and the stale-suppression
+check calls it dead. The warning therefore fired on whether somebody had run a
+build; and the fix it invited, deleting the directive, breaks the check again
+the moment the directory is cleaned up. Here it fired because the removal left
+an empty `.ai/worktrees/` behind that Windows would not let go of.
+
+An unused `runtime` directive is now only stale when the **prose** has stopped
+citing the path. Still cited and currently present means dormant, and it will be
+needed again; not cited at all means it outlived the text it was excusing, which
+is the thing worth saying. Verified both ways: the tree is clean now, and
+removing the one prose mention while keeping the directive still warns.
