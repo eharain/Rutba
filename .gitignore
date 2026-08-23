@@ -13,5 +13,6 @@ node_modules/
 !.env.example
 !.env.*.example
 
+# Agent scratch and per-machine settings.
 .ai/
 .vs/
