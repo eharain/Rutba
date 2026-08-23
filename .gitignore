@@ -3,6 +3,7 @@
 /consumer/
 /workers/
 /management/
+/native-apps/
 
 node_modules/
 *.log
