@@ -68,6 +68,18 @@ git clone https://github.com/eharain/rutba-portal.git management/portal
 git clone https://github.com/eharain/rutba-native-apps.git native-apps
 ```
 
+Then, in every repo just cloned (the root included), point git at the versioned
+guardrail hooks — they reject any AI-tool footprint in identities, messages,
+file names or content, at commit time and again at push time:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+(The child repos with a `package.json` do this themselves via their `prepare`
+script; running it by hand covers the root and any repo before its first
+`npm install`. This machine also carries the same hooks globally.)
+
 Then: put the `.env` files in place (they are never committed — estate root `.env`,
 `consumer/.env*`, `consumer/relay/**/.env`), and run installs via the devkit
 (`consumer/devkit`, registry at `management/devkit/services.json`).
