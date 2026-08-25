@@ -1,14 +1,20 @@
 # Rutba 2.0 — The Plan
 
-**Date:** 2026-08-21 · **Source estate:** `D:\Rutba` (17 git repos) · **Target:** `D:\Rutba2.0`
+**Written:** 2026-08-21 · **Status reviewed:** 2026-08-25 · **Source estate:** `D:\Rutba` (17 git repos) · **Target:** `D:\Rutba2.0`
+
+This is the **design record** for the 2.0 layout — kept as written where it still describes
+the estate, corrected where the estate moved past it. §4 and §8 carry the live status;
+[REPOS.md](REPOS.md) is the authority on which repo owns which directory, and the working
+tree outranks both.
 
 **Contents:**
 [1. The line-up](#1-the-line-up) ·
 [2. One pattern, one tech](#2-one-pattern-one-tech) ·
-[3. The ERP line](#3-the-erp-line--engine--suites)
+[3. The consumer line](#3-the-consumer-line--engine--app-groups)
 ([3a-pre. Backend decisions](#3a-pre-backend-decisions-for-the-planned-services-decided-2026-08-22) ·
-[3a. Consolidated consumer auth](#3a-consolidated-consumer-auth-the-console-suite) ·
-[3b. The workers tier](#3b-the-workers-tier)) ·
+[3a. Consolidated consumer auth](#3a-consolidated-consumer-auth-the-admin-group) ·
+[3b. The workers tier](#3b-the-workers-tier) ·
+[3c. What a customer buys](#3c-what-a-customer-buys-listings-modules-engines)) ·
 [4. The platform APIs](#4-the-platform-apis-collected-management-side) ·
 [5. Old-to-new map](#5-old--new-map) ·
 [6. Copy rules](#6-copy-rules-applied) ·
@@ -22,10 +28,11 @@ Rutba 2.0 is a clean re-layout of the whole suite around **one distinction**:
   billing, provisioning, shared platform libraries, infrastructure, and developer tooling.
 
 The one deliberate addition beside those two is **`workers/`** — background processors that
-serve many products rather than belonging to one (see §3b). "ERP" is no longer an app: the
-old ERP is broken into a **line-up of consumer suites** (sales, inventory, finance, people,
-content, console) that share one backend **engine**. Every suite repo has the same shape as
-every other consumer product.
+serve many products rather than belonging to one (see §3b). "ERP" is no longer a product and
+no longer an app: the old monolith is broken into **many apps in their groups** (sales,
+inventory, people, finance, content, admin, workspace) that share one backend **engine**.
+Customers buy individual listings, not "the ERP" — see §3c. Every app group has the same
+shape as every standalone product.
 
 **Ground rules (agreed):**
 
@@ -41,7 +48,7 @@ every other consumer product.
    full map in §8; the old `Rutba-*`/bare-name repos stay behind, archived. The consumer
    line's public name is **Rutba Suite**; `consumer/` stays the directory name (it names the
    role, beside `workers/` and `management/`).
-5. **Ports.** The band plan stays law: ERP-line 4000–4099, control plane 4100–4199, other
+5. **Ports.** The band plan stays law: consumer app line 4000–4099, control plane 4100–4199, other
    products 4200–4299. The devkit registry wins over stale per-repo defaults (known drift:
    Auth 4001→4101; Studio 4021/Workspace 4062/Comms 4051 source claims vs chart).
 
@@ -53,36 +60,36 @@ every other consumer product.
 D:\Rutba2.0\
 ├── consumer\                # ══ what customers buy and use ══
 │   │
-│   │   # ── the ERP line: six suites on one engine, engine at the consumer level ──
+│   │   # ── the app groups: many apps on one engine, engine at the consumer level ──
 │   ├── api\                 the ENGINE — core kernel, platform services,
 │   │                               legacy/strapi (retiring), packages/{strapi-api-pro,…}
 │   ├── devkit\              dev + deploy tooling — scripts/, dev.cmd, the backend scripts manifest
 │   ├── config\              apps.manifest.json — the single source for app identity
-│   ├── docs\  infra\        ERP-line documentation · deploy assets + docker build
+│   ├── docs\  infra\        consumer-line documentation · deploy assets + docker build
 │   │                        (api+devkit+config+docs+infra + root files = the rutba-suite repo)
-│   ├── packages\            (repo rutba-commons) the consumer commons — ui, api-client,
+│   ├── packages\            the consumer commons — ui, api-client,
 │   │                               video, sync, marketplace-engine, interactions, …
-│   ├── console\             (repo) admin suite — console, login shell, seed runner
+│   ├── console\             the admin group — console, login shell, seed runner
 │   │                               + api/{auth,user-mgmt}: the consolidated consumer auth
-│   ├── sales\               (repo) crm, helpdesk, marketplace, orders, portal, pos, rider
+│   ├── sales\               crm, helpdesk, marketplace, orders, portal, pos, rider
 │   │                               + api/{crm,helpdesk,marketplace,sale-stock}
-│   ├── inventory\           (repo) control, manufacturing, stock
+│   ├── inventory\           control, manufacturing, stock
 │   │                               + api/{catalog,inventory,mfg}
-│   ├── finance\             (repo) accounts, payroll (+ api/ as acc/pay leave Strapi)
-│   ├── people\              (repo) hr, ess + api/hr
-│   ├── content\             (repo) campaigns, cms, mail, social, storefront
+│   ├── finance\             accounts, payroll (+ api/ as acc/pay leave Strapi)
+│   ├── people\              hr, ess + api/hr
+│   ├── content\             campaigns, cms, mail, social, storefront
 │   │                               + api/{campaigns,cms-social,mail}
 │   │
 │   │   # ── standalone products ──
-│   ├── relay\               (repo) Social Relay — publish API + console + web + MCP + sdk
-│   ├── studio\              (repo) video/image editors + creative libraries
-│   ├── workspace\           (repo) docs & sheets with live ERP data bindings
-│   ├── drive\               (repo) end-user file storage (SDK-first)
-│   ├── mail\                (repo) hosted org mailboxes + client (Mailcow pilot live)
-│   └── comms\               (repo) chat / meet / calls
+│   ├── relay\               Social Relay — publish API + console + web + MCP + sdk
+│   ├── studio\              video/image editors + creative libraries
+│   ├── workspace\           docs & sheets with live business-data bindings
+│   ├── drive\               end-user file storage (SDK-first)
+│   ├── mail\                hosted org mailboxes + client (Mailcow pilot live)
+│   └── comms\               chat / meet / calls
 │
 ├── workers\                 # ══ background processors serving many products ══
-│   ├── mta\                 (repo) multi-tenant outbound email relay (standalone OSS;
+│   ├── mta\                 (repo rutba-mta) multi-tenant outbound email relay (standalone OSS;
 │   │                               was consumer/mta, port 4210 unchanged)
 │   ├── media\               (repo rutba-media ← Rutba-Media-FileServer) media file server (production, port 4220; API responder
 │   │                               + URL fetch + background jobs — disk-heavy, kept where
@@ -99,9 +106,9 @@ D:\Rutba2.0\
 │   └── package.json         the workers shelf (mta and media keep their own installs)
 │
 └── management\              # ══ what Rutba runs centrally ══
-    ├── portal\              (repo) control plane: api/{gateway,organization,license,billing,
+    ├── portal\              (in rutba-management) control plane: api/{gateway,organization,license,billing,
     │                               provisioning,support,analytics} + apps/web + super console
-    ├── auth\                (repo) global identity provider — OIDC/SSO at auth.rutba.io
+    ├── auth\                (in rutba-management) identity — the Directory + realm auth
     ├── platform\            (in rutba-management) shared foundation: @rutba/* packages + @rutba/contracts
     ├── infra\               (in rutba-management) Terraform, Kubernetes, CI/CD, monitoring
     └── devkit\              (in rutba-management) services.json registry, lazy gateway, doctor, env merger
@@ -113,7 +120,7 @@ Boundary marker (Platform's own rule): consumer code imports `@rutba/portal-auth
 
 ## 2. One pattern, one tech
 
-Every repo follows the shape the ERP restructure proved out:
+Every repo follows the shape the pre-2.0 restructure proved out:
 
 ```
 <repo>\
@@ -125,7 +132,7 @@ Every repo follows the shape the ERP restructure proved out:
 └── .gitignore  README.md
 ```
 
-**The consumer app standard** (set by the ERP apps, adopted estate-wide as porting proceeds):
+**The consumer app standard** (set by the oldest app groups, adopted estate-wide as porting proceeds):
 Next.js pages router + `@rutba/ui` UI + **descriptor-driven API clients in the
 `@rutba/api-client` pattern** — every endpoint a descriptor with `meta.domains`/`meta.roles`,
 clients generated from descriptors, RBAC seeded from the same source. Standalone products
@@ -133,7 +140,7 @@ clients generated from descriptors, RBAC seeded from the same source. Standalone
 studio, workspace…) keep their own APIs and are ported toward this pattern where
 possible, not heroically (`media` and `mta` keep their working CommonJS internals).
 
-## 3. The ERP line — engine + suites
+## 3. The consumer line — engine + app groups
 
 The old ERP was one repo: 22 apps, a Strapi monolith (182 content types), and a replacement
 Koa core (~505 routes in domain tranches). The engine repo has since been **dissolved into
@@ -162,19 +169,27 @@ Workspace's format-neutral trio `drawing`, `doc-view`, `editing`, plus `video` (
 browser-engine renderer shared with Studio) and `sync` (the offline/online replication
 engine behind the Electron desktop builds of POS, mail and the social/video editors).
 
-**The six suites** own their apps AND their domain APIs (module directories mounted by the
-engine — one process, one database today; per-suite services become possible later):
+**The app groups** own their apps AND their domain APIs (module directories mounted by the
+engine — one process, one database today; per-group services become possible later). A group
+is a directory and a launcher category, not a product: nothing is sold by the group name, and
+the seven categories below are exactly those declared in `config/apps.manifest.json`.
 
-| Suite | Apps | Owns api/ | Entitlements |
+| Group | Apps (24 total) | Owns api/ | Module keys |
 |---|---|---|---|
-| sales | crm, helpdesk, marketplace, orders, portal, pos, rider | crm, helpdesk, marketplace, sale-stock | erp.crm, erp.helpdesk, erp.orders, erp.pos, erp.leads/quotes, erp.delivery |
+| sales | crm, helpdesk, marketplace, orders, portal, pos, rider | crm, helpdesk, marketplace, sale-stock | erp.crm, erp.helpdesk, erp.orders, erp.pos, erp.leads, erp.quotes, erp.delivery |
 | inventory | control, manufacturing, stock | catalog, inventory, mfg | erp.warehousing, erp.mrp, erp.stock |
-| finance | accounts, payroll | (arrives with acc/pay tranches) | erp.gl, erp.ap-ar, erp.payroll |
-| people | hr, ess | hr | erp.hr, erp.ess |
+| finance | accounts, payroll | (arrives with acc/pay tranches) | erp.gl, erp.ap-ar |
+| people | hr, ess | hr | erp.hr, erp.ess, erp.payroll |
 | content | campaigns, cms, mail, social, storefront | campaigns, cms-social, mail | erp.campaigns, erp.cms, erp.social, erp.storefront |
-| console | console, auth, seed | **auth, user-mgmt** | instance-internal |
+| admin | console, auth, seed | **auth, user-mgmt** | instance-internal |
+| workspace | workspace, comms | workspace, chat, calendar, meet, calls | workspace.docs, workspace.sheets, comm.chat, comm.meet, comm.calls |
 
-Suites share `@rutba/ui` and `@rutba/api-client` from the consumer commons
+The standalone products — relay, studio, drive and the hosted mail service — sit beside the
+groups with the same shape (`apps/`, `api/`, own module keys: `social.relay`, `social.studio`,
+`drive.files`, `comm.mail`). They are not a second class of thing; the only difference is that
+no launcher category collects them.
+
+Groups share `@rutba/ui` and `@rutba/api-client` from the consumer commons
 (`consumer/packages/*`); their only engine coupling is the runtime mount.
 `consumer/config/apps.manifest.json` is the single authority (the backend enforces
 entitlements from it) with workspace paths relative to the consumer root
@@ -185,7 +200,7 @@ entitlements from it) with workspace paths relative to the consumer root
 **One system. Core is the answer.** Running two data engines means managing permissions
 twice; under one system it becomes easy. The consumer instance runs a single relational
 engine (MySQL today) with **one user/permission provider** — core's identity + the
-descriptor-seeded policy, administered by the console suite — consumed by every app group.
+descriptor-seeded policy, administered by the admin group's console — consumed by every app group.
 "Even for quite some time, if it stays single it won't kill anything."
 
 - **Postgres is removed from the consumer instance.** The two shipped consumer-side pg
@@ -210,7 +225,7 @@ descriptor-seeded policy, administered by the console suite — consumed by ever
   there is no second instance to justify it. The kernel/platform/module seams stay
   visible so extraction remains cheap if scale ever demands it.
 
-### 3a. Consolidated consumer auth (the console suite)
+### 3a. Consolidated consumer auth (the admin group)
 
 All consumer-app authentication is brought together in `consumer/console`:
 
@@ -225,13 +240,13 @@ All consumer-app authentication is brought together in `consumer/console`:
   `consumer/api/platform/src/identity.js`: login federates there, roles/entitlements arrive as
   token claims, SCIM syncs membership. The console's users DB is the consumer instance's
   membership + permission store, not a second identity source.
-- Physically separating the users DB from the shared ERP database is runtime work scheduled
+- Physically separating the users DB from the shared consumer database is runtime work scheduled
   with the Strapi retirement (the tables are Strapi-owned today).
 
 ### 3b. The workers tier
 
-Consumer apps head toward **per-suite databases**; a background processor that crosses
-suites, products, or tenants from one long-running process would anchor that split, so those
+Consumer apps head toward **per-group databases**; a background processor that crosses
+groups, products, or tenants from one long-running process would anchor that split, so those
 live on the estate **`workers/`** tier instead. What moved there: the **MTA** (whole product,
 was `consumer/mta`, port 4210 unchanged), the **marketplace sync worker** (extracted from
 `consumer/sales/apps/marketplace`; its engine became the commons package
@@ -243,19 +258,55 @@ engine's cron registry (`consumer/api/platform`), legacy Strapi's publish worker
 with E6), and the portal's transactional outbox. `workers/package.json` is the tier's npm
 shelf; `workers/mta` keeps its own self-contained install.
 
+### 3c. What a customer buys — listings, modules, engines
+
+Nothing in the estate is sold as "the ERP", and no app group is a product. Three separate
+vocabularies carry the weight, defined together in
+`management/portal/api/billing/migrations/001_plans.sql`:
+
+| Term | What it names | Examples |
+|---|---|---|
+| `product_key` | what you **buy** — the listing | `crm`, `mail`, `inventory`, `people`, `books` |
+| `entitlements.modules` | what you may **use** — per app | `erp.crm`, `erp.leads`, `comm.mail`, `workspace.docs` |
+| `provision_product` | what **runs** it — the engine | `erp` |
+
+19 listings and 41 plans are generated into `005_plans_seed.sql` from the same public catalog
+the shop window reads, so the till and the shop window cannot open the day disagreeing. The
+listings are `crm`, `marketing`, `commerce`, `inventory`, `orders`, `manufacturing`, `people`,
+`books`, `mail`, `drive`, `docs`, `chat`, `meet`, `calls`, `send`, `media`, `social`, `studio`
+and `vision`.
+
+One purchase can light several apps: `crm.growth` is `product_key: crm` granting
+`["erp.crm","erp.leads","erp.quotes","erp.helpdesk"]` on the `erp` engine — four sales apps
+from one listing. The `erp.` prefix on module keys is a legacy namespace, not evidence of one
+product; the newer groups never took it (`comm.*`, `workspace.*`, `drive.*`, `social.*`).
+
+**Why the granularity is load-bearing.** Licences and suspensions are keyed
+`(org_id, product_key)`. Suspending a customer’s `crm` listing darkens its four sales apps
+and leaves their `mail` listing running. Modelling the estate as one "ERP" licence would turn
+every billing problem into an estate-wide outage for that customer.
+
+The gate itself lives once, in `consumer/api/platform`, keyed on the `x-rutba-app` header. It
+is the estate’s gate, shared by every app — not any one app’s gate. `erp`, `mta` and `nvr`
+survive as licence *profiles* in `license/migrations/003` for legacy and infrastructure use;
+real customer licences use the per-listing profiles from `004`.
+
 ## 4. The platform APIs, collected (management side)
 
-| Service | Port | Status |
+| Service | Port | Status (verified against the tree 2026-08-25) |
 |---|---|---|
 | portal api/gateway | 4100 | built |
-| auth (own repo) | 4101 | built (M1–M6) |
-| portal api/organization | 4102 | built, most mature |
-| portal api/license | 4103 | planned |
-| portal api/billing | 4104 | planned |
-| portal api/provisioning | 4105 | in progress |
-| portal api/support | 4106 | planned |
-| portal api/analytics | 4107 | planned |
-| portal apps/web + super console | 4110 | specs only |
+| auth (`management/auth`) | 4101 | built — Directory + realm auth (M1–M6) |
+| portal api/organization | 4102 | built |
+| portal api/license | 4103 | built — profiles, gate, suspension by `(org_id, product_key)` |
+| portal api/billing | 4104 | built — 7 migrations, 19 listings / 41 plans seeded, invoices, outbox |
+| portal api/provisioning | 4105 | built — the largest service in the tier |
+| portal api/support | 4106 | **scaffold only** — directory exists, no source |
+| portal api/analytics | 4107 | **scaffold only** — directory exists, no source |
+| portal apps/web + console | 4110 | built — public site and super console both ship pages |
+
+Support and analytics are the two remaining gaps; everything else in the tier is running
+code. `auth/` and `portal/` are directories of `rutba-management`, not separate repos.
 
 ## 5. Old → new map
 
@@ -341,7 +392,10 @@ Excluded everywhere: `node_modules`, `.git`, `.ai`, `.next`, `dist`, `build`, `c
   | `management/portal` · `management/auth` | `rutba-portal` · `rutba-auth` |
   | `management/` root + `platform`, `infra`, `devkit` | `rutba-management` |
 
-  21 repos total (19 fresh + 2 connected). The consumer line's public name is **Rutba
+  21 repos total (19 fresh + 2 connected) — *the count as decided that day.* Consolidation
+  since has taken it to **seven**: the app groups and products folded into `rutba-suite`,
+  `rutba-auth` and `rutba-portal` into `rutba-management`. See REPOS.md for the live map.
+  The consumer line's public name is **Rutba
   Suite** — hence `rutba-suite` for its engine repo; the `consumer/` directory name stays
   (role, not brand).
 
@@ -360,7 +414,20 @@ Excluded everywhere: `node_modules`, `.git`, `.ai`, `.next`, `dist`, `build`, `c
   `strapi-provider-upload-webdav`, `JSON-Compress`, `tech-style.co`, `TrustList`,
   `Trustlist-Intelligence`. (Local-only leftover: `strapi-remote-backup-pro` at the same
   old-estate path — its online repo was deleted in the cleanup.)
-- **Next (not this session):** `git init` + first commits; installs via devkit; live parity
-  smoke against databases; Strapi tranche retirement; users-DB physical separation (§3a);
-  port-drift fixes; per-suite Dockerfiles; porting standalone products' frontends to the
-  consumer app standard (§2).
+- **Landed since (2026-08-22 → 08-25).** All seven repos exist on `github.com/eharain`, are
+  pushed, and carry the versioned guardrail hooks in `.githooks/` — enforced over four
+  surfaces (identity, message, file names, file content) at commit and again at push. The
+  repo consolidation above happened. On the management side the control plane went from
+  three built services to seven: `license` and `billing` are running code (7 billing
+  migrations; 19 listings and 41 plans seeded from the public catalog), `provisioning` is the
+  largest service in the tier, and `apps/web` + the super console both ship pages. Consumer
+  side: hosted mail gained licensed mailbox allocation, DNS-gated domain verification
+  (MX/SPF/DKIM) and a lifecycle/quota admin surface; Studio landed its creative toolset and
+  editor app. `native-apps/` was split out as the seventh repo, taking the offline sync
+  framework and the desktop program docs with it.
+
+- **Still open.** `portal api/support` and `portal api/analytics` are empty scaffolds — the
+  two remaining gaps in the tier. Strapi tranche retirement continues; the users-DB physical
+  separation (§3a) is still scheduled with it. Per-group Dockerfiles, the port-drift fixes,
+  and porting the standalone products’ frontends to the consumer app standard (§2) are
+  unstarted. Live parity smoke against real databases has not been run.

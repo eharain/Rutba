@@ -2,8 +2,13 @@
 
 Legend: ☑ done · ✔ done and verified
 
+A **frozen ledger** of the 2026-08-21→25 move out of `D:\Rutba`, kept for the record.
+It says what moved and what was verified at the time; it is not a description of the estate
+today. For that, read [README.md](README.md) and [REPOS.md](REPOS.md). Where this file says
+"suite", the current word is **app group** — and no group is a product: see PLAN.md §3c.
+
 **Contents:**
-[Consumer - the ERP line](#consumer--the-erp-line-engine--six-suites) ·
+[Consumer - the engine and app groups](#consumer--the-engine-and-its-app-groups) ·
 [Consumer - standalone products](#consumer--standalone-products) ·
 [Workers tier](#workers-tier-extracted-after-the-consumer-pass) ·
 [Core extension program](#core-extension-program-2026-08-22--one-system-all-consumer-apps-on-core) ·
@@ -12,7 +17,7 @@ Legend: ☑ done · ✔ done and verified
 [Known follow-ups](#known-follow-ups-deliberate-not-blockers) ·
 [Left behind](#left-behind-in-drutba-deliberate)
 
-## Consumer — the ERP line (engine + six suites)
+## Consumer — the engine and its app groups
 
 | Repo | Status | Notes |
 |---|---|---|
