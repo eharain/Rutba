@@ -22,7 +22,8 @@ Two known exceptions so far:
   touching a package's LICENSE. Known examples: `strapi-provider-upload-webdav`,
   `json-compress` (all 6 language ports), `pgrecon`, `secure-keystore-js`.
   These are intentionally MIT/Apache-2.0 and listed publicly as such; they
-  are a different business decision from the ERP/media/MTA/plugin suite.
+  are a different business decision from the consumer line, media, MTA and the
+  commercial plugins.
 
 If in doubt, ask rather than assume.
 

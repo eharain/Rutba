@@ -99,7 +99,7 @@ D:\Rutba2.0\
 │   ├── relay\               the Relay's delivery workers — own API + queueing; the publish
 │   │                               handoff target for content/social and studio (code runs
 │   │                               from consumer/relay until the engine librarifies)
-│   ├── interactions\        comms → ERP Core outbox drainer (@rutba/interactions-worker;
+│   ├── interactions\        comms → consumer Core outbox drainer (@rutba/interactions-worker;
 │   │                               the queue half stays in-product via @rutba/interactions)
 │   ├── studio-render\       (scaffold) Studio render-queue consumers
 │   ├── drive-processing\    (scaffold) Drive thumbnails/previews/AV-scan hook
