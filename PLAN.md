@@ -303,7 +303,7 @@ real customer licences use the per-listing profiles from `004`.
 | portal api/provisioning | 4105 | built — the largest service in the tier. No Kubernetes driver, so dedicated instances cannot complete |
 | portal api/support | 4106 | **scaffold only** — directory exists, no source |
 | portal api/analytics | 4107 | **scaffold only** — directory exists, no source |
-| portal apps/web + console | 4110 | built — 23 routes. Three of the seven specified portal pages exist |
+| portal apps/web + console | 4110 | built — 24 routes. Three of the seven specified portal pages exist, plus an index of every app the family ships |
 
 Support and analytics are the two remaining gaps; everything else in the tier is running
 code. `auth/` and `portal/` are directories of `rutba-management`, not separate repos.
