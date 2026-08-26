@@ -1,7 +1,7 @@
 # Rutba
 
 One business-software estate, three tiers, seven git repositories. The consumer
-line ships publicly as **Rutba Suite**: two dozen business apps in seven groups
+line ships publicly as **Rutba Suite**: twenty-five business apps in seven groups
 - sales, inventory, people, finance, content, admin and workspace - sharing one
 backend engine, one database per instance and one user/permission provider.
 Background processors that serve many products live on the workers tier; the
@@ -25,7 +25,7 @@ into place - no submodules.
 ```mermaid
 flowchart LR
     subgraph consumer ["consumer/ - Rutba Suite"]
-        apps["~24 apps in 7 groups (Next.js)"]
+        apps["25 apps in 7 groups (Next.js)"]
         core["Core engine<br/>Koa 3 + knex kernel"]
         strapi["Legacy Strapi<br/>(retiring)"]
         db[("MySQL<br/>one DB per instance")]
@@ -78,9 +78,12 @@ this section exists to prevent. They are defined together in
 | `entitlements.modules` | what you may **use** - per app | `erp.crm`, `erp.leads`, `comm.mail`, `workspace.docs` |
 | `provision_product` | what **runs** it - the engine | `erp` |
 
-There are 19 listings and 41 plans, generated into
-`api/billing/migrations/005_plans_seed.sql` from the same public catalog the shop
-window reads, so the two cannot open the day disagreeing. One purchase can light
+There are **19 listings and 60 plans** — 41 of them priced, the other 19 the
+Custom tiers that go to a conversation rather than a checkout — plus six
+bundles, generated into `api/billing/migrations/005_plans_seed.sql` from the
+same public catalog the shop window reads, so the two cannot open the day
+disagreeing. Between them those listings ship **27 apps**: a listing is what you
+subscribe to, and several carry more than one. One purchase can light
 several apps: `crm.growth` is `product_key: 'crm'` granting
 `["erp.crm","erp.leads","erp.quotes","erp.helpdesk"]` on the `erp` engine - four
 sales apps from one listing.

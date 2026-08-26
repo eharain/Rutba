@@ -293,17 +293,17 @@ real customer licences use the per-listing profiles from `004`.
 
 ## 4. The platform APIs, collected (management side)
 
-| Service | Port | Status (verified against the tree 2026-08-25) |
+| Service | Port | Status (verified against the tree 2026-08-27) |
 |---|---|---|
 | portal api/gateway | 4100 | built |
 | auth (`management/auth`) | 4101 | built — Directory + realm auth (M1–M6) |
 | portal api/organization | 4102 | built |
-| portal api/license | 4103 | built — profiles, gate, suspension by `(org_id, product_key)` |
-| portal api/billing | 4104 | built — 7 migrations, 19 listings / 41 plans seeded, invoices, outbox |
-| portal api/provisioning | 4105 | built — the largest service in the tier |
+| portal api/license | 4103 | built — profiles, gate, seat/quota measurement, suspension by `(org_id, product_key)`, usage forwarded to billing |
+| portal api/billing | 4104 | built — 7 migrations, 19 listings / 41 priced plans seeded, subscriptions, renewal sweep, invoices, **metered usage priced onto them**, outbox. No card processor |
+| portal api/provisioning | 4105 | built — the largest service in the tier. No Kubernetes driver, so dedicated instances cannot complete |
 | portal api/support | 4106 | **scaffold only** — directory exists, no source |
 | portal api/analytics | 4107 | **scaffold only** — directory exists, no source |
-| portal apps/web + console | 4110 | built — public site and super console both ship pages |
+| portal apps/web + console | 4110 | built — 23 routes. Three of the seven specified portal pages exist |
 
 Support and analytics are the two remaining gaps; everything else in the tier is running
 code. `auth/` and `portal/` are directories of `rutba-management`, not separate repos.
@@ -426,8 +426,31 @@ Excluded everywhere: `node_modules`, `.git`, `.ai`, `.next`, `dist`, `build`, `c
   editor app. `native-apps/` was split out as the seventh repo, taking the offline sync
   framework and the desktop program docs with it.
 
+- **Landed since (2026-08-25 → 08-27).** Management: billing closed the metering loop —
+  License measures usage and forwards it, Billing prices it against the plan's overage
+  rule and the renewal sweep puts it on the invoice, with every branch that cannot work
+  out a cost recording nothing and saying which fact was missing. The customer sees a
+  usage charge before the invoice does, for closed periods only. Consumer: **Workspace**
+  became the most-built product in the estate — both editors on our own OOXML engine,
+  `.docx`/`.xlsx` with nothing lost on a round trip, 126 spreadsheet functions,
+  co-editing, and a public sandbox that needs no account; **Studio** landed PPTX
+  interchange, data binding and its render worker on the workers tier; **Comms** shipped
+  one shell for chat, meet and calls; **Drive** started serving bytes as a core module.
+  The public catalogue was corrected to match: Docs & Sheets and Chat moved to early
+  access, and Meet, Calls and Drive each say which half of them is already running.
+
 - **Still open.** `portal api/support` and `portal api/analytics` are empty scaffolds — the
-  two remaining gaps in the tier. Strapi tranche retirement continues; the users-DB physical
-  separation (§3a) is still scheduled with it. Per-group Dockerfiles, the port-drift fixes,
-  and porting the standalone products’ frontends to the consumer app standard (§2) are
-  unstarted. Live parity smoke against real databases has not been run.
+  two remaining gaps in the tier, and nothing takes a card payment. Strapi tranche
+  retirement continues; the users-DB physical separation (§3a) is still scheduled with it.
+  Per-group Dockerfiles, the port-drift fixes, and porting the standalone products’
+  frontends to the consumer app standard (§2) are unstarted. Live parity smoke against
+  real databases has not been run. No production environment exists anywhere in the
+  estate, so every performance and uptime figure in these documents is a target nothing
+  has measured. The comm apps' code audit of 2026-08-27 left five P0 defects open; they
+  are itemised in `consumer/comms/PLAN.md` and `consumer/mail/PLAN.md`, not here.
+
+- **A trap worth knowing about.** A corrected price or product status cannot reach a
+  database that already holds the catalogue: the seed generator rewrites an applied
+  migration, that migration is `INSERT … ON CONFLICT DO NOTHING`, and the runner refuses
+  a migration whose checksum changed. Free while no database here has to survive.
+  Written up in `management/portal/REMAINING.md`.
