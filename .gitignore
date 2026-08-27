@@ -16,3 +16,8 @@ node_modules/
 # Agent scratch and per-machine settings.
 .ai/
 .vs/
+
+# Working notes and deployment write-ups kept on this machine only. Operational
+# detail about the live estate — hostnames, ports, patch lists — belongs on the
+# box it describes (/opt/rutba/DEPLOYMENT-README.md), not in a public repo.
+.local/
