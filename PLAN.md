@@ -293,7 +293,7 @@ real customer licences use the per-listing profiles from `004`.
 
 ## 4. The platform APIs, collected (management side)
 
-| Service | Port | Status (verified against the tree 2026-08-27) |
+| Service | Port | Status (verified against the tree 2026-09-01) |
 |---|---|---|
 | portal api/gateway | 4100 | built |
 | auth (`management/auth`) | 4101 | built — Directory + realm auth (M1–M6) |
@@ -301,12 +301,13 @@ real customer licences use the per-listing profiles from `004`.
 | portal api/license | 4103 | built — profiles, gate, seat/quota measurement, suspension by `(org_id, product_key)`, usage forwarded to billing |
 | portal api/billing | 4104 | built — 7 migrations, 19 listings / 41 priced plans seeded, subscriptions, renewal sweep, invoices, **metered usage priced onto them**, outbox. No card processor |
 | portal api/provisioning | 4105 | built — the largest service in the tier. No Kubernetes driver, so dedicated instances cannot complete |
-| portal api/support | 4106 | **scaffold only** — directory exists, no source |
-| portal api/analytics | 4107 | **scaffold only** — directory exists, no source |
-| portal apps/web + console | 4110 | built — 24 routes. Three of the seven specified portal pages exist, plus an index of every app the family ships |
+| portal api/support | 4106 | **built through M4** — the Rutba↔tenant channel: feedback up from the consumer apps, announcements down onto their dashboards, a reply path, and the staff API. Unit tests only. **Ticketing is not built** and waits on org zero |
+| portal api/analytics | 4107 | **not started** — directory exists, no source. The one service in the tier with none |
+| portal apps/web + console | 4110 | built — 32 routes, plus `apps/partners` on partners.rutba.io. Three of the seven specified portal pages exist and Support Center is half there |
 
-Support and analytics are the two remaining gaps; everything else in the tier is running
-code. `auth/` and `portal/` are directories of `rutba-management`, not separate repos.
+Analytics is the last service with no source in it; everything else in the tier is
+running code, though nothing has run end to end against a database. `auth/` and
+`portal/` are directories of `rutba-management`, not separate repos.
 
 ## 5. Old → new map
 
@@ -439,15 +440,48 @@ Excluded everywhere: `node_modules`, `.git`, `.ai`, `.next`, `dist`, `build`, `c
   The public catalogue was corrected to match: Docs & Sheets and Chat moved to early
   access, and Meet, Calls and Drive each say which half of them is already running.
 
-- **Still open.** `portal api/support` and `portal api/analytics` are empty scaffolds — the
-  two remaining gaps in the tier, and nothing takes a card payment. Strapi tranche
+- **Landed since (2026-08-27 → 09-01).** The largest run in the estate's history, in four
+  places at once.
+
+  **The finance group became a bookkeeping line.** The books program ran M0 to M15 in a
+  single stretch and is complete: a new `books` app at `finance/apps/books` (:4024) beside
+  accounts and payroll, the group's first core-mounted module at `finance/api/books` with
+  85 routes and four nightly crons, and the whole of double-entry practice on top of the
+  ledger that already existed — invoices and bills with per-line tax, receipts and supplier
+  payments, credit notes, bank statements read in whatever format a bank emits
+  (CAMT.053, MT940, OFX/QFX, CSV) and reconciliation that must reach zero, payment runs
+  exported under a build/approve/export/settle discipline, recurring invoices, a collections
+  ladder, fixed assets, budgets and variance, cost centres and projects, foreign-currency
+  revaluation, three-way match, quotes, and delivery from the org's own mailbox. Proof is
+  `smoke-books.js`: **252 checks** against a live database. Nothing in it sends money — a
+  payment run produces bytes for a person to hand to their bank.
+
+  **A channel between Rutba and its tenants.** `portal/api/support` stopped being a
+  `.gitkeep`: feedback travels up from the consumer apps, announcements travel down onto
+  their dashboards, and a reply path makes it a loop rather than a broadcast. Plan 15,
+  M1–M4, unit tests only.
+
+  **Workspace kept going.** Conditional formatting, tables with structured references,
+  dynamic-array spill, the Scenario Manager, frozen panes, autofilter and calculated
+  columns, pivot nesting, comments and tracked changes on the document side, print, and
+  autosave with a draft slot.
+
+  **The comm apps' P0 defects were fixed** — the audit of 2026-08-27 is closed out in
+  `consumer/comms/PLAN.md` rather than standing open.
+
+  **It containerises.** The suite build was taken through a real deployment and the eight
+  defects that first run hit.
+
+- **Still open.** `portal api/analytics` is the one service in the tier with no source in
+  it, and nothing takes a card payment. Strapi tranche
   retirement continues; the users-DB physical separation (§3a) is still scheduled with it.
   Per-group Dockerfiles, the port-drift fixes, and porting the standalone products’
   frontends to the consumer app standard (§2) are unstarted. Live parity smoke against
   real databases has not been run. No production environment exists anywhere in the
   estate, so every performance and uptime figure in these documents is a target nothing
-  has measured. The comm apps' code audit of 2026-08-27 left five P0 defects open; they
-  are itemised in `consumer/comms/PLAN.md` and `consumer/mail/PLAN.md`, not here.
+  has measured. On the management side nothing has run end to end: the migrations have
+  never touched a database and every green check there is a unit test or a compile.
+  Ticketing (plan 07) is blocked on org zero, which is blocked on the provisioning driver.
 
 - **A trap worth knowing about.** A corrected price or product status cannot reach a
   database that already holds the catalogue: the seed generator rewrites an applied
