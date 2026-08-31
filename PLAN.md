@@ -1,6 +1,6 @@
 # Rutba 2.0 — The Plan
 
-**Written:** 2026-08-21 · **Status reviewed:** 2026-08-25 · **Source estate:** `D:\Rutba` (17 git repos) · **Target:** `D:\Rutba2.0`
+**Written:** 2026-08-21 · **Status reviewed:** 2026-09-01 · **Source estate:** `D:\Rutba` (17 git repos) · **Target:** `D:\Rutba2.0`
 
 This is the **design record** for the 2.0 layout — kept as written where it still describes
 the estate, corrected where the estate moved past it. §4 and §8 carry the live status;
