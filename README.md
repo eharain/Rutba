@@ -1,7 +1,7 @@
 # Rutba
 
 One business-software estate, three tiers, seven git repositories. The consumer
-line ships publicly as **Rutba Suite**: twenty-six business apps in seven groups
+line ships publicly as **Rutba Suite**: thirty-four business apps in seven groups
 - sales, inventory, people, finance, content, admin and workspace - sharing one
 backend engine, one database per instance and one user/permission provider.
 Background processors that serve many products live on the workers tier; the
@@ -25,7 +25,7 @@ into place - no submodules.
 ```mermaid
 flowchart LR
     subgraph consumer ["consumer/ - Rutba Suite"]
-        apps["26 apps in 7 groups (Next.js)"]
+        apps["34 apps in 7 groups (Next.js)"]
         core["Core engine<br/>Koa 3 + knex kernel"]
         strapi["Legacy Strapi<br/>(retiring)"]
         db[("MySQL<br/>one DB per instance")]
@@ -62,6 +62,13 @@ flowchart LR
 - **Identity and licensing come from the management tier.** Login federates to
   the Directory at `auth.rutba.io`; the portal owns organizations, licensing,
   billing and provisioning.
+- **The public sites ship from the portal.** rutba.io, partners.rutba.io and -
+  since 2026-09-02 - relay.rutba.io are Next.js apps under
+  `management/portal/apps/`, beside the operator console. The Relay's marketing
+  site moved there from `consumer/relay/apps/web`; what stayed with the product
+  is its API reference (`consumer/relay/apps/docs`), which imports the OpenAPI
+  document beside the routes that produce it and would drift if it were shelved
+  anywhere else.
 
 Port bands: consumer app line 4000-4099, control plane 4100-4199, other products
 4200-4299.
@@ -78,11 +85,11 @@ this section exists to prevent. They are defined together in
 | `entitlements.modules` | what you may **use** - per app | `erp.crm`, `erp.leads`, `comm.mail`, `workspace.docs` |
 | `provision_product` | what **runs** it - the engine | `erp` |
 
-There are **19 listings and 60 plans** — 41 of them priced, the other 19 the
+There are **20 listings and 64 plans** — 42 of them priced, the other 22 the
 Custom tiers that go to a conversation rather than a checkout — plus six
 bundles, generated into `api/billing/migrations/005_plans_seed.sql` from the
 same public catalog the shop window reads, so the two cannot open the day
-disagreeing. Between them those listings ship **39 apps**: a listing is what you
+disagreeing. Between them those listings ship **49 apps**: a listing is what you
 subscribe to, and most carry more than one. One purchase can light
 several apps: `crm.growth` is `product_key: 'crm'` granting
 `["erp.crm","erp.leads","erp.quotes","erp.helpdesk"]` on the `erp` engine - four

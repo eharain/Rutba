@@ -75,8 +75,9 @@ D:\Rutba2.0\
 │   │                               + api/{crm,helpdesk,marketplace,sale-stock}
 │   ├── inventory\           control, manufacturing, stock
 │   │                               + api/{catalog,inventory,mfg}
-│   ├── finance\             accounts, payroll (+ api/ as acc/pay leave Strapi)
-│   ├── people\              hr, ess + api/hr
+│   ├── finance\             accounts, payroll, books (+ api/books, core-mounted)
+│   ├── people\              hr, ess, recruit, workforce, timeclock, talent
+│   │                               + api/{hr,recruit,workforce}
 │   ├── content\             campaigns, cms, mail, social, storefront
 │   │                               + api/{campaigns,cms-social,mail}
 │   │
@@ -84,9 +85,11 @@ D:\Rutba2.0\
 │   ├── relay\               Social Relay — publish API + console + API docs + MCP + sdk (marketing site: management/portal/apps/relay since 2026-09-02)
 │   ├── studio\              video/image editors + creative libraries
 │   ├── workspace\           docs & sheets with live business-data bindings
-│   ├── drive\               end-user file storage (SDK-first)
+│   ├── drive\               end-user file storage (SDK-first) + Rutba Sign (apps/sign,
+│   │                               api/sign — agreements executed with evidence)
 │   ├── mail\                hosted org mailboxes + client (Mailcow pilot live)
-│   └── comms\               chat / meet / calls
+│   └── comms\               chat / meet / calls (apps/web) + the telephony apps
+│                                   deskphone, switchboard, voice-campaigns
 │
 ├── workers\                 # ══ background processors serving many products ══
 │   ├── mta\                 (repo rutba-mta) multi-tenant outbound email relay (standalone OSS;
@@ -107,7 +110,9 @@ D:\Rutba2.0\
 │
 └── management\              # ══ what Rutba runs centrally ══
     ├── portal\              (in rutba-management) control plane: api/{gateway,organization,license,billing,
-    │                               provisioning,support,analytics} + apps/web + super console
+    │                               provisioning,support,analytics,partners,esign}
+    │                               + apps/{web,console,partners,relay} — the public
+    │                               sites and the operator console
     ├── auth\                (in rutba-management) identity — the Directory + realm auth
     ├── platform\            (in rutba-management) shared foundation: @rutba/* packages + @rutba/contracts
     ├── infra\               (in rutba-management) Terraform, Kubernetes, CI/CD, monitoring
@@ -174,20 +179,26 @@ engine — one process, one database today; per-group services become possible l
 is a directory and a launcher category, not a product: nothing is sold by the group name, and
 the seven categories below are exactly those declared in `config/apps.manifest.json`.
 
-| Group | Apps (24 total) | Owns api/ | Module keys |
+| Group | Apps (34 total) | Owns api/ | Module keys |
 |---|---|---|---|
 | sales | crm, helpdesk, marketplace, orders, portal, pos, rider | crm, helpdesk, marketplace, sale-stock | erp.crm, erp.helpdesk, erp.orders, erp.pos, erp.leads, erp.quotes, erp.delivery |
 | inventory | control, manufacturing, stock | catalog, inventory, mfg | erp.warehousing, erp.mrp, erp.stock |
-| finance | accounts, payroll | (arrives with acc/pay tranches) | erp.gl, erp.ap-ar |
-| people | hr, ess | hr | erp.hr, erp.ess, erp.payroll |
-| content | campaigns, cms, mail, social, storefront | campaigns, cms-social, mail | erp.campaigns, erp.cms, erp.social, erp.storefront |
-| admin | console, auth, seed | **auth, user-mgmt** | instance-internal |
-| workspace | workspace, comms | workspace, chat, calendar, meet, calls | workspace.docs, workspace.sheets, comm.chat, comm.meet, comm.calls |
+| finance | accounts, payroll, books | books | erp.gl, erp.ap-ar, erp.payroll |
+| people | hr, ess, recruit, workforce, timeclock, talent | hr, recruit, workforce | erp.hr, erp.ess, erp.recruit, erp.workforce, erp.talent |
+| content | campaigns, cms, mail, social, storefront, studio | campaigns, cms-social, mail, studio | erp.campaigns, erp.cms, erp.social, erp.storefront, comm.mail, social.studio |
+| admin | console, auth, seed | **auth, user-mgmt, feedback** | instance-internal |
+| workspace | workspace, comms, deskphone, switchboard, voice-campaigns, sign | workspace, chat, calendar, meet, calls, drive, sign | workspace.docs, workspace.sheets, comm.chat, comm.meet, comm.calls, drive.sign |
 
-The standalone products — relay, studio, drive and the hosted mail service — sit beside the
-groups with the same shape (`apps/`, `api/`, own module keys: `social.relay`, `social.studio`,
-`drive.files`, `comm.mail`). They are not a second class of thing; the only difference is that
-no launcher category collects them.
+The count moves. It was 24 when this record was written and is 34 now, and the table is worth
+re-reading against `config/apps.manifest.json` rather than trusted — the manifest is the source,
+this is a snapshot of it.
+
+**Two directories are not launcher categories.** `studio/` and `drive/` hold apps that a
+category collects anyway: `studio` is filed under content and `sign` under workspace, because a
+launcher category is where a user looks for an app, not where the code lives. The genuinely
+standalone products are the relay and the hosted mail service — same shape (`apps/`, `api/`,
+own module keys `social.relay`, `comm.mail`), no category. They are not a second class of
+thing; the only difference is that no launcher tile collects them.
 
 Groups share `@rutba/ui` and `@rutba/api-client` from the consumer commons
 (`consumer/packages/*`); their only engine coupling is the runtime mount.
@@ -270,11 +281,12 @@ vocabularies carry the weight, defined together in
 | `entitlements.modules` | what you may **use** — per app | `erp.crm`, `erp.leads`, `comm.mail`, `workspace.docs` |
 | `provision_product` | what **runs** it — the engine | `erp` |
 
-19 listings and 41 plans are generated into `005_plans_seed.sql` from the same public catalog
+20 listings and 64 plans — 42 of them priced, the other 22 Custom tiers that go to a
+conversation — are generated into `005_plans_seed.sql` from the same public catalog
 the shop window reads, so the till and the shop window cannot open the day disagreeing. The
 listings are `crm`, `marketing`, `commerce`, `inventory`, `orders`, `manufacturing`, `people`,
-`books`, `mail`, `drive`, `docs`, `chat`, `meet`, `calls`, `send`, `media`, `social`, `studio`
-and `vision`.
+`books`, `mail`, `drive`, `sign`, `docs`, `chat`, `meet`, `calls`, `send`, `media`, `social`,
+`studio` and `vision`.
 
 One purchase can light several apps: `crm.growth` is `product_key: crm` granting
 `["erp.crm","erp.leads","erp.quotes","erp.helpdesk"]` on the `erp` engine — four sales apps
@@ -299,11 +311,11 @@ real customer licences use the per-listing profiles from `004`.
 | auth (`management/auth`) | 4101 | built — Directory + realm auth (M1–M6) |
 | portal api/organization | 4102 | built |
 | portal api/license | 4103 | built — profiles, gate, seat/quota measurement, suspension by `(org_id, product_key)`, usage forwarded to billing |
-| portal api/billing | 4104 | built — 7 migrations, 19 listings / 41 priced plans seeded, subscriptions, renewal sweep, invoices, **metered usage priced onto them**, outbox. No card processor |
+| portal api/billing | 4104 | built — 7 migrations, 20 listings / 42 priced plans seeded, subscriptions, renewal sweep, invoices, **metered usage priced onto them**, outbox. No card processor |
 | portal api/provisioning | 4105 | built — the largest service in the tier. No Kubernetes driver, so dedicated instances cannot complete |
 | portal api/support | 4106 | **built through M4** — the Rutba↔tenant channel: feedback up from the consumer apps, announcements down onto their dashboards, a reply path, and the staff API. Unit tests only. **Ticketing is not built** and waits on org zero |
 | portal api/analytics | 4107 | **not started** — directory exists, no source. The one service in the tier with none |
-| portal apps/web + console | 4110 | built — 32 routes, plus `apps/partners` on partners.rutba.io. Three of the seven specified portal pages exist and Support Center is half there |
+| portal apps/web + console | 4110 | built — 32 routes, plus `apps/partners` on partners.rutba.io and `apps/relay` on relay.rutba.io (4113, the Social Relay's marketing site, adopted from `consumer/relay/apps/web` on 2026-09-02). Three of the seven specified portal pages exist and Support Center is half there |
 
 Analytics is the last service with no source in it; everything else in the tier is
 running code, though nothing has run end to end against a database. `auth/` and
@@ -420,7 +432,7 @@ Excluded everywhere: `node_modules`, `.git`, `.ai`, `.next`, `dist`, `build`, `c
   surfaces (identity, message, file names, file content) at commit and again at push. The
   repo consolidation above happened. On the management side the control plane went from
   three built services to seven: `license` and `billing` are running code (7 billing
-  migrations; 19 listings and 41 plans seeded from the public catalog), `provisioning` is the
+  migrations; 20 listings and 42 priced plans seeded from the public catalog), `provisioning` is the
   largest service in the tier, and `apps/web` + the super console both ship pages. Consumer
   side: hosted mail gained licensed mailbox allocation, DNS-gated domain verification
   (MX/SPF/DKIM) and a lifecycle/quota admin surface; Studio landed its creative toolset and
