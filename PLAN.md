@@ -81,7 +81,7 @@ D:\Rutba2.0\
 │   │                               + api/{campaigns,cms-social,mail}
 │   │
 │   │   # ── standalone products ──
-│   ├── relay\               Social Relay — publish API + console + web + MCP + sdk
+│   ├── relay\               Social Relay — publish API + console + API docs + MCP + sdk (marketing site: management/portal/apps/relay since 2026-09-02)
 │   ├── studio\              video/image editors + creative libraries
 │   ├── workspace\           docs & sheets with live business-data bindings
 │   ├── drive\               end-user file storage (SDK-first)
