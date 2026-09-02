@@ -177,19 +177,20 @@ engine behind the Electron desktop builds of POS, mail and the social/video edit
 **The app groups** own their apps AND their domain APIs (module directories mounted by the
 engine — one process, one database today; per-group services become possible later). A group
 is a directory and a launcher category, not a product: nothing is sold by the group name, and
-the seven categories below are exactly those declared in `config/apps.manifest.json`.
+the eight categories below are exactly those declared in `config/apps.manifest.json`.
 
-| Group | Apps (34 total) | Owns api/ | Module keys |
+| Group | Apps (36 total) | Owns api/ | Module keys |
 |---|---|---|---|
 | sales | crm, helpdesk, marketplace, orders, portal, pos, rider | crm, helpdesk, marketplace, sale-stock | erp.crm, erp.helpdesk, erp.orders, erp.pos, erp.leads, erp.quotes, erp.delivery |
-| inventory | control, manufacturing, stock | catalog, inventory, mfg | erp.warehousing, erp.mrp, erp.stock |
+| inventory | control, manufacturing, stock, planning, shopfloor, quality, maintenance | catalog, inventory, mfg, planning, quality, maintenance | erp.warehousing, erp.mrp, erp.stock, erp.planning, erp.quality, erp.maintenance |
 | finance | accounts, payroll, books | books | erp.gl, erp.ap-ar, erp.payroll |
 | people | hr, ess, recruit, workforce, timeclock, talent | hr, recruit, workforce | erp.hr, erp.ess, erp.recruit, erp.workforce, erp.talent |
 | content | campaigns, cms, mail, social, storefront, studio | campaigns, cms-social, mail, studio | erp.campaigns, erp.cms, erp.social, erp.storefront, comm.mail, social.studio |
 | admin | console, auth, seed | **auth, user-mgmt, feedback** | instance-internal |
 | workspace | workspace, comms, deskphone, switchboard, voice-campaigns, sign | workspace, chat, calendar, meet, calls, drive, sign | workspace.docs, workspace.sheets, comm.chat, comm.meet, comm.calls, drive.sign |
+| facilities | assets, facilities | assets, facilities | erp.assets, erp.facilities |
 
-The count moves. It was 24 when this record was written and is 34 now, and the table is worth
+The count moves. It was 24 when this record was written and is 36 now, and the table is worth
 re-reading against `config/apps.manifest.json` rather than trusted — the manifest is the source,
 this is a snapshot of it.
 

@@ -1,8 +1,8 @@
 # Rutba
 
 One business-software estate, three tiers, seven git repositories. The consumer
-line ships publicly as **Rutba Suite**: thirty-four business apps in seven groups
-- sales, inventory, people, finance, content, admin and workspace - sharing one
+line ships publicly as **Rutba Suite**: thirty-six business apps in eight groups
+- sales, inventory, people, finance, content, admin, workspace and facilities - sharing one
 backend engine, one database per instance and one user/permission provider.
 Background processors that serve many products live on the workers tier; the
 centrally-run control plane is the management tier.
