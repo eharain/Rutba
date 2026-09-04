@@ -21,3 +21,8 @@ node_modules/
 # detail about the live estate — hostnames, ports, patch lists — belongs on the
 # box it describes (/opt/rutba/DEPLOYMENT-README.md), not in a public repo.
 .local/
+
+# Private planning, market and competitor notes, kept on this machine only.
+# This repo is PUBLIC — strategy and competitor comparisons must never reach it,
+# so this directory is ignored whole. Never `git add -f` anything under it.
+/private/
