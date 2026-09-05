@@ -176,20 +176,22 @@ engine behind the Electron desktop builds of POS, mail and the social/video edit
 
 **The app groups** own their apps AND their domain APIs (module directories mounted by the
 engine — one process, one database today; per-group services become possible later). A group
-is a directory and a launcher category, not a product: nothing is sold by the group name, and
-the nine categories below are exactly those declared in `config/apps.manifest.json`.
+is a directory, not a product: nothing is sold by the group name. Since 2026-09-05 it is not a
+launcher category either: the launcher groups apps by what they are sold with and who uses them,
+declared per app as `category` in `config/apps.manifest.json` — eleven launcher groups over the
+nine directories below, and the "Launches under" column is where the two differ.
 
-| Group | Apps (45 total) | Owns api/ | Module keys |
-|---|---|---|---|
-| sales | crm, helpdesk, marketplace, orders, portal, pos, rider | crm, helpdesk, marketplace, sale-stock | erp.crm, erp.helpdesk, erp.orders, erp.pos, erp.leads, erp.quotes, erp.delivery |
-| inventory | control, manufacturing, stock, planning, shopfloor, quality, maintenance, procurement | catalog, inventory, mfg, planning, quality, maintenance | erp.warehousing, erp.mrp, erp.stock, erp.planning, erp.quality, erp.maintenance, erp.procurement |
-| finance | accounts, payroll, books | books | erp.gl, erp.ap-ar, erp.payroll |
-| people | hr, ess, recruit, workforce, timeclock, talent | hr, recruit, workforce | erp.hr, erp.ess, erp.recruit, erp.workforce, erp.talent |
-| content | campaigns, cms, mail, social, storefront, studio | campaigns, cms-social, mail, studio | erp.campaigns, erp.cms, erp.social, erp.storefront, comm.mail, social.studio |
-| admin | console, auth, seed | **auth, user-mgmt, feedback** | instance-internal |
-| workspace | workspace, comms, deskphone, switchboard, voice-campaigns, sign, assistant | workspace, chat, calendar, meet, calls, drive, sign | workspace.docs, workspace.sheets, comm.chat, comm.meet, comm.calls, drive.sign |
-| facilities | assets, facilities | assets, facilities | erp.assets, erp.facilities |
-| logistics | dispatch, fleet, track | dispatch, fleet (neither built) | erp.dispatch, erp.fleet |
+| Group | Apps (45 total) | Launches under | Owns api/ | Module keys |
+|---|---|---|---|---|
+| sales | crm, helpdesk, marketplace, orders, portal, pos, rider | Sales & Customers; orders and rider under Logistics & Fleet | crm, helpdesk, marketplace, sale-stock | erp.crm, erp.helpdesk, erp.orders, erp.pos, erp.leads, erp.quotes, erp.delivery |
+| inventory | control, manufacturing, stock, planning, shopfloor, quality, maintenance, procurement | Inventory & Purchasing; manufacturing, planning, shopfloor, quality and maintenance under Manufacturing | catalog, inventory, mfg, planning, quality, maintenance | erp.warehousing, erp.mrp, erp.stock, erp.planning, erp.quality, erp.maintenance, erp.procurement |
+| finance | accounts, payroll, books | Finance & Accounting; payroll under People & Payroll | books | erp.gl, erp.ap-ar, erp.payroll |
+| people | hr, ess, recruit, workforce, timeclock, talent | People & Payroll | hr, recruit, workforce | erp.hr, erp.ess, erp.recruit, erp.workforce, erp.talent |
+| content | campaigns, cms, mail, social, storefront, studio | Marketing & Web; mail under Mail, Chat & Calls | campaigns, cms-social, mail, studio | erp.campaigns, erp.cms, erp.social, erp.storefront, comm.mail, social.studio |
+| admin | console, auth, seed | Administration | **auth, user-mgmt, feedback** | instance-internal |
+| workspace | workspace, comms, deskphone, switchboard, voice-campaigns, sign, assistant | Documents & Sign; comms, deskphone, switchboard and voice-campaigns under Mail, Chat & Calls | workspace, chat, calendar, meet, calls, drive, sign | workspace.docs, workspace.sheets, comm.chat, comm.meet, comm.calls, drive.sign |
+| facilities | assets, facilities | Facilities & Assets | assets, facilities | erp.assets, erp.facilities |
+| logistics | dispatch, fleet, track | Logistics & Fleet | dispatch, fleet (neither built) | erp.dispatch, erp.fleet |
 
 The count moves. It was 24 when this record was written and is 45 now — the ninth category, logistics, arrived on 2026-09-05 — and the table is worth
 re-reading against `config/apps.manifest.json` rather than trusted — the manifest is the source,
@@ -197,7 +199,8 @@ this is a snapshot of it.
 
 **Two directories are not launcher categories.** `studio/` and `drive/` hold apps that a
 category collects anyway: `studio` is filed under content and `sign` under workspace, because a
-launcher category is where a user looks for an app, not where the code lives. The genuinely
+launcher category is where a user looks for an app, not where the code lives — the rule the
+2026-09-05 regroup applied to thirteen more apps, in the "Launches under" column above. The genuinely
 standalone products are the relay and the hosted mail service — same shape (`apps/`, `api/`,
 own module keys `social.relay`, `comm.mail`), no category. They are not a second class of
 thing; the only difference is that no launcher tile collects them.
