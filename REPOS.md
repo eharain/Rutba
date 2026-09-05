@@ -39,7 +39,7 @@ An arrow means "this repo's directory contains the child repo's working tree" (a
 | # | Repo (`github.com/eharain/…`) | Clone into | Owns |
 |---|---|---|---|
 | 1 | `rutba` | `.` (workspace root) | PLAN.md, MIGRATION.md, REPOS.md, the canonical `.githooks/`, root launchers (`rutba.cmd`, `dev.cmd`, `dev-stop.bat`, `dev-clean.bat`) |
-| 2 | `rutba-suite` | `consumer/` | the engine (`api/`, `devkit/`, `config/`, `docs/`, `infra/`), the commons (`packages/`), and every app group and product (`console`, `sales`, `inventory`, `finance`, `people`, `content`, `comms`, `drive`, `mail`, `relay`, `studio`, `workspace`) |
+| 2 | `rutba-suite` | `consumer/` | the engine (`api/`, `devkit/`, `config/`, `docs/`, `infra/`), the commons (`packages/`), and every app group and product (`console`, `sales`, `inventory`, `finance`, `people`, `content`, `facilities`, `logistics`, `assistant`, `comms`, `drive`, `mail`, `relay`, `studio`, `workspace`) |
 | 3 | `rutba-workers` (`Rutba-Workers`) | `workers/` | tier root + marketplace, interactions, relay runner, scaffolds |
 | 4 | `rutba-mta` (`Rutba-MTA`) | `workers/mta/` | the MTA — **connected**: continues the surviving `Rutba-MTA` history |
 | 5 | `rutba-media` (`Rutba-Media-FileServer`) | `workers/media/` | the media file server — **connected**: continues the surviving `Rutba-Media-FileServer` history |
