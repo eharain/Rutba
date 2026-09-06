@@ -184,14 +184,14 @@ nine directories below, and the "Launches under" column is where the two differ.
 | Group | Apps (45 total) | Launches under | Owns api/ | Module keys |
 |---|---|---|---|---|
 | sales | crm, helpdesk, marketplace, orders, portal, pos, rider | Sales & Customers; orders and rider under Logistics & Fleet | crm, helpdesk, marketplace, sale-stock | erp.crm, erp.helpdesk, erp.orders, erp.pos, erp.leads, erp.quotes, erp.delivery |
-| inventory | control, manufacturing, stock, planning, shopfloor, quality, maintenance, procurement | Inventory & Purchasing; manufacturing, planning, shopfloor, quality and maintenance under Manufacturing | catalog, inventory, mfg, planning, quality, maintenance | erp.warehousing, erp.mrp, erp.stock, erp.planning, erp.quality, erp.maintenance, erp.procurement |
+| inventory | control, manufacturing, stock, planning, shopfloor, quality, maintenance, procurement | Inventory & Purchasing; manufacturing, planning, shopfloor, quality and maintenance under Manufacturing | catalog, inventory, mfg, planning, quality, maintenance, procurement | erp.warehousing, erp.mrp, erp.stock, erp.planning, erp.quality, erp.maintenance, erp.procurement |
 | finance | accounts, payroll, books | Finance & Accounting; payroll under People & Payroll | books | erp.gl, erp.ap-ar, erp.payroll |
 | people | hr, ess, recruit, workforce, timeclock, talent | People & Payroll | hr, recruit, workforce | erp.hr, erp.ess, erp.recruit, erp.workforce, erp.talent |
 | content | campaigns, cms, mail, social, storefront, studio | Marketing & Web; mail under Mail, Chat & Calls | campaigns, cms-social, mail, studio | erp.campaigns, erp.cms, erp.social, erp.storefront, comm.mail, social.studio |
 | admin | console, auth, seed | Administration | **auth, user-mgmt, feedback** | instance-internal |
 | workspace | workspace, comms, deskphone, switchboard, voice-campaigns, sign, assistant | Documents & Sign; comms, deskphone, switchboard and voice-campaigns under Mail, Chat & Calls | workspace, chat, calendar, meet, calls, drive, sign | workspace.docs, workspace.sheets, comm.chat, comm.meet, comm.calls, drive.sign |
 | facilities | assets, facilities | Facilities & Assets | assets, facilities | erp.assets, erp.facilities |
-| logistics | dispatch, fleet, track | Logistics & Fleet | dispatch, fleet (neither built) | erp.dispatch, erp.fleet |
+| logistics | dispatch, fleet, track | Logistics & Fleet | dispatch, fleet | erp.dispatch, erp.fleet |
 
 The count moves. It was 24 when this record was written and is 45 now — the ninth category, logistics, arrived on 2026-09-05 — and the table is worth
 re-reading against `config/apps.manifest.json` rather than trusted — the manifest is the source,
