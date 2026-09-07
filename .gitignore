@@ -4,6 +4,7 @@
 /workers/
 /management/
 /native-apps/
+/office/
 
 node_modules/
 *.log

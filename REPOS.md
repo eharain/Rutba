@@ -1,6 +1,6 @@
 # Rutba 2.0 — Repo ⇄ Workspace Map
 
-How the complete workspace (`D:\Rutba2.0` on the dev box) is constructed from the 7 git
+How the complete workspace (`D:\Rutba2.0` on the dev box) is constructed from the 8 git
 repositories on `github.com/eharain`. Repos are named `rutba-*` (some capitalized on
 GitHub, e.g. `Rutba-Workers`); the directory a repo occupies in the workspace is **not**
 its repo name — this file is the rename map.
@@ -23,12 +23,14 @@ flowchart TD
     media["rutba-media<br/>workers/media/"]
     mgmt["rutba-management<br/>management/<br/>(glue + auth + portal)"]
     native["rutba-native-apps<br/>native-apps/<br/>(desktop shells + sync framework)"]
+    office["rutba-office<br/>office/<br/>(the free desktop suite + the document engines)"]
     rutba --> suite
     rutba --> workersR
     workersR --> mta
     workersR --> media
     rutba --> mgmt
     rutba --> native
+    rutba --> office
 ```
 
 An arrow means "this repo's directory contains the child repo's working tree" (and
@@ -45,6 +47,7 @@ An arrow means "this repo's directory contains the child repo's working tree" (a
 | 5 | `rutba-media` (`Rutba-Media-FileServer`) | `workers/media/` | the media file server — **connected**: continues the surviving `Rutba-Media-FileServer` history |
 | 6 | `rutba-management` (`Rutba-Management`) | `management/` | control-plane glue (`platform/`, `infra/`, `devkit/`), tier root files, identity (`auth/`), and the control plane itself (`portal/`) |
 | 7 | `rutba-native-apps` (`Rutba-Native-Apps`) | `native-apps/` | Windows desktop shells (`apps/*-desktop`), the offline sync framework (`packages/sync`, moved from `consumer/packages/sync` 2026-08-23), and the offline/desktop program docs (`docs/`, moved from `consumer/docs/todo/` same day) |
+| 8 | `rutba-office` (`Rutba-Office`) | `office/` | Rutba Office — the free, open-source desktop suite (`apps/desktop`) and the document engines it owns (`packages/*`: ooxml, formula, sheet-view, doc-view, presentation, drawing, editing, pdf, office-formats, mailbox, imaging, media, office-shell, office-ui) |
 
 `management/portal/` is **not** a repo. It was cloned separately until 2026-08-22, when the
 ownership test showed it had no `.git` — only a `.github/` directory, and a CI config is not
@@ -74,6 +77,9 @@ git clone https://github.com/eharain/Rutba-Management.git management
 
 # native apps tier (desktop shells + offline sync framework)
 git clone https://github.com/eharain/Rutba-Native-Apps.git native-apps
+
+# the free desktop suite, and the document engines it owns
+git clone https://github.com/eharain/Rutba-Office.git office
 ```
 
 Then, in every repo just cloned (the root included), point git at the versioned
