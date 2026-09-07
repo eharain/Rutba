@@ -26,3 +26,6 @@ node_modules/
 # This repo is PUBLIC — strategy and competitor comparisons must never reach it,
 # so this directory is ignored whole. Never `git add -f` anything under it.
 /private/
+
+# linked git worktrees for isolated build agents
+.worktrees/
