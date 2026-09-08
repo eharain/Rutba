@@ -170,9 +170,13 @@ backend scripts manifest, formerly the erp root scripts + package.json), `config
 **The consumer commons** (`consumer/packages/*`) holds the packages shared across consumer
 repos: `api-client` (the descriptor contract, was `erp/packages/api-provider` /
 `@rutba/api-provider`), `ui` (UI + contexts, was `erp/packages/shared` / `@rutba/shared`),
-Workspace's format-neutral trio `drawing`, `doc-view`, `editing`, plus `video` (the
-browser-engine renderer shared with Studio) and `sync` (the offline/online replication
-engine behind the Electron desktop builds of POS, mail and the social/video editors).
+plus `video` (the browser-engine renderer shared with Studio), `docpack`, `interactions`,
+`jurisdiction`, `mail-dns` and `marketplace-engine`. Workspace's format-neutral trio
+`drawing`, `doc-view`, `editing` lived here from 2026-08-26 to 2026-09-09 and are Rutba
+Office's now (`office/packages`, with `ooxml`, `formula`, `sheet-view` and `pdf`); the
+consumer shelf links all seven in by `file:` path. `sync` (the offline/online replication
+engine behind the Electron desktop builds) moved to `native-apps/packages/sync` on
+2026-08-23.
 
 **The app groups** own their apps AND their domain APIs (module directories mounted by the
 engine — one process, one database today; per-group services become possible later). A group

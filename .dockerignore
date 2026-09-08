@@ -1,0 +1,22 @@
+# The estate root is a Docker build context for two images that reach a
+# sibling repo by relative path and so cannot build from one repo alone:
+#
+#   consumer/infra/docker-build/Dockerfile   consumer/ + office/packages/
+#   consumer/relay/Dockerfile.docs           consumer/relay + the portal's marketing kit
+#
+# What must never enter a context, wherever it sits in the estate. Mirrors
+# consumer/.dockerignore, which only applied while consumer/ was the context.
+.git
+**/.git
+**/node_modules
+**/.next
+**/.next-verify
+**/build
+**/dist
+**/release
+.env
+.env.*
+**/.env
+**/.env.*
+**/*.log
+private/

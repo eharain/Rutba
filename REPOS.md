@@ -41,13 +41,13 @@ An arrow means "this repo's directory contains the child repo's working tree" (a
 | # | Repo (`github.com/eharain/…`) | Clone into | Owns |
 |---|---|---|---|
 | 1 | `rutba` | `.` (workspace root) | PLAN.md, MIGRATION.md, REPOS.md, the canonical `.githooks/`, root launchers (`rutba.cmd`, `dev.cmd`, `dev-stop.bat`, `dev-clean.bat`) |
-| 2 | `rutba-suite` | `consumer/` | the engine (`api/`, `devkit/`, `config/`, `docs/`, `infra/`), the commons (`packages/`), and every app group and product (`console`, `sales`, `inventory`, `finance`, `people`, `content`, `facilities`, `logistics`, `assistant`, `comms`, `drive`, `mail`, `relay`, `studio`, `workspace`) |
+| 2 | `rutba-suite` | `consumer/` | the engine (`api/`, `devkit/`, `config/`, `docs/`, `infra/`), the commons (`packages/` — minus the document engines, which it takes from `office/` by `file:` link since 2026-09-09), and every app group and product (`console`, `sales`, `inventory`, `finance`, `people`, `content`, `facilities`, `logistics`, `assistant`, `comms`, `drive`, `mail`, `relay`, `studio`, `workspace`) |
 | 3 | `rutba-workers` (`Rutba-Workers`) | `workers/` | tier root + marketplace, interactions, relay runner, scaffolds |
 | 4 | `rutba-mta` (`Rutba-MTA`) | `workers/mta/` | the MTA — **connected**: continues the surviving `Rutba-MTA` history |
 | 5 | `rutba-media` (`Rutba-Media-FileServer`) | `workers/media/` | the media file server — **connected**: continues the surviving `Rutba-Media-FileServer` history |
 | 6 | `rutba-management` (`Rutba-Management`) | `management/` | control-plane glue (`platform/`, `infra/`, `devkit/`), tier root files, identity (`auth/`), and the control plane itself (`portal/`) |
 | 7 | `rutba-native-apps` (`Rutba-Native-Apps`) | `native-apps/` | Windows desktop shells (`apps/*-desktop`), the offline sync framework (`packages/sync`, moved from `consumer/packages/sync` 2026-08-23), and the offline/desktop program docs (`docs/`, moved from `consumer/docs/todo/` same day) |
-| 8 | `rutba-office` (`Rutba-Office`) | `office/` | Rutba Office — the free, open-source desktop suite (`apps/desktop`) and the document engines it owns (`packages/*`: ooxml, formula, sheet-view, doc-view, presentation, drawing, editing, pdf, office-formats, mailbox, imaging, media, office-shell, office-ui) |
+| 8 | `rutba-office` (`Rutba-Office`) | `office/` | Rutba Office — the free, open-source desktop suite (`apps/desktop`) and the document engines it owns (`packages/*`: ooxml, formula, sheet-view, doc-view, presentation, drawing, editing, pdf, office-formats, mailbox, imaging, media, office-shell, office-ui). Seven of those (ooxml, formula, sheet-view, doc-view, drawing, editing, pdf) are also the consumer line's engines: `consumer/package.json` links them by `file:../office/packages/<name>`, so the estate must be cloned with `office/` beside `consumer/` — and the consumer container build takes the estate root as its context for the same reason |
 
 `management/portal/` is **not** a repo. It was cloned separately until 2026-08-22, when the
 ownership test showed it had no `.git` — only a `.github/` directory, and a CI config is not

@@ -51,7 +51,9 @@ repointed; manifest workspaces are consumer-root-relative (`<suite>/apps/<app>`,
 `api/core` / `api/legacy/strapi`); verify-app-wiring follows apps to their suite
 roots. The commons repo (`consumer/packages`) holds ten shared packages: `ui`, `api-client`,
 Workspace's engines `ooxml`, `formula` and trio `drawing`, `doc-view`, `editing` (consumed by
-`consumer/workspace` via `file:` deps — 427/427 tests pass post-move), plus `video` (shared
+`consumer/workspace` via `file:` deps — 427/427 tests pass post-move; **moved again on
+2026-09-09 to `office/packages`**, the free desktop suite's repo, with `sheet-view` and `pdf`,
+and linked back into the consumer shelf by `file:../office/packages/<name>`), plus `video` (shared
 with Studio), `sync` (the offline/Electron replication engine) and `marketplace-engine`
 (`@rutba/marketplace-engine`, shared by the sales marketplace app and `workers/marketplace`).
 `consumer/api/packages` retains only the two Strapi-bound packages that retire with legacy
