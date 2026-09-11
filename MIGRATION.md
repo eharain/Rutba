@@ -160,7 +160,10 @@ source. Brief: `consumer/docs/todo/core-extension-program.md`.
 - npm installs via devkit, then regenerate lockfiles (stale ones with old file: paths deleted).
 - git init + first commit per repo (clean history by design).
 - `verify:docs` (devkit): doc-content debts remain (old path prose, commit-hash checks without .git).
-- Port drift to reconcile: auth 4001→4101; studio 4021 / workspace 4062 / comms 4051 vs chart.
+- Port drift to reconcile: auth 4001→4101; studio 4021 / workspace 4062 vs chart.
+  Comms is DONE: the chat ws hub moved 4051→4276 on 2026-09-12. 4051 was inside the consumer
+  dev-gateway shadow band and was stock's shadow port, so :4001 served the hub instead of stock;
+  see management/devkit/PORTS.md, which now forbids charting anything in 4050-4098.
 - Users-DB physical separation for console auth (tables are Strapi-owned today).
 - Per-suite Dockerfiles (the `infra/docker-build` Dockerfile is backends-only now).
 - Strapi tranche retirement (campaigns cluster, mail-message/-link, media api dir are the

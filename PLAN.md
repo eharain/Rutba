@@ -50,7 +50,9 @@ shape as every standalone product.
    role, beside `workers/` and `management/`).
 5. **Ports.** The band plan stays law: consumer app line 4000–4099, control plane 4100–4199, other
    products 4200–4299. The devkit registry wins over stale per-repo defaults (known drift:
-   Auth 4001→4101; Studio 4021/Workspace 4062/Comms 4051 source claims vs chart).
+   Auth 4001→4101; Studio 4021/Workspace 4062 source claims vs chart; Comms settled
+   2026-09-12, the chat ws hub 4051→4276). Within the consumer band, 4050-4098 is NOT free space:
+   it is the dev gateway's shadow range, one port per app at public+50.
 
 ---
 
