@@ -52,7 +52,10 @@ shape as every standalone product.
    products 4200–4299. The devkit registry wins over stale per-repo defaults (known drift:
    Auth 4001→4101; Studio 4021/Workspace 4062 source claims vs chart; Comms settled
    2026-09-12, the chat ws hub 4051→4276). Within the consumer band, 4050-4098 is NOT free space:
-   it is the dev gateway's shadow range, one port per app at public+50.
+   it is the dev gateway's shadow range, one port per app at public+50. A port belongs to the band
+   of the repo that owns the service: the Relay, a management product, left 4200/4201/4203 for
+   4119 (console), 4120 (client API) and 4121 (MCP) on 2026-09-16. The chart is
+   `management/devkit/PORTS.md`, tested against `services.json`.
 
 ---
 
