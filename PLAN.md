@@ -287,7 +287,7 @@ shelf; `workers/mta` keeps its own self-contained install.
 
 Nothing in the estate is sold as "the ERP", and no app group is a product. Three separate
 vocabularies carry the weight, defined together in
-`management/portal/api/billing/migrations/001_plans.sql`:
+`management/api/legacy/api/billing/migrations/001_plans.sql`:
 
 | Term | What it names | Examples |
 |---|---|---|
@@ -295,9 +295,13 @@ vocabularies carry the weight, defined together in
 | `entitlements.modules` | what you may **use** — per app | `erp.crm`, `erp.leads`, `comm.mail`, `workspace.docs` |
 | `provision_product` | what **runs** it — the engine | `erp` |
 
-20 listings and 64 plans — 42 of them priced, the other 22 Custom tiers that go to a
-conversation — are generated into `005_plans_seed.sql` from the same public catalog
-the shop window reads, so the till and the shop window cannot open the day disagreeing. The
+**Since 2026-09-16 the price list lives in management Strapi** and every public site reads
+it from `/api/catalog/v1/catalog`, so the till and the shop window cannot open the day
+disagreeing. 23 listings and just over a hundred plans — the priced tiers, the Custom ones
+that go to a conversation, the bundles, and the add-ons and fees — are loaded into it once
+by `api/legacy/strapi/scripts/commerce-import.js` from the authored catalogue in
+`packages/public-catalog`, and edited in the console after that. A plan carries its
+allowances as rows (`grants`), which is the same record a licence is issued from. The
 listings are `crm`, `marketing`, `commerce`, `inventory`, `orders`, `manufacturing`, `people`,
 `books`, `mail`, `drive`, `sign`, `docs`, `chat`, `meet`, `calls`, `send`, `media`, `social`,
 `studio` and `vision`.
@@ -509,8 +513,9 @@ Excluded everywhere: `node_modules`, `.git`, `.ai`, `.next`, `dist`, `build`, `c
   never touched a database and every green check there is a unit test or a compile.
   Ticketing (plan 07) is blocked on org zero, which is blocked on the provisioning driver.
 
-- **A trap worth knowing about.** A corrected price or product status cannot reach a
-  database that already holds the catalogue: the seed generator rewrites an applied
-  migration, that migration is `INSERT … ON CONFLICT DO NOTHING`, and the runner refuses
-  a migration whose checksum changed. Free while no database here has to survive.
-  Written up in `management/portal/REMAINING.md`.
+- **A trap that is now closed.** A corrected price used to be unable to reach a database
+  that already held the catalogue — the seed generator rewrote an applied migration, that
+  migration was `INSERT … ON CONFLICT DO NOTHING`, and the runner refused a migration whose
+  checksum had changed. Since 2026-09-16 the catalogue is records in management Strapi:
+  the importer creates what is missing and never overwrites an edit, and moving a live
+  price takes `--reprice`, which prints every change and writes an audit row for it.

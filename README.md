@@ -85,11 +85,12 @@ this section exists to prevent. They are defined together in
 | `entitlements.modules` | what you may **use** - per app | `erp.crm`, `erp.leads`, `comm.mail`, `workspace.docs` |
 | `provision_product` | what **runs** it - the engine | `erp` |
 
-There are **20 listings and 64 plans** — 42 of them priced, the other 22 the
-Custom tiers that go to a conversation rather than a checkout — plus six
-bundles, generated into `api/billing/migrations/005_plans_seed.sql` from the
-same public catalog the shop window reads, so the two cannot open the day
-disagreeing. Between them those listings ship **49 apps**: a listing is what you
+There are **23 listings** — their priced tiers, the Custom ones that go to a
+conversation rather than a checkout, six bundles, and the add-ons and fees that
+ride them — held as records in management Strapi and read by every site from
+`/api/catalog/v1/catalog`, so the shop window and the till cannot open the day
+disagreeing. They are loaded once from the authored catalogue in
+`management/packages/public-catalog` and edited in the console after that. Between them those listings ship **49 apps**: a listing is what you
 subscribe to, and most carry more than one. One purchase can light
 several apps: `crm.growth` is `product_key: 'crm'` granting
 `["erp.crm","erp.leads","erp.quotes","erp.helpdesk"]` on the `erp` engine - four
