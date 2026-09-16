@@ -1,31 +1,23 @@
 @echo off
-setlocal
-rem ============================================================
-rem  Rutba 2.0 - clean regenerable build caches across the estate.
-rem
-rem  Deletes every .next directory (outside node_modules) plus the
-rem  api/core scratch dir. Everything removed here is gitignored and
-rem  rebuilt on the next dev run - the only cost is a cold first build.
-rem
-rem  Tip: run dev-stop.bat first if dev servers are running, or some
-rem  caches will be locked and skipped.
-rem ============================================================
-cd /d "%~dp0"
-set COUNT=0
-echo Cleaning .next build caches under %CD% ...
-for /f "delims=" %%D in ('dir /b /s /a:d .next 2^>nul ^| findstr /v /i "node_modules"') do (
-    rd /s /q "%%D" 2>nul
-    if exist "%%D" (
-        echo   LOCKED   %%D   ^(dev server running? try dev-stop.bat^)
-    ) else (
-        set /a COUNT+=1
-        echo   cleaned  %%D
-    )
-)
-if exist "consumer\api\core\.tmp" (
-    rd /s /q "consumer\api\core\.tmp" 2>nul
-    echo   cleaned  %CD%\consumer\api\core\.tmp
-)
-echo.
-echo Done - %COUNT% .next cache(s) removed.
-endlocal
+REM ─────────────────────────────────────────────────────────────────────────
+REM  Rutba — clear the regenerable build output across the whole estate.
+REM
+REM  Delegates to management\devkit\dev-clean.bat, the way dev.cmd delegates to
+REM  management\devkit\dev.cmd and dev-stop.bat to its own. One real script,
+REM  thin wrappers where a developer happens to be standing.
+REM
+REM  Every repo and every directory under them: .next and .next-verify,
+REM  dist/out/build, coverage, bundler caches, .tmp and .dev scratch, test
+REM  reports, and the *.tsbuildinfo and *.log files beside them. A path is
+REM  removed only if the repo that owns it says git ignores it, so tracked
+REM  source that happens to be named `build` or `screens` is never touched.
+REM
+REM    dev-clean.bat             clean
+REM    dev-clean.bat --dry-run   list what would go, with sizes; remove nothing
+REM    dev-clean.bat --releases  also the packaged Office installers
+REM    dev-clean.bat --modules   also node_modules (reinstall everywhere after)
+REM
+REM  Run dev-stop.bat first if dev servers are running, or the caches they hold
+REM  open are reported LOCKED instead of removed.
+REM ─────────────────────────────────────────────────────────────────────────
+call "%~dp0management\devkit\dev-clean.bat" %*
