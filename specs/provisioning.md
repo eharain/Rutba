@@ -581,6 +581,55 @@ Nothing else was edited. `api/core/migrations/README.md` was left to WS-A, who
 holds this round's ordinal: WS-C writes no core migration, and said so, so
 ordinal 115 is free.
 
+
+### Addendum, after the round's later settlements (2026-09-23)
+
+Four things were settled while this stream was running, and all four are in:
+
+- **C11's store is the built-in, and the secret is sealed.** The key stays in
+  `strapi_core_store_settings` under `platform.sign_key` - a table every tenant
+  database already has, so no migration and ordinal 115 stays free - but the row
+  now holds `{ value_enc, issued_by, updated_at }` with the secret sealed by the
+  core's vault (`api/core/src/security/vault.js`), the blob format every other
+  credential here uses. A deployment with no vault key refuses the write with
+  `503` instead of keeping a credential in plain text, which is the vault's own
+  rule.
+- **The reader WS-E's seam should require is
+  `consumer/console/api/tenants/domain/platform-keys.js`**, exporting
+  `getPlatformKey(name)`: the opened secret for the tenant the caller is already
+  running in - no `db` argument - or `null` when there is none, so a solo core's
+  fallback to `RUTBA_SIGN_PLATFORM_TOKEN` stays honest. A value that cannot be
+  opened, for want of a key or after a rotation without a re-seal, is said once
+  and answered as `null` rather than failing a signature. The writer,
+  `setPlatformKey(name, value, { issuedBy })`, sits beside it. If the owner would
+  rather it lived at `api/core/src/security/platform-keys.js`, that is a one-file
+  move for whoever owns that directory; nothing but the require path changes.
+- **An individual instance takes no owner**, at the door as well as in the
+  bootstrap: `POST /api/tenants/:db/owner` answers `409 NOT_IN_THIS_MODE` from
+  the directory entry, before the database is touched, and the worker's `owner`
+  step reads that as the space being what it is - it records that nobody was
+  bootstrapped, with the reason, and the rest of the provision runs.
+- **Every mint is audited as the caller that asked**: the worker's credential is
+  the worker's in auth's record (`x-rutba-caller: provisioning-worker`), and this
+  backend's own calls stay `management-strapi`.
+
+Also: the control-character check in the key door was written with raw control
+bytes, which made the file binary to git and gave it no diffs in review. It is
+written in code points now, and the file is text.
+
+Commits: consumer `3332e486`, management `a580171` merged as `7fabfcc`, workers
+`800ba10`. Checks after these: `check:provisioning` 73, `smoke:tenants-door` 54
+(the sealed row, the vault opening it to what management issued, the rotation, a
+control character refused with the held key untouched, and an individual-mode
+registration whose owner door refuses with nothing made inside the database),
+worker `npm run check` 44, Strapi unit tests 97, and the live walkthrough green
+again end to end (the core it starts is given a vault key, because this estate
+sets none - which is why the dev core would refuse to hold a Sign key until one
+is set).
+
+`smoke:tenants-door` runs against its own keys again: the three `CORE__` lines
+were moved out of `consumer/.env.development` into the estate's `.env.local`,
+so a test can stand in for management once more.
 ### Questions for the owner
 
 1. **One audience per core, or one per tenant?** A core's verifier checks a
