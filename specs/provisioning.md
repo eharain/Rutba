@@ -423,3 +423,190 @@ as packaged; `smoke:tenants-door` extended for the key door; the live
 walkthrough on the dev estate against a directory core the smoke starts:
 purchase as a fresh organisation, job runs, tile appears, the instance's
 sign-in page answers for the owner's address.
+
+## Status after round two (2026-09-22)
+
+All ten items are built, and every check the round named passes, including the
+live walkthrough the first round could not run. The temp branch `ws/c` is
+merged into `dev`, `main` is fast-forwarded and both are pushed in each repo;
+the branch is deleted and nothing is left in the worktree.
+
+### Done
+
+| Item | Where |
+|---|---|
+| 1. C4 amended, first | management `cf83706`, merged `d557902` and announced; workers `084d0eb` |
+| 2. The lease lives | management `e995c07` (Strapi), workers `61d18a0` (the worker) |
+| 3. Credentials never stored | management `e995c07` |
+| 4. A failed provision cleans up | management `e995c07`, workers `61d18a0` |
+| 5. `npm run check` as packaged | workers `61d18a0` |
+| 6. Minted tokens (C12) | management `85dbbec`, workers `61d18a0` |
+| 7. The Sign key door (C11) | consumer `d51aec9e`, `a3483a5c` and `5ccbba86`, management `85dbbec` and `d2609fb`, workers `61d18a0` |
+| 8. Devkit | management `d2609fb` and `f3a3908`; the dev template script in workers `61d18a0` |
+| 9. Low (quoting, collisions) | workers `61d18a0` |
+| 10. Disclosure | below |
+
+Merges: management `bca1eac` is this round's merge of `ws/c` into `dev`; workers
+and consumer were committed on `dev` in place, by pathspec, as the rules say.
+Docs: consumer `0f7eefba`, the worker README inside `61d18a0`, the console
+queue's wording in `191bec8`.
+
+What each item became, where it is worth saying:
+
+- **The lease.** `claim` takes a queued job whose time has come, a running job
+  whose lease ran out (counting the attempt its holder made), or a
+  `rolling_back` job waiting for its clean-up. Every report from a worker names
+  it, so a worker whose lease ran out is told `409 LEASE_LOST` rather than
+  writing over the new holder. A new timer, `provisioning.reap`, returns dead
+  leases to the queue after a backoff or ends them at the ceiling, which is
+  Strapi's (`PROVISIONING_MAX_ATTEMPTS`): `failJob` honours it whatever the
+  worker asked.
+- **Credentials.** `withoutCredentials` recurses into arrays, drops `pass`,
+  `pwd`, `key`, `apiKey`, `privateKey`, `bearer` and `authorization` beside the
+  words it knew, and takes the userinfo out of every URL in every string. It
+  runs on a job's `input` at create, on its `state` at every step, and on the
+  error text of a failure. The check writes a DSN with a password into both and
+  reads the row back raw.
+- **Roll-back.** A provision that fails for good after its `naming` step
+  reserved a fresh database goes to `rolling_back`; the worker claims it,
+  suspends the directory entry it registered, drops the database it made and
+  reports, and the job ends `failed` carrying both errors. A clean-up nobody
+  reports is released twice and then failed with the database named for a
+  person. A database that was there first, and an entry this job did not
+  register, are never touched.
+- **Minted tokens.** `api::provisioning.service-token` asks auth's
+  `POST /internal/service-token` for a token for one instance's origin and one
+  scope, and keeps it until a minute before it expires. `TENANTS_DOOR_TOKEN` is
+  gone everywhere. The worker asks Strapi
+  (`POST /api/worker/provisioning/token`), which refuses an audience this
+  estate does not know.
+- **The Sign key.** `POST /api/worker/provisioning/:jobId/sign-key` issues
+  through `api::sign.instance-keys`; a step that runs again rotates rather than
+  being refused, so the worker always has a secret to write. The consumer door
+  `PUT /api/tenants/:db/platform-keys` writes it into that tenant's settings
+  store under `platform.sign_key`. The key crosses the worker and is recorded
+  nowhere.
+- **A tenant is a copy of a whole empty instance.** A database cloned from
+  schema alone has no roles, no permissions, no app-role catalogue and no
+  migration ledger: it neither boots nor takes an owner. The MySQL clone now
+  copies the template's rows into each table still empty, as Postgres'
+  `CREATE DATABASE ... TEMPLATE` already did, and
+  `npm run template -w provisioning` builds such a template in development.
+  This corrects how the first round read "never a data copy": nobody's work is
+  ever copied, and a customer's database is never a source.
+- **An individual is never provisioned a space of their own.** Onboarding makes
+  every organisation `personal`, and a personal organisation is shown the one
+  shared instance as its only workspace (C4), so a provision for one built a
+  space nobody could reach. The reaction skips it and says why; a personal
+  organisation that somehow has an instance still suspends and resumes.
+
+### The checks
+
+| Check | Result |
+|---|---|
+| Strapi `npm run check:provisioning` | 69 checks, all passed |
+| Strapi `npm test` | 97 pass |
+| Strapi `npm run check:provisioning-live` (new) | 33 checks, all passed, on the running estate |
+| Worker `npm run check`, as packaged, from the workspace root and its own folder | 43 pass |
+| Consumer `smoke:tenants-door` | 46 pass, the key door included; it now refuses on this machine, below |
+| Consumer `smoke:tenant-directory` | 49 pass |
+| Management console `tsc --noEmit` | clean |
+
+**Why that smoke refuses here, and why the doors are still proved.** It passed
+46 of 46 with the key door at about 22:55. At 23:07 another stream added
+`CORE__MANAGEMENT_AUTH_ISSUER`, `CORE__MANAGEMENT_AUTH_JWKS_URL` and
+`CORE__INSTANCE_AUDIENCE` to this machine's `consumer/.env.development`, for the
+dev core's bridge. A value in a `.env` file beats every process value of the
+same name (`api/core/src/config/env.js`), so the core the smoke spawns now
+verifies the smoke's own minted tokens against the real auth's keys and rejects
+all of them as unknown - sixteen failures that read like a broken door. The
+smoke now refuses up front and names where those lines belong: the estate
+environment the dev gateway injects, where `CORE__` is already the core's
+namespace and a test can still stand in for management. Asked of that stream;
+their file, not this one's. The doors themselves are proved by the live
+walkthrough, which drove register, owner, invites and the key door on a real
+core under credentials the real auth minted, after that change.
+
+The live walkthrough (`scripts/provisioning-walkthrough.js`) is the acceptance
+the first round left undone, and it is a real journey: a person registers,
+confirms and signs in; onboarding gives them an organisation; they sign in at
+global auth, which mints them a portal token for it; they buy
+`sign.subscription` through the portal gate; Strapi's own reaction queues the
+provision; the worker makes a database from `tpl_sign` on the estate's
+registered cell (1272 tables, about a hundred seconds), migrates it, registers
+it through the tenants door under a credential auth minted for that core,
+bootstraps the buyer as owner, records the instance and has its Sign key issued
+and written; the hub shows the space; and the buyer sets their password from the
+link the instance mailed them and signs in to it. Everything it makes is
+removed at the end.
+
+### Left
+
+- **The dev estate's Strapi predates this round.** Its worker gate has no
+  `/provisioning/token`, so the walkthrough boots one from the checkout for the
+  worker to report to, and says so. A restart of the dev estate's Strapi is
+  wanted; it was not done here, by this round's rule. After it, the walkthrough
+  uses 4116 itself and nothing else changes.
+- **`gate-tokens.mjs` has not been run** on this machine: the lines it now
+  writes for the worker and for the individual instance are in the script, and
+  the machine's own `.env` was edited by hand for the two new
+  `INDIVIDUAL_INSTANCE_*` values only. Running it (and restarting) writes the
+  worker's cell credential and template for a person, rather than a script
+  passing them each time.
+- **Nothing runs the worker as a service yet.** `devkit/services.json` lists it
+  as a portless task, on demand; no dev profile starts it.
+- **The template is a development stand-in.** `run-fleet.sh` still has no
+  `stage_template`, so on the fleet the per-product template is neither built
+  nor refreshed by anything.
+- **No deprovision.** A failed provision suspends its directory entry and drops
+  its database, but no door takes a tenant out of the file, and
+  `action: 'deprovision'` still has no workflow.
+- **The bus path** from Strapi's outbox to `workers/control-plane` and into the
+  `provisioning.subscriptions` queue is exercised in process only; the live
+  walkthrough uses the reaction Strapi hosts itself.
+- **`/estate` and `/domains`** in the management console still read the retired
+  service.
+
+### Files touched outside the list (item 10)
+
+| File | Why |
+|---|---|
+| `devkit/services.json`, `devkit/scripts/gate-tokens.mjs` | item 8 names both; the README shares `gate-tokens.mjs` with WS-D, and this round's block is separate from theirs - no line of theirs was changed |
+| `api/legacy/strapi/scripts/provisioning-walkthrough.js` (new), `api/legacy/strapi/package.json` | the live acceptance, and its entry beside `check:provisioning` |
+| `api/legacy/strapi/src/api/provisioning/services/service-token.js` (new) | inside `src/api/provisioning/**`, which is this stream's |
+| `consumer/console/api/tenants/domain/platform-keys.js` (new), `consumer/docs/tenancy-directory.md`, `consumer/console/README.md` | item 7's door, inside `console/api/tenants/**`, and the two docs this stream corrects |
+| `management/api/legacy/strapi/.env` (not committed) | the machine's own values: two `INDIVIDUAL_INSTANCE_*` lines added by hand, so the running estate would not refuse to boot on a half-set record |
+
+Nothing else was edited. `api/core/migrations/README.md` was left to WS-A, who
+holds this round's ordinal: WS-C writes no core migration, and said so, so
+ordinal 115 is free.
+
+### Questions for the owner
+
+1. **One audience per core, or one per tenant?** A core's verifier checks a
+   single `INSTANCE_AUDIENCE`, and on this estate the consumer line sets it to
+   the launcher origin (`http://localhost:4003`) rather than the core's API
+   origin; the bridge mints for an instance's `url`. Both work here because
+   they are the same string, and they will not be on a fleet where many tenants
+   share one core. Proposal: the audience is the core's, named on each instance
+   record as `auth.audience`, and the bridge reads it there.
+2. **Should a personal organisation be able to buy a provisioned product at
+   all?** The reaction now refuses, on decision 2. If a person is meant to be
+   able to buy a space of their own, they need a company organisation first, and
+   nothing in the estate turns a personal organisation into a team one - the
+   walkthrough does it with one update. Whose step is that?
+3. **The template on the fleet.** `stage_template` is unwritten. The
+   development stand-in copies the estate's schema and its reference tables; the
+   fleet's would boot Strapi once against an empty database and migrate, as
+   `stage_schema` does. Confirm that shape.
+4. **A deprovision door.** Suspending the entry and dropping the database
+   leaves a line in the directory file for a person. Should C7 gain
+   `DELETE /api/tenants/:db`, or does a person always take that line out?
+5. **The reaper's cadence and the ceiling.** A minute's sweep, five attempts, a
+   backoff growing to an hour, and a lease long enough for the step it covers -
+   a thousand tables is a hundred seconds here, so the dev estate is set to
+   fifteen minutes. Confirm both.
+6. **The individual instance's issuer in development** still names the core
+   (`http://localhost:4020`), which publishes no JWKS, while `authorize` names
+   the launcher. It is nominal until something verifies it. Should the issuer be
+   management auth's?
