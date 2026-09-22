@@ -234,3 +234,126 @@ findings are in REVIEW-2026-09-22.md, WS-B section.
 Acceptance: `smoke:sign` green with the path count unchanged; new tests for
 items 1–3; `sign-handoff.test.mjs` covering the pack path precedence; the
 README row corrected before merge.
+
+## Status after round two (2026-09-22)
+
+### Done
+
+Consumer, on `dev` and `main` at `8eb7fca8` (pushed; temp branch `ws/b`
+merged and deleted, never pushed). Management, on `dev` and `main` at
+`9849a01` (pushed). No core migration was written this round.
+
+1. **Gate the reads — landed first**, commit `f09ee88a`, and reported in the
+   coordinator's thread the moment it was on dev, with the proof scenarios
+   (item 5) and the entity names for WS-A's `registerOwnerRelation`.
+   `drive/api/sign/domain/admin-gate.js` is one gate for the reads and the
+   writes: `listApiKeys`, `getPolicy`, `createApiKey`, `revokeApiKey`,
+   `updatePolicy` and the webhook test. Organisational mode: a sign admin,
+   anybody else 403 "only a sign admin …" (the key writes answered 400
+   before, 403 now). Individual mode: 403 with code `NOT_IN_THIS_MODE` in
+   `details` to anybody, an admin-shaped actor included; an `sgk_` key is
+   refused before any lookup in the words an unknown key gets (401); webhook
+   deliveries are a no-op. The engine's own defaults read moved to
+   `policy.defaultsOf`, ungated, so every sender still creates and sends with
+   the organisation's defaults. The composer draws its category list from
+   `@rutba/jurisdiction` in the browser (added to the app's transpile list)
+   instead of the policy read. The settings page and its sidebar entry show
+   for a sign admin in organisational mode only (`lib/access.js`, from
+   `rolesByApp.sign`) and explain themselves to anybody else.
+2. **Null owners**, same commit. In individual mode a template with no
+   `owner_user_id` lists and opens for an actor holding `platform_operator`
+   and for nobody else, and only that operator may delete it; no backfill.
+   An actor without a user id no longer matches ownerless rows (knex reads
+   `where(col, null)` as `IS NULL`).
+3. **The pack path wins**, commit `d6a255b8`. `landingFor` lands a non-root
+   `next` first, then a pack intent, then `/`; the hub's `next=/` yields to
+   a pack. A `next` that is not a path on this app (another origin, `//`, a
+   backslash, a scheme, a control character) is ignored. The intent path is
+   C10's own spelling, `/prepare/<pack>?cc=<CC>`, and the prepare page reads
+   the place as `cc` or `country`, and only a place the pack is written for.
+   The site's hand-off (management `9849a01`) now builds only C10's
+   three-part intent and none without a place.
+4. **Own README**, commit `8eb7fca8`. The seam row in
+   `drive/api/sign/README.md` names `RUTBA_SIGN_PLATFORM_URL` /
+   `_TOKEN` with `RUTBA_SIGN_INSTANCE_ID`, says the `RUTBA_PORTAL_*`
+   fallback is still read until WS-E drops it, and that C11's per-instance
+   key replaces the shared bearer; the `RUTBA_PORTAL_*` trio has its own row
+   as usage metering's. The files table gains `admin-gate.js`; the app
+   README's §4a covers the gate, ownerless templates, the composer's
+   categories and C10's precedence. The review's stale-seam-row defect is
+   closed.
+5. **Proof scenarios** handed to WS-A in the coordinator's thread, eight of
+   them: per-person templates and starters with 404 refusals; sharing at the
+   granted level and revoking; ownerless rows for the operator only;
+   envelopes and their events, artifacts, comments and summary; agreements;
+   the inbox by party email; every gated read answering 403
+   `NOT_IN_THIS_MODE` and an `sgk_` bearer answering 401; the public
+   ceremony unchanged.
+6. **No core migrations** from this stream.
+
+Acceptance, all run on the merged tree:
+
+| Check | Result |
+|---|---|
+| `smoke:sign` (sole run on the shared dev database) | 262 passed, green |
+| SDK drift, v1 path count | 9 passed, count still 30 |
+| drive offline suites | 43 passed (packs 4, individual 10, handoff 8, mirror 7, contracts 8, starters 6) |
+| mutation check on the new suite | removing the keys gate or the ownerless guard fails 4 tests |
+| Sign site `tsc --noEmit` | clean |
+| running estate, Sign app on 4029 | every changed page compiles and serves 200; log clean |
+
+`drive/tests/sign-individual.test.mjs` runs the real Sign migrations
+(047–060, 112) and WS-A's `113-rutba-permissions` with the real permissions
+helper on a throwaway SQLite made and deleted by the test, the
+individual-mode harness's pattern; nothing touches a shared database.
+
+### Files outside the owned list
+
+The owned list names `drive/apps/sign/**` and `drive/api/sign/**`; the
+tests live beside them in `drive/tests/`, which the acceptance names but the
+list does not. This round: `drive/tests/sign-individual.test.mjs` (new),
+`drive/tests/sign-handoff.test.mjs` and `drive/tests/sign-packs.test.mjs`
+(edited), for the tests items 1–3 require. First round, not disclosed at the
+time: `api/core/migrations/112-sign-templates-owner.js` (the owner column,
+applied to the shared dev database from the worktree before merge — the
+failure the new rules now forbid), `drive/tests/sign-packs.test.mjs` and
+`drive/tests/sign-handoff.test.mjs` (new), and
+`drive/tests/sign-guide-mirror.test.mjs` and
+`drive/tests/sign-contracts.test.mjs` (the estate-root lookup, so they run
+from a worktree).
+
+### Left
+
+- **C10's auth end (WS-D) is not on dev.** Global auth still drops a
+  `prepare:` intent, so a visitor from the site lands on the hub, not the
+  pack. The app's end is merged and tested; nothing here changes when auth
+  lands.
+- **C11 (WS-E) is not on dev.** The seam row describes the fallback and
+  changes when the per-instance key lands.
+- **WS-A's items 5 and 6.** `registerOwnerRelation` for
+  `sign_templates.owner_user_id` and `sign_envelopes.sender_user_id` (the
+  entity names are in the thread), and Sign's proof with `sign` added to
+  `OFFERED_TO_INDIVIDUALS`. Unblocked by item 1.
+- **Client-side behaviour in a browser was not observed.** The browser pane
+  in this session is hidden, animation frames do not fire there, and no page
+  hydrates, including `/verify`, which this round did not touch. The door's
+  and the place reader's logic is held by the offline suite; a person should
+  load `/authorize?next=%2Fprepare%2Fmutual-nda%3Fcc%3DGB` on 4029 once and
+  see it forward to the realm's `/authorize` with that `state`.
+
+### Questions for the owner
+
+- **How does an operator reach an ownerless template?** The rule is in the
+  engine, but `platform_operator` carries no api-pro policies by WS-A's
+  design, so no Sign route admits an operator today. Give operators a
+  narrow Sign grant (WS-A's seeder and the Sign descriptor), or clear such
+  rows with an operator script instead?
+- **The console's own `sign-settings` page** (`console/apps/console/pages/sign-settings.js`)
+  duplicates the Sign app's settings page; with the reads gated, a Sign user
+  who is not an admin now sees "did not load" there. Remove it, or point it
+  at the app? The file belongs to no stream.
+- **The Sign descriptor still opens `getPolicy` to admin, manager and staff**
+  (and so to individuals, who ride on staff) in
+  `packages/api-client/api/sign/sign-envelopes.js`; the engine refuses them.
+  Tighten the descriptor to admin as well, or leave the engine as the one
+  gate? That file belongs to no stream either.
