@@ -217,6 +217,26 @@ Added after the first round's review (2026-09-22, see
   side before taking yours. (Round two: a seam commit reverted two other
   sessions' staged docs this way; both were restored.)
 
+Added after the round-two review (2026-09-23, see
+[REVIEW-2026-09-23-round-two.md](REVIEW-2026-09-23-round-two.md)):
+
+- **Leave the shared index empty.** In a shared main checkout, stage and
+  commit in one act, by pathspec, and end every batch with nothing of yours
+  staged. A staged stale copy is a loaded gun for the next session's commit.
+- **A worktree is checked, not assumed, before a stream reports.** A status
+  that says nothing is left in the worktree quotes the porcelain status from
+  that worktree, run there, beside the commit its last files landed in.
+- **A refusal another service must recognise travels as a code, not a class
+  name**, and a test crosses the wire between the two tiers to prove it.
+- **A merge landed after the status amends the status.** The reviewer reads
+  the tip and the status together; a commit recorded nowhere is a gap.
+- **A shared name goes where a suite can override it.** The consumer core's own
+  env files outrank every process value, so a name placed there changes what
+  every suite verifies against. Until the core's loader honours process env
+  for the bridge names, the dev core needs them in its file and the affected
+  suites are known to refuse on the dev machine; the loader change is a
+  round-three item and this exception ends with it.
+
 ## Round two (2026-09-22): decisions accepted, contracts amended
 
 The owner accepted the six decisions in [REVIEW-2026-09-22.md](REVIEW-2026-09-22.md):
