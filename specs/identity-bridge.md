@@ -243,3 +243,96 @@ tests extended for items 3, 4 and 6; `smoke:handoff`; Strapi and console
 tests; then the live walkthrough on the dev estate with the internal key set
 and WS-C's amended record: open the individual instance from the hub and from
 `/operator` without a password, and read `amr` off the session row.
+
+## Status after round two - 2026-09-22 (WS-D)
+
+### Done
+
+Merged in four runs, each with its suites green first. Management commits are
+on `dev`, `main` and `origin`; consumer commits are in place on `dev`, then
+`main`.
+
+| # | Item | Landed in |
+|---|---|---|
+| 1 | **C12 first.** `POST /internal/service-token { audience, scope, ttl_seconds? }` behind the internal key: one scope per call from a closed set, 60 to 900 seconds (default 300, under the instance's cap), the audience reduced to an origin, audited as `token.service_minted` with the audience, scope, `jti` and an `x-rutba-caller` header, never the token. Announced to the thread the moment it merged. | management c4a559f |
+| 2 | **Fail closed.** `requireInternalKey` refuses every `/internal/*` request when `INTERNAL_API_KEY` is unset, in development as in production, and says so once at boot. `gate-tokens.mjs` (shared with WS-C, only the auth internal-key lines) writes `AUTH__INTERNAL_API_KEY` when the estate has none and keeps Strapi's `AUTH_INTERNAL_TOKEN` and both consoles' copies equal to it. | management c7d23ed |
+| 3 | **The door is the record's.** `POST /internal/handoff` takes `instanceId` and nothing else about the instance; `url`, `authorize` and `api` come from the tenant-instance record through a new identity-gate read, `GET /api/identity/instances/:instanceId/door` (auth's token, no person), served by `src/estate/bridge.js` through WS-C's `doorOf`. A body naming `instance`, `url`, `api`, `authorize` or `realm` is 400. Operators are refused unless the record says individual mode - in Strapi, again in auth, and again at the instance. Every ask is audited as `bridge.instance_handoff`. | management 4e5cb3c, edcd4cc |
+| 4 | **Bind the code.** The handoff body carries the `authorize` origin and the `state` the link will carry, both required; the code is bound to both beside its database. The redemption takes `{ code, db, state }` with the browser's `Origin`: `db` is required (401 without it) and a request already belonging to a tenant may name only that one, the origin and state must match, and a code minted without a binding is refused. One 401 `HANDOFF_INVALID` for every failure; braked per address, 60 in five minutes, then 429 with `Retry-After`. | consumer 1c823a04, management 4e5cb3c |
+| 5 | **Migration 114.** `114-up-users-rutba-sub-ensure` with `requires: ['up_users']`, guarded and one-way: a database migrated before Strapi made the table defers it rather than recording it, and gets the column when the table arrives. 112 untouched. Ordinals claimed in both READMEs; WS-A had already mirrored 116 as next, with 115 WS-C's. | consumer 1c823a04 |
+| 6 | **Allowance stored.** The redemption calls `storeSessionAllowance(sessionId, { entitlements, quotas, sub })` and writes `metadata.sub` beside `management_sub`; the body accepts an optional `quotas` object, numbers only. WS-A's operator gate now accepts only these, and confirmed in the thread that this satisfies it. | consumer 1c823a04 |
+| 7 | **Signed open links.** Every tile carries `t`, a five-minute HMAC over the session, the workspace and the expiry, keyed from `SESSION_TOKEN_KEY` under its own label; `/hub/open/:workspace` verifies it before anything is read or minted, and a bare, forged, stale or borrowed link goes back to the hub. | management 4e5cb3c |
+| 8 | **Hub uses `authorize`.** The sign-in link is built from the workspace's `authorize` (C4 as amended), the realm issuer only for a record from before it; `doors.js` is the one reading the link and the bridge share. The fake Strapi carries the amended shape. | management 4e5cb3c |
+| 9 | **C10.** The front door accepts `prepare:<pack>:<CC>` beside plan codes, in one spelling (pack lower-case, place upper-case); it survives a wrong password and a signup, and a signup carrying one owns Sign. `whereTo` sends it to the Sign app's door with `next=/prepare/<pack>?cc=<CC>` for the one organisation holding Sign, the hub with two or none; the hub's own Sign tile keeps `next=/`. | management 4e5cb3c |
+| 10 | **Operator page test**, by moving its decisions into `console/management-console/src/lib/operator.ts`: the route asked for a valid id and nothing for any other, the refusal shown, only an http(s) answer followed, only active bridged individual-mode rows listed. The role row the handoff creates now carries the `console` domain link the seeder writes. | management edcd4cc, consumer 1c823a04 |
+
+Checks, each run green before its merge: auth 324 unit and 218 integration and
+perf, none skipped; Strapi 91; console typecheck and 64; consumer 49 (verifier
+22, handoff 23, migration 114 four); `smoke:handoff` 39 checks;
+`smoke:tenant-directory` 49.
+
+Live on the dev estate, with the estate running and the internal key set:
+`/internal/*` refuses a request without the key; `POST /internal/service-token`
+mints for the individual instance's origin and the token verifies against
+auth's live JWKS (`azp: auth`, the scope asked, 300 seconds); an unknown
+`instanceId` is 404 `INSTANCE_UNKNOWN` through the live identity gate; a body
+naming an origin is 400.
+
+### Left
+
+- **The live walkthrough itself.** The dev consumer core has none of
+  `MANAGEMENT_AUTH_ISSUER`, `MANAGEMENT_AUTH_JWKS_URL` or `INSTANCE_AUDIENCE`
+  set, so its handoff door answers 501 and the bridge declines to today's
+  link - the designed fallback, and not a walkthrough. Those three are estate
+  configuration in `consumer/.env*`, a file this stream does not own, so they
+  are not set here. With them set (issuer `http://localhost:4101`, JWKS
+  `http://localhost:4101/.well-known/jwks.json`, audience the individual
+  instance's `url`) and the core restarted, the rest of the walkthrough is
+  ready: WS-C's record carries `handoff`, `authorize` and `api`, and the hub,
+  `/operator` and the `amr` read all wait on nothing else.
+- **`gate-tokens.mjs` has not been run**, because it writes the estate's env
+  files and the run needs a restart afterwards. The estate already has an
+  internal key and Strapi's copy matches it, so nothing is broken; what the
+  run would add is `MANAGEMENT_CONSOLE__AUTH_INTERNAL_TOKEN`, which is unset
+  today - the management console's own calls to auth's `/internal` are
+  refused for want of it, and were before this round.
+- **The redeem's binding stops a browser, not a forger.** A caller that is
+  not a browser can put any `Origin` on a request. What the binding closes is
+  a code lifted from a URL and spent by another page; what would close the
+  rest is PKCE, which this flow cannot carry today because the code is minted
+  before the browser reaches the realm. The 120-second life, the single use,
+  the database and state binding and the brake are what stand in.
+
+### Files touched outside this stream's list, and why
+
+- `auth/src/domain/identity/return-to.js`, `auth/src/http/routes/discovery.routes.js`
+  - C10 is this stream's item and the front door is where an intent is read;
+    both carry only the `prepare:` lines.
+- `auth/src/http/middleware/session.js` - item 2 names it.
+- `auth/src/http/routes/internal.routes.js`, `auth/src/app.js`,
+  `auth/src/container.js`, `auth/src/domain/identity/auth-events.repo.js` -
+  the two internal routes items 1 and 3 define, their wiring and their audit
+  event names.
+- `devkit/scripts/gate-tokens.mjs` - granted for the auth internal-key lines,
+  shared with WS-C; merged with their lines without conflict.
+- `api/legacy/strapi/src/api/account/routes/identity.js` and
+  `controllers/identity.js` - one line each, the door read the amendment
+  grants.
+- `console/management-console/src/app/(console)/layout.tsx` (round one, the
+  nav entry) and `console/README.md`.
+- `auth/README.md` and `auth/.env.example` - the docs for the above.
+- Consumer, all named at the top of this spec except
+  `api/core/tests/migration-114.test.js` and the `smoke:handoff` line in
+  `api/core/package.json`, which are the tests for what is named.
+
+### Questions for the owner
+
+1. **The dev core's three verifier names.** Whose hand sets them in
+   `consumer/.env.development`: this stream, WS-C with the rest of the
+   individual instance's dev wiring, or the owner? Nothing else blocks the
+   walkthrough.
+2. **PKCE on the handoff code.** Worth a second round trip - the hub minting a
+   challenge the realm's page holds - or is the current binding (database,
+   origin, state, 120 seconds, single use, braked) where this should stop?
+3. **The brake's shape.** 60 redemptions per address per five minutes is a
+   backstop, and an office behind one address opening many workspaces is the
+   case that would feel it. Leave it, raise it, or key it per database?

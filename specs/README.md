@@ -184,7 +184,9 @@ Added after the first round's review (2026-09-22, see
   stream taking one edits both lines in the same commit as the migration and
   reads them again immediately before merging. Two streams never hold the
   same ordinal: the runner keys by filename so a duplicate applies, but it
-  hides the order two people thought they had agreed. **Next ordinal: 114.**
+  hides the order two people thought they had agreed. **Next ordinal: 116.**
+  (Round two: WS-D took 114 for the repair of `up_users.rutba_sub`, WS-C 115
+  for C11's key; `consumer/api/core/migrations/README.md` says the same.)
 - **One smoke run at a time per shared checkout.** A smoke that writes rows
   into a shared database names its marker with its own run and deletes only
   rows carrying it. Until a suite does, two sessions never run it at once:
