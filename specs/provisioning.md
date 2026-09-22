@@ -441,7 +441,7 @@ the branch is deleted and nothing is left in the worktree.
 | 4. A failed provision cleans up | management `e995c07`, workers `61d18a0` |
 | 5. `npm run check` as packaged | workers `61d18a0` |
 | 6. Minted tokens (C12) | management `85dbbec`, workers `61d18a0` |
-| 7. The Sign key door (C11) | consumer `d51aec9e`, `a3483a5c` and `5ccbba86`, management `85dbbec` and `d2609fb`, workers `61d18a0` |
+| 7. The Sign key door (C11) | consumer `d51aec9e` (the door), `3332e486` (the secret sealed by the vault, `getPlatformKey` beside the writer, and the door's own `409 NOT_IN_THIS_MODE`), `a3483a5c` and `5ccbba86`; management `85dbbec` and `d2609fb`; workers `61d18a0` and `800ba10` (the owner step reading that 409 as an individual instance having no owner) |
 | 8. Devkit | management `d2609fb` and `f3a3908`; the dev template script in workers `61d18a0` |
 | 9. Low (quoting, collisions) | workers `61d18a0` |
 | 10. Disclosure | below |
@@ -630,6 +630,21 @@ is set).
 `smoke:tenants-door` runs against its own keys again: the three `CORE__` lines
 were moved out of `consumer/.env.development` into the estate's `.env.local`,
 so a test can stand in for management once more.
+
+**The worktree is empty, and these are where its last four files went.** The
+caller header for auth's audit and the walkthrough's vault key were the last
+things held in this stream's worktree; they are committed as `a580171`, merged
+as `7fabfcc`, and pushed to `dev` and `main`. Run in that worktree after the
+merge, on 2026-09-23:
+
+```
+$ git status --porcelain
+$ git branch --list ws/c
+```
+
+Both answer nothing: no change is held there, and the temp branch is gone. A
+reading taken between that round's last check and the merge at 00:32 would have
+seen those twenty-two lines still uncommitted.
 ### Questions for the owner
 
 1. **One audience per core, or one per tenant?** A core's verifier checks a
