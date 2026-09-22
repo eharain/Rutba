@@ -134,4 +134,62 @@ button), the consumer files named at the top, and `consumer/docs/identity-bridge
 - Whether `open` should create the user when management says the person is a
   member with app access and the instance has never seen them. This spec says
   no: creation is an invitation, so the instance's own record of who was let in
-  stays explicit.
+  stays explicit. Built that way; the door answers 404 `USER_UNKNOWN`.
+- Where the individual instance's core origin comes from. The bridge reads it
+  as `auth.api` on the tenant-instance record beside `auth.handoff: true`
+  (`url` stays the launcher origin the token is minted for). WS-C's reconcile
+  writes only `issuer` and `jwks_uri` today; the proposal is a fourth variable,
+  `INDIVIDUAL_INSTANCE_API`, written into the descriptor as `api`.
+- The operator button lives on its own console page, `/operator`, rather than
+  on the instance page, because the README gives `instances/**` to WS-C. If
+  the owner wants it on the instance rows too, WS-C mounts the same server
+  action there; nothing else changes.
+
+## Status - 2026-09-22 (WS-D)
+
+### Done, and where
+
+| # | Scope item | Landed in |
+|---|---|---|
+| 1 | **C8-verifier** - `api/core/src/http/management-token.js`, `requireManagementScope(scope)` and `withManagementScope(scope, handler)` for the ctx-only route table, three environment names, 501 when unset, RS256 pinned, iat and exp required with a fifteen-minute cap, scope as string or array; 22 unit tests with a generated key pair; `consumer/docs/identity-bridge.md` | consumer `dev`/`main` 57e8c235 |
+| 2 | **C6** - migration `112-up-users-rutba-sub` (nullable, unique, guarded; `up_users` is a partial model so validate-schema does not count it) | consumer 5a2e03f5 |
+| 3 | **Service token** - `auth/src/domain/tokens/service-token.js`: `mint({ audience, scope, ttlSeconds })`, RS256 with the active signing key, `aud` the instance origin, `azp: 'auth'`, scopes `session:handoff` and `tenants:admin` only, five minutes, naming no person | management `dev`/`main` aa65461 |
+| 4 | **Handoff door (C5)** - `console/api/auth/handoff.js` plus one line in `routes.js`: `POST /api/auth/handoff` behind the verifier (by `rutba_sub`, else confirmed email then bound, else 404 `USER_UNKNOWN`; `operate` only in individual mode, operator row created or found, bound, confirmed, granted `platform_operator`, the role row made under that name when unseeded); the code as a pending `strapi_sessions` row holding its SHA-256, 120 s, bound to `db`, spent by deletion; `POST /api/auth/handoff/redeem` answers what a password sign-in answers with `amr: ['management-handoff']`, `purpose`, `entitlements`, `management_sub` on the session, one 401 `HANDOFF_INVALID` for every failure. 17 unit tests on two sqlite tenants; `smoke:handoff` (33 checks) | consumer 5a2e03f5 |
+| 5 | **`/authorize` accepts a code** - redeemed, stored through `loginWithToken`, then on to `redirect_uri` unchanged; a failed redeem falls through to `/login` with `login_hint` and `tenant` | consumer 5a2e03f5 |
+| 6 | **Hub tiles through the bridge** - every tile points at `GET /hub/open/:workspace`; the route opens a bridged instance (`handoff: true` and `api` on the workspace) with a code minted for the person and the organisation's licence keys, read through a new identity-gate route `users/me/organizations/:org/licences`; an unbridged or declining instance gets today's link; not theirs goes to `/hub`; a stale session goes to `/login?expired=1` through the same helper as `/hub` (item 8). A fake consumer core in `auth/tests/helpers` verifies the real token against the real JWKS over HTTP; `hub-journey.test.js` covers the bridged tile, the fallback, the membership check and the operator route | management aa65461 |
+| 7 | **Operator path** - Strapi `src/estate/bridge.js`, `GET /api/console/estate/bridged-instances` and `POST /api/console/estate/instances/:id/operate` (platform-admin, audited), asking auth's `POST /internal/handoff`; the management console's `/operator` page and nav entry; `src/estate/bridge.test.js` in Strapi's suite | management 5116cbf |
+| 8 | **Stale-session rule** - `askToSignInAgain` in `hub.routes.js`, used by `/hub` and `/hub/open` | management aa65461 |
+| docs | `consumer/docs/identity-bridge.md` (new), `consumer/docs/request-lifecycle.md` (5.11, refusals, tests), `auth/README.md` (new: there was none to correct), `console/README.md` row | as above |
+
+Suites run before each merge: consumer verifier and handoff tests,
+`smoke:handoff`, `smoke:tenant-directory`; auth 310 unit and 210 integration
+and perf; Strapi 85; management console typecheck and 59 tests. Management
+`ws/d` merged into `dev` after taking WS-C's and WS-E's merges (f300ddb),
+`main` fast-forwarded, both pushed, the branch deleted.
+
+### Left
+
+- **Live on the dev estate.** Not done. The gateway, auth and Strapi were
+  down for the whole session; no individual-instance record exists yet; the
+  dev core's environment does not set `MANAGEMENT_AUTH_ISSUER`,
+  `MANAGEMENT_AUTH_JWKS_URL` and `INSTANCE_AUDIENCE`. Neither the estate nor
+  the env files were touched, because both are outside this stream's files.
+  To run it: set the three names on the dev core (issuer
+  `http://localhost:4101`, JWKS `http://localhost:4101/.well-known/jwks.json`,
+  audience the dev launcher origin), have the individual-instance record carry
+  `auth.handoff: true` and `auth.api`, then open it from the hub and from
+  `/operator`, and read `amr` off the session row.
+- **Two small edits outside the owned list**, to be known rather than undone:
+  one line each in Strapi's identity routes and controller for the licences
+  read, and the management console's nav entry for `/operator`.
+
+### Needed from other streams
+
+- **WS-C (C4):** `src/estate/individual.js` writes `auth: { issuer, jwks_uri }`
+  only, and `workspacesOf` passes neither flag through. The bridge needs
+  `handoff: true` and `api` on the descriptor, and `handoff` and `api` on each
+  workspace in `workspacesOf`. Until then every tile falls back to today's
+  realm sign-in and `/operator` lists nothing. Everything else is in place.
+- **WS-A (C2):** nothing blocking. The handoff creates the `platform_operator`
+  role row under that exact name when the seeder has not shipped it, as the
+  README allows; once WS-A seeds it, the handoff finds it and creates nothing.
