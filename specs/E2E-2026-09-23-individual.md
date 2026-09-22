@@ -250,6 +250,14 @@ The ceremony, A seeing it completed, and the public verification of the
 reference were **not reached**: all three need a sent envelope. The rest of
 the chain was left untested rather than simulated by writing rows.
 
+For whoever unblocks it: the public verify path is
+`GET /v1/public/sign/verify/<digest>` on the management API gateway, which
+rewrites the prefix to management Strapi's `/api/sign/public/*`
+(`management/gateway/src/config.ts` line 61 and the anonymous-path test beside
+it). The gateway service (`gateway`, port 4100) is **stopped** in this
+estate's `erp` profile, so that check needs it woken first; the instance's own
+`GET /api/sign/public/verify/:digest` on core answers without it.
+
 ## Step 4 — a template, a share at view, a stranger, a revoke — PASS for Drive, the Sign half has no door
 
 `out/s4-share.txt`, `out/s4-template-delete.txt`, `out/s4-register-c.txt`.
