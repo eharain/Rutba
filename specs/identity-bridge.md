@@ -290,6 +290,35 @@ record written and the core's three verifier names now in place:
   for an operator, because the dev core is a solo core in organisational mode.
   Both are the instance's own decisions, passed back faithfully.
 
+**The `open` walkthrough, run end to end on the dev estate** once the core's
+three names were set and it was restarted:
+
+1. `POST /internal/handoff` for the dev record, `purpose: 'open'`, answered
+   `http://localhost:4003/authorize?redirect_uri=http%3A%2F%2Flocalhost%3A4003%2Fauth%2Fcallback&state=%2F&login_hint=…&tenant=pos_db&code=…`
+   - the instance's own sign-in, carrying the code, the database and the
+   address, exactly as a hub tile resolves.
+2. `POST /api/auth/handoff/redeem` from that origin, naming `db: pos_db` and
+   `state: /`, answered a session; the instance had bound `rutba_sub` on the
+   person's row (C6) and reported it back as `rutbaSub`.
+3. That session authenticated at the instance's `GET /api/users/me`.
+4. The session row carries `amr: ["management-handoff"]`, `purpose: "open"`,
+   `sub`, `management_sub` and the `allowance` block
+   (`source: "bridge"`), which is the acceptance criterion; the pending
+   `handoff` row was gone, spent by deletion.
+
+Two honest limits on that run. **No browser**: the two page hops (the hub tile
+and `/authorize`) are covered by the suites, not by this run, because driving
+them needs somebody's password and no password of the owner's is entered
+anywhere. **No genuine management identity**: not one of the dev tenant's
+fifteen confirmed addresses has a management account, so the person was a
+stale smoke row and the subject a probe's. Everything written was put back -
+the session deleted, `rutba_sub` returned to null - and the row is as it was.
+A walkthrough with a real person needs an account that exists on both sides,
+which is a dev-data question rather than a bridge one.
+
+`operate` is still refused on that record by design: it names `pos_db`, whose
+core runs in organisational mode.
+
 A late defect this found, fixed and merged at 0f4ccdc: the dev record's `url`
 and `authorize` are one address (the individual instance's launcher IS its
 consumer auth app), and `isBridged` still required the sign-in to be a
@@ -299,19 +328,20 @@ its origin; one that names only an issuer equal to its address still does not.
 
 ### Left
 
-- **The last hop of the walkthrough: a real person, and the dev core's mode.**
-  Everything up to the instance's door is proven live (above). What is not
-  done is a code actually spent in a browser, and it needs two things this
-  stream should not do by itself:
-  - a person who exists both in management auth and in the dev core's
-    database, opened from the hub. The first `open` for them binds their
-    management subject to their row in the shared dev database, so the
-    subject must be a real account's, not a probe's.
-  - `RUTBA_CORE_MODE=individual` on the dev core for the operator half: the
-    core answers `mode: organisation` today, so it refuses an operator, which
-    is the right refusal. That setting is WS-A's open question 12 (a solo dev
-    core in individual mode, or a dev directory), and `consumer/.env*` is not
-    this stream's file.
+- **The walkthrough in a browser, with a real person.** The chain is proven
+  live (above), but through the API rather than the two pages, and with a
+  stale smoke row standing in for a person. What is missing is an account
+  that exists in management auth *and* in the dev tenant: today not one of
+  the tenant's fifteen confirmed addresses has one. Given such a person, the
+  run is: sign in at the hub, click the tile, land signed in.
+- **The operator half.** The dev record names `pos_db`, whose core runs solo
+  in organisational mode, so it refuses an operator - the right refusal, and
+  proven. It needs `RUTBA_CORE_MODE=individual` on that core (WS-A's open
+  question 12) or a separate individual database in a dev directory;
+  `consumer/.env*` is not this stream's file.
+- **The console's own `/operator` page** additionally waits on the gateway
+  restart that lets it read `MANAGEMENT_CONSOLE__AUTH_INTERNAL_TOKEN`, which
+  `gate-tokens.mjs` has now written.
 - **`gate-tokens.mjs` has not been run**, because it writes the estate's env
   files and the run needs a restart afterwards. The estate already has an
   internal key and Strapi's copy matches it, so nothing is broken; what the
