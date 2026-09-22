@@ -1,8 +1,10 @@
 # WS-A — Individual mode for a consumer instance
 
-Status: approved for build, 2026-09-22. Repo: `consumer` (worktree). Contracts
-provided: C1, C2, C3 (see [README.md](README.md)). Consumes: C5 for the
-operator role name only.
+Status: approved for build, 2026-09-22; **first merge landed the same day**
+(see [Status after the first merge](#status-after-the-first-merge-2026-09-22)
+at the end). Repo: `consumer` (worktree). Contracts provided: C1, C2, C3 (see
+[README.md](README.md)) - all three are on `dev` and `main`. Consumes: C5 for
+the operator role name only.
 
 ## Purpose
 
@@ -125,6 +127,73 @@ WS-D adds a separate `handoff.js` and one require line, coordinate at merge),
 ## Open questions for the owner
 
 - Which of mail, assistant and calendar are wanted for individuals in the first
-  cut, if their proofs pass.
+  cut, if their proofs pass. None is proven yet; calendar lists by org today
+  and would need per-person listing first.
 - Whether an individual may convert to an organisation in place (today: no;
   they would buy an organisational instance and move data).
+- The development estate's consumer core runs solo over MySQL with no
+  `RUTBA_CORE_TENANTS` file anywhere, so the acceptance tenant lives inside
+  `smoke:individual`, which boots its own two-tenant core. Adding a directory
+  to the shared dev core would switch it to pooled mode and sign everyone out.
+  Is `RUTBA_CORE_MODE=individual` on the solo dev core enough for trying the
+  launcher, or should a dev directory be introduced deliberately?
+- Should the usage-event contract (management's usage-reporter package) gain a
+  subject field so individual-mode usage can name the person, or is reading
+  per-person usage from Drive's quota rows enough for now?
+
+## Status after the first merge (2026-09-22)
+
+Everything below is on the consumer repo's `dev` and `main`; the record of what
+is offered and why is `consumer/docs/individual-mode.md`. C1 landed alone
+first (commit `9fefe90c`), the rest at merge commit `347bd951`.
+
+### Done
+
+| Scope item | State |
+|---|---|
+| 1. Tenant mode (C1) | Done. `mode` on the directory entry, `currentMode()` / `isIndividualMode()` in `api/core/src/config/mode.js`, `mode` (and `offeredApps`) in `GET /api/setup/state`; a solo core reads `RUTBA_CORE_MODE`. |
+| 2. Role catalogue by mode (C2) | Done. `drive/workspace/sign/studio/social_individual` and `platform_operator` in the catalogue, seeded only into individual-mode databases and never into an organisation's; individuals ride the staff grants; the operator gets no policy; `OFFERED_TO_INDIVIDUALS` in `api/core/src/policy/individual.js` is the one list. `getAllowedApps` reaches an app by domain as for staff; the admin/manager tests cannot match `_individual`. |
+| 3. Registration in individual mode | Done. Open door, `rutba_app_user` plus one `_individual` key per offered app, confirmation mail always, landing on the realm's sign-in. Users-admin pages and every invite control are hidden or say why; their routes answer `403 NOT_IN_THIS_MODE`. |
+| 4. Permissions table and helper (C3) | Done. `rutba_permissions` (migration **113**, not 112: WS-B and WS-D each took 112), the helper with `grantOwner / share / revoke / sharesOf / allowed / visible`, owner ⊃ edit ⊃ view, owner relations counting without a row, unknown denying; `scope: 'permitted'` through a `$permitted` filter in the documents shim. |
+| 5. Per-app readiness gate | Done. Harness under `api/core/tests/individual-mode/` (real registry tables on sqlite, two people through the real door); the launcher reads the offered list through the setup state. |
+| 6. Rollout | Drive and Workspace offered, with proofs: per-person home, per-person quota keys, per-person Workspace folder, no stranger directory, own locks. Sign not yet (see Left). Studio and Social not yet; the follow-up notes are in `studio/README.md` and `content/apps/social/README.md`. |
+| 7. Per-user allowances | Storing done: `storeSessionAllowance()` in `api/core/src/policy/allowances.js` for WS-D's redeem, `quotaFor(key, org, { allowance })`, Drive quota rows per person, the operator reads it. Usage events do not yet carry the user id (see Left). |
+| 8. Operator | Done. Five acts on the people routes in `console/api/auth/operator.js`, each audited to `core_change_audits` with the management `sub` before the act; refused to a session with no subject; nothing else exists; the console's people pages wear the operator's face. |
+| Acceptance | Unit tests for the mode, the role mapping and the helper; the proofs for Drive and Workspace; `smoke:individual` proves the whole flow over HTTP on a two-tenant core, the organisation tenant still granting `_staff` and refusing `_individual`. `docs/tenancy-directory.md` gained the mode field; `docs/individual-mode.md` written. |
+
+### Left
+
+- **Sign's offer.** Envelopes scope by sender; WS-B has landed its own
+  `drive/api/sign/domain/permissions.js` for templates and starters and may
+  move onto the C3 helper. Sign joins `OFFERED_TO_INDIVIDUALS` when its proof
+  under the harness passes.
+- **Studio and Social.** An owner column, repository reads rewritten onto the
+  helper or `scope: 'permitted'`, then a proof; recorded in each README.
+- **Mail, assistant, calendar.** Left out until proven (owner's call above).
+- **Usage events with the user id.** Sign's usage file is WS-B's and the
+  reporter's event shape is management's; not touched.
+- **Per-person enforcement** of the stored allowance.
+- **Sharing by a typed address** in the Workspace and Drive UI: the share picker
+  offers no directory of strangers in individual mode; the server side already
+  works by user documentId.
+- **Files touched outside this stream's owned list**, each named in its
+  commit: the `$permitted` operator in `api/core/src/documents/query.js`, two
+  level words in `api/platform/src/identity.js`, the allowance argument in
+  `api/platform/src/quota.js`, the people-route wrapping in
+  `console/api/auth/routes.js` beyond the registration branch (WS-D's require
+  line merged cleanly beside it), `packages/api-client/config/roles.json`, the
+  users descriptors, the console navigation, and a dialect-portable insert in
+  Drive's version service.
+- **Known noise, not this stream's:** `smoke:policy` reports three failures
+  from duplicate rows in the dev database that its README already records; its
+  from-scratch reproduction passes.
+
+### For the other threads
+
+- **WS-D:** call `storeSessionAllowance(sessionId, { entitlements, quotas, sub })`
+  when redeeming a handoff; the operator door reads the management subject from
+  `strapi_sessions.metadata.sub` (or the allowance's `sub`), else
+  `up_users.rutba_sub`, and refuses a session with neither.
+- **WS-B:** `registerOwnerRelation()` lets Sign's existing `sender_user_id`
+  count as owner without a row; `sign_individual` exists in the catalogue.
+- **Everyone:** the next migration ordinal is `114`.
