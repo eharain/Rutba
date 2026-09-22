@@ -168,3 +168,35 @@ sends and expects.
   the doors these specs define.
 - **Report** in the thread at each merge: what landed, which contract it
   fulfils, what another stream may now use.
+
+Added after the first round's review (2026-09-22, see
+[REVIEW-2026-09-22.md](REVIEW-2026-09-22.md)):
+
+- **Migrate throwaway databases only.** A stream never applies a migration to
+  a shared database (the dev `pos_db`, any box) from an unmerged branch or
+  worktree. Apply it to a database your own suite creates and drops. The
+  runner refuses to move while an applied migration's file is absent, so a
+  migration applied from a worktree stops every core booting from the main
+  checkout until that branch merges. The shared database is migrated from
+  `dev`, after the merge, by whoever merged.
+- **Claim the migration ordinal before you write it.** The next consumer core
+  ordinal is stated here and in `consumer/api/core/migrations/README.md`; a
+  stream taking one edits both lines in the same commit as the migration and
+  reads them again immediately before merging. Two streams never hold the
+  same ordinal: the runner keys by filename so a duplicate applies, but it
+  hides the order two people thought they had agreed. **Next ordinal: 114.**
+- **One smoke run at a time per shared checkout.** A smoke that writes rows
+  into a shared database names its marker with its own run and deletes only
+  rows carrying it. Until a suite does, two sessions never run it at once:
+  each cleanup deletes the other's rows and the failure looks like a bug in
+  the code under test.
+- **A file outside your list is a request, not an edit.** A stream that needs
+  a change in a file this README gives to another stream asks in that
+  stream's thread and waits. Where the README grants a file in part, the rest
+  of that file is still the owner's. A stream that edited outside its list
+  anyway names every such file in its status report, with the reason.
+- **A promise to another stream ships with its caller.** Naming an export in
+  a status report does not fulfil a contract; the consuming call site does. A
+  stream that ships a helper with no production caller says so in its Left
+  list, and the consuming stream's reviewer checks for the call, not the
+  export.
