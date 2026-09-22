@@ -334,12 +334,16 @@ from a worktree).
   `sign_templates.owner_user_id` and `sign_envelopes.sender_user_id` (the
   entity names are in the thread), and Sign's proof with `sign` added to
   `OFFERED_TO_INDIVIDUALS`. Unblocked by item 1.
-- **Client-side behaviour in a browser was not observed.** The browser pane
-  in this session is hidden, animation frames do not fire there, and no page
-  hydrates, including `/verify`, which this round did not touch. The door's
-  and the place reader's logic is held by the offline suite; a person should
-  load `/authorize?next=%2Fprepare%2Fmutual-nda%3Fcc%3DGB` on 4029 once and
-  see it forward to the realm's `/authorize` with that `state`.
+- **The door, verified in a browser; the landing after sign-in, inferred.**
+  The building session's browser pane was hidden, where no page hydrates.
+  The coordinating session then checked it in a visible pane against the
+  running dev estate: `/authorize?next=%2Fprepare%2Fmutual-nda%3Fcc%3DGB` on
+  4029 hydrated and forwarded to the consumer auth's
+  `/authorize?redirect_uri=http%3A%2F%2Flocalhost%3A4029%2Fauth%2Fcallback&state=%2Fprepare%2Fmutual-nda%3Fcc%3DGB`,
+  which settled on its `/login` with the same `redirect_uri` and `state`.
+  Nobody signed in, so the callback landing on the pack is inferred from
+  that `state`, not observed. What is left is one signed-in pass through
+  the whole journey.
 
 ### Questions for the owner
 
