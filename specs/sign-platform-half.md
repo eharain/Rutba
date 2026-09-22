@@ -296,11 +296,16 @@ the seam and its smoke. Against the seven items:
    production unless `SIGN_INSTANCE_ALLOW_ESTATE_TOKEN=true`. The countersign
    route carries `audit: true`; each record names the organisation, the instance
    and the key, and the ledgers record the presenter as
-   `tenant-instance:<documentId>/<keyId>`. The seam reads `platform.sign_key`
-   from the tenant database's settings store where WS-C's door writes it,
-   through the vault's `decryptIfNeeded` so a sealed value and a plain one both
-   read, holds it for a minute, and drops it the moment the platform refuses a
-   key - which is what a rotation looks like from that side.
+   `tenant-instance:<documentId>/<keyId>`. The seam asks for its key by name -
+   `getPlatformKey('sign')`, through a guarded require of the accessor that
+   ships beside WS-C's door - and never reads where the key is kept or how it is
+   sealed, so that can change without touching this file. It falls back to
+   `RUTBA_SIGN_PLATFORM_TOKEN` when the accessor is absent or answers null,
+   which is what a solo core reads anyway; it holds a key for a minute, and
+   drops it the moment the platform refuses one, which is what a rotation looks
+   like from that side. Landed in consumer `33f1288c`; an earlier commit read
+   the store and the vault directly, which the settled C11 puts behind the
+   accessor.
 4. **The seam reads its own names only — done.** `RUTBA_SIGN_PLATFORM_URL` and,
    for a solo core, `RUTBA_SIGN_PLATFORM_TOKEN`. The shared `RUTBA_PORTAL_*`
    pair keeps its gateway meaning, so pointing it at Strapi no longer silently
