@@ -270,25 +270,48 @@ perf, none skipped; Strapi 91; console typecheck and 64; consumer 49 (verifier
 22, handoff 23, migration 114 four); `smoke:handoff` 39 checks;
 `smoke:tenant-directory` 49.
 
-Live on the dev estate, with the estate running and the internal key set:
-`/internal/*` refuses a request without the key; `POST /internal/service-token`
-mints for the individual instance's origin and the token verifies against
-auth's live JWKS (`azp: auth`, the scope asked, 300 seconds); an unknown
-`instanceId` is 404 `INSTANCE_UNKNOWN` through the live identity gate; a body
-naming an origin is 400.
+Live on the dev estate, with the estate running, the internal key set, WS-C's
+record written and the core's three verifier names now in place:
+
+- `/internal/*` refuses a request without the key.
+- `POST /internal/service-token` mints for the individual instance's origin,
+  and the token verifies against auth's live JWKS (`azp: auth`, the scope
+  asked, 300 seconds).
+- The identity gate's door read answers the live record:
+  `{ url: http://localhost:4003, authorize: http://localhost:4003,
+  api: http://localhost:4020, handoff: true, tenantRef: pos_db,
+  product: sign, status: active, mode: individual }`. An unknown `instanceId`
+  is 404 `INSTANCE_UNKNOWN`; a body naming an origin is 400.
+- **The whole chain reaches the instance and gets its own answer.**
+  `POST /internal/handoff` for that record mints a token for
+  `http://localhost:4003`, posts it to `http://localhost:4020/api/auth/handoff`,
+  the instance's C8 verifier accepts it, and its door answers: 404
+  `USER_UNKNOWN` for a person it does not know, and 403 `NOT_INDIVIDUAL_MODE`
+  for an operator, because the dev core is a solo core in organisational mode.
+  Both are the instance's own decisions, passed back faithfully.
+
+A late defect this found, fixed and merged at 0f4ccdc: the dev record's `url`
+and `authorize` are one address (the individual instance's launcher IS its
+consumer auth app), and `isBridged` still required the sign-in to be a
+different origin - a rule from round one, when a workspace carried only a
+realm issuer. A record that names `authorize` now counts as bridged whatever
+its origin; one that names only an issuer equal to its address still does not.
 
 ### Left
 
-- **The live walkthrough itself.** The dev consumer core has none of
-  `MANAGEMENT_AUTH_ISSUER`, `MANAGEMENT_AUTH_JWKS_URL` or `INSTANCE_AUDIENCE`
-  set, so its handoff door answers 501 and the bridge declines to today's
-  link - the designed fallback, and not a walkthrough. Those three are estate
-  configuration in `consumer/.env*`, a file this stream does not own, so they
-  are not set here. With them set (issuer `http://localhost:4101`, JWKS
-  `http://localhost:4101/.well-known/jwks.json`, audience the individual
-  instance's `url`) and the core restarted, the rest of the walkthrough is
-  ready: WS-C's record carries `handoff`, `authorize` and `api`, and the hub,
-  `/operator` and the `amr` read all wait on nothing else.
+- **The last hop of the walkthrough: a real person, and the dev core's mode.**
+  Everything up to the instance's door is proven live (above). What is not
+  done is a code actually spent in a browser, and it needs two things this
+  stream should not do by itself:
+  - a person who exists both in management auth and in the dev core's
+    database, opened from the hub. The first `open` for them binds their
+    management subject to their row in the shared dev database, so the
+    subject must be a real account's, not a probe's.
+  - `RUTBA_CORE_MODE=individual` on the dev core for the operator half: the
+    core answers `mode: organisation` today, so it refuses an operator, which
+    is the right refusal. That setting is WS-A's open question 12 (a solo dev
+    core in individual mode, or a dev directory), and `consumer/.env*` is not
+    this stream's file.
 - **`gate-tokens.mjs` has not been run**, because it writes the estate's env
   files and the run needs a restart afterwards. The estate already has an
   internal key and Strapi's copy matches it, so nothing is broken; what the
@@ -326,10 +349,13 @@ naming an origin is 400.
 
 ### Questions for the owner
 
-1. **The dev core's three verifier names.** Whose hand sets them in
-   `consumer/.env.development`: this stream, WS-C with the rest of the
-   individual instance's dev wiring, or the owner? Nothing else blocks the
-   walkthrough.
+1. **The dev estate's individual instance points at the organisational core.**
+   The record's `tenantRef` is `pos_db` and its `api` is the dev core, which
+   runs solo in organisational mode - so the instance the operator path exists
+   for refuses operators, correctly. Does the dev estate want
+   `RUTBA_CORE_MODE=individual` on that core (WS-A's question 12), or a
+   separate individual database in a dev directory? The bridge works either
+   way; only the walkthrough waits on the answer.
 2. **PKCE on the handoff code.** Worth a second round trip - the hub minting a
    challenge the realm's page holds - or is the current binding (database,
    origin, state, 120 seconds, single use, braked) where this should stop?
