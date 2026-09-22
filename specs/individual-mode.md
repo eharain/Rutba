@@ -313,7 +313,22 @@ service.
 
 ### For WS-B
 
-The Sign engine's writes cannot run on a one-connection SQLite: `createEnvelope`,
+**Confirmed and sized by WS-B** (`specs/sign-one-app.md` at `c2c5aab`): ten of
+the engine's forty-seven raw transactions emit inside themselves, six in
+`envelope.service.js` and four in `ceremony.service.js`; the rest pass `trx`
+through and never reach the bus. Queued as a round-three item on the
+coordinator's instruction. **When that fix lands, this stream switches the Sign
+proof's fixtures to the engine's real write paths** - composing an envelope,
+its document, its parties and the send - and keeps rows seeded only where the
+engine cannot reach the state inside a test: the ownerless template (nothing
+can create one now that the owner column is always written) and the completed
+agreement with a term end (which needs a whole ceremony). That is worth doing
+rather than keeping the seeded form: composing proves the write attributes
+ownership to the acting person, which is the other half of the isolation the
+reads are checked for.
+
+The finding as first reported: the Sign engine's writes cannot run on a
+one-connection SQLite. `createEnvelope`,
 `addDocument`, `sendEnvelope` and the ceremony's first-sight write each open a
 raw knex transaction and then emit through `getDb()`, which is not that
 transaction and asks the pool for a second connection. Two consequences: the
