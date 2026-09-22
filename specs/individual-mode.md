@@ -197,3 +197,46 @@ first (commit `9fefe90c`), the rest at merge commit `347bd951`.
 - **WS-B:** `registerOwnerRelation()` lets Sign's existing `sender_user_id`
   count as owner without a row; `sign_individual` exists in the catalogue.
 - **Everyone:** the next migration ordinal is `114`.
+
+## Round two (2026-09-22)
+
+Decisions accepted: Sign is the first product offered to individuals after
+Drive and Workspace; no owner-claim path on an individual instance; a storage
+cap per person. Review findings are in REVIEW-2026-09-22.md, WS-A section.
+
+1. **Mode-aware first run.** `api/core/scripts/grant-full-access.js` and
+   `provisionOwner` honour the mode: in an organisational database they never
+   create or grant `_individual` keys or `platform_operator`; in an individual
+   database the owner claim refuses with `409 NOT_IN_THIS_MODE` and the script
+   refuses to run. `platform_operator` is granted by the bridge alone.
+2. **Setup state by mode.** In individual mode `GET /api/setup/state` answers
+   `{ state: 'ready', mode, offeredApps }` with no `accounts`, `admins`,
+   `latent` or `doors`, and every recovery route refuses with
+   `403 NOT_IN_THIS_MODE`. An individual instance is never `orphaned`.
+3. **Storage cap per person.** A person's quota row is created at
+   `INDIVIDUAL_QUOTA_BYTES` (or the allowance stored on their session when
+   present), never at the instance's licensed limit; the licence remains the
+   pool, and headroom checks consider both.
+4. **Operator narrowed.** No enumeration: the people search requires a query of
+   at least three characters, answers at most twenty rows, and is audited.
+   No operator act may target a row holding `platform_operator`, and no
+   set-password link may be issued for one.
+5. **Owner relations registered.** At module registration call
+   `registerOwnerRelation` for `sign_templates.owner_user_id`,
+   `sign_envelopes.sender_user_id`, and the Drive and Workspace creator
+   columns, so the helper answers `owner` for them without a row.
+6. **Sign offered.** Add `sign` to `OFFERED_TO_INDIVIDUALS` with its proof in
+   `api/core/tests/individual-mode/sign.test.js`: templates, starters,
+   envelopes and agreements answer only the caller's; a shared template
+   appears at the granted level; the keys, policy and webhook reads are
+   refused. Land this after WS-B's gating of those reads (its round-two item
+   1) and say so in the thread.
+7. **Ordinal record.** `api/core/migrations/README.md` states the next
+   ordinal, 115 after WS-D's 114, and this stream keeps it current.
+8. **Disclosure.** Every file outside the owned list is named in the status
+   report with its reason; `api/platform/src/identity.js` is kept as edited
+   and recorded there.
+
+Acceptance: the existing suites; new unit tests for items 1–4; the Sign proof;
+`smoke:individual` extended with the owner-claim refusal, the setup-state
+shape and the operator refusals; `docs/individual-mode.md` updated.

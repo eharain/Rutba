@@ -206,3 +206,31 @@ Consumer, on `dev` and `main` at `cf1831fd` (commits 877a6fae, 14f1a3e4,
   only from the main checkout. One of four smoke runs failed transiently in
   section K with a signing link another process appears to have cleaned up
   on the shared dev database; the re-run and the other runs were green.
+
+## Round two (2026-09-22)
+
+Decisions accepted: Sign is the first product offered to individuals; the
+prepare intent travels (C10); the live host and the taster stand. Review
+findings are in REVIEW-2026-09-22.md, WS-B section.
+
+1. **Gate the reads.** `listApiKeys`, `getPolicy` and every other read of
+   keys, policy or webhooks require `isAdmin` in organisational mode and
+   refuse with 403 in individual mode, matching the writes. This is what lets
+   WS-A offer Sign; land it first and say so in the thread.
+2. **Null owners.** A template or starter with no `owner_user_id` is visible
+   to nobody but an operator in individual mode; no backfill migration (an
+   individual instance starts empty). Test it.
+3. **The pack path wins.** `landingFor` in the Sign door prefers a non-root
+   `next` over the hub's default `/`, so `next=/prepare/<pack>?cc=<CC>` from
+   C10 lands on the pack. The hub's Sign tile still sends `next=/`.
+4. **Own README.** Correct the seam row in `drive/api/sign/README.md` to the
+   `RUTBA_SIGN_PLATFORM_*` names and, once WS-E lands C11, the per-tenant key.
+5. **Proof scenarios.** Hand WS-A the scenario list for the Sign proof
+   (templates, starters, envelopes, agreements, refused reads); WS-A writes
+   the test under its harness.
+6. **No core migrations** from this stream this round; a schema need is a
+   request to WS-A.
+
+Acceptance: `smoke:sign` green with the path count unchanged; new tests for
+items 1–3; `sign-handoff.test.mjs` covering the pack path precedence; the
+README row corrected before merge.

@@ -200,3 +200,71 @@ Added after the first round's review (2026-09-22, see
   stream that ships a helper with no production caller says so in its Left
   list, and the consuming stream's reviewer checks for the call, not the
   export.
+
+## Round two (2026-09-22): decisions accepted, contracts amended
+
+The owner accepted the six decisions in [REVIEW-2026-09-22.md](REVIEW-2026-09-22.md):
+
+1. **Sign is the first product offered to individuals** after Drive and Workspace.
+2. **The tenants credential is minted per call by management auth** for one
+   instance's audience; there is no static bearer.
+3. **A key per instance for the sign-instance gate, now.**
+4. **rutba.io's verify page keeps its public origin**: the gateway routes
+   `/v1/public/sign/*` to Strapi's `/api/sign/public/*`.
+5. **The individual instance record** carries `url` (the launcher origin),
+   `authorize` (the consumer auth origin whose `/authorize` takes a code) and
+   `api` (the core origin); product `sign`.
+6. **No owner-claim path on an individual instance**; operators only.
+
+Defaults taken for the rest, which the owner may override: storage on the
+individual instance is a cap per person, never the whole licence; the
+per-product template database is a fleet stage, with a dev script standing in;
+suspension at the licence's expiry plus grace, dedicated instances by hand,
+the countersign key its own, the abuse intake built now, the live host
+`app.sign.rutba.io`, the site's taster stays, "Start sending" carries
+`app: 'sign'`, mail/assistant/calendar left out, `RUTBA_CORE_MODE=individual`
+on the solo dev core is enough for the launcher.
+
+**C4 amended.** The tenant-instance `auth` descriptor is
+`{ issuer, jwks_uri, mode, handoff: true, authorize, api }` and every
+workspace from `workspacesOf` carries `handoff`, `authorize` and `api`. The
+hub builds the realm's authorize URL from `authorize`, never from `issuer`.
+The provisioner's `record` step writes all three for a provisioned instance;
+the individual-instance reconcile reads `INDIVIDUAL_INSTANCE_AUTHORIZE` and
+`INDIVIDUAL_INSTANCE_API` beside the existing four.
+
+**C10 — the prepare intent.** Auth's front door accepts an intent matching
+`prepare:<pack>:<CC>` beside plan intents. For app `sign` the console sign-in
+link then carries `next=/prepare/<pack>?cc=<CC>`; the Sign door honours a
+non-root `next` over its default; the hub's own Sign tile keeps `next=/`.
+
+**C11 — a key per instance for Sign.** Strapi issues one secret per
+tenant-instance (hashed at rest, status, rotated_at) through the service
+`api::sign.instance-keys` with `issue(instance)` and `verify(secret)`; the
+sign-instance gate verifies the bearer against it and derives the instance
+from the key, so `x-rutba-instance` becomes a cross-check, not the identity.
+The instance keeps the secret in its own tenant database's settings store
+under `platform.sign_key`, written through a new C7 door
+`PUT /api/tenants/:db/platform-keys { sign }`; `RUTBA_SIGN_PLATFORM_TOKEN`
+remains the fallback for a solo core.
+
+**C12 — the service-token endpoint.** Auth exposes
+`POST /internal/service-token { audience, scope }` → `{ token, expires_at }`
+behind the internal key, audited, fifteen minutes at most, scopes
+`tenants:admin` and `session:handoff` only. Callers fetch per call and may
+cache until sixty seconds before expiry. Strapi proxies it for the worker at
+`POST /api/worker/provisioning/token { audience }`, so the worker never holds
+the internal key.
+
+**Ownership amendments.** WS-D owns `api/legacy/strapi/src/estate/bridge*.js`
+and one identity-gate read of an instance's door fields; WS-E owns
+`portal/apps/web/src/lib/sign-api.ts` and the verify page, the sign lines of
+`gateway/src/**` including `anonymous.test.ts`, and the catalogue seed's
+`workspace.ts` verify entry; `devkit/scripts/gate-tokens.mjs` is shared by
+WS-C (worker and individual-instance lines) and WS-D (auth internal key),
+coordinate at merge. **Migration ordinals:** WS-D takes 114; the next free
+ordinal is 115. No other stream writes a core migration this round.
+
+**Sequencing.** WS-D lands C12 first; WS-C lands the amended C4 record first;
+WS-B gates the Sign key and policy reads before WS-A offers Sign; WS-E lands
+C11's issue/verify before WS-C's worker writes a key.

@@ -361,3 +361,65 @@ The rest came out of the build.
    from the main checkout refuse ("applied migration no longer matches its
    file") until that branch merged. Should a stream migrate only throwaway
    databases before it merges, and should the rules above say so?
+
+## Round two (2026-09-22)
+
+Decisions accepted: the tenants credential is minted per call (C12); the
+individual instance record carries `authorize` and `api` (C4 amended); a key
+per instance for Sign (C11); the template database is a fleet stage with a dev
+script standing in; suspension timing and dedicated-by-hand stand. Review
+findings are in REVIEW-2026-09-22.md, WS-C section.
+
+1. **C4 amended, first.** `src/estate/individual.js` reads
+   `INDIVIDUAL_INSTANCE_AUTHORIZE` and `INDIVIDUAL_INSTANCE_API` beside the
+   four and writes `auth: { issuer, jwks_uri, mode, handoff: true, authorize,
+   api }`; `workspacesOf` and `individualWorkspaceOf` pass `handoff`,
+   `authorize` and `api` on every workspace; the reconcile compares those
+   fields too so a boot never wipes them. The worker's `record` step writes
+   all three for a provisioned instance. Merge and announce; WS-D waits on it.
+2. **The lease lives.** `claim` takes a `queued` job or a `running` one whose
+   `claimedUntil` has passed; a `provisioning.reap` timer returns expired
+   running jobs to `queued` with `attempts + 1` and fails them at the ceiling,
+   which moves into Strapi; `failJob` honours it.
+3. **Credentials never stored.** `withoutCredentials` runs on job `input` and
+   `state` at create and at every step, recurses into arrays, and strips
+   `url`/`dsn`/`connectionString`/`adminUrl` values of any userinfo and the
+   keys `pass`, `pwd`, `key`, `apiKey`, `privateKey`, `bearer`,
+   `authorization`. A test proves a DSN with a password never reaches a row.
+4. **A failed provision cleans up.** When a job fails for good, a `cleanup`
+   step drops the database the job itself created (recorded in `state`) or,
+   if the drop fails, leaves the job `failed` with the database named for
+   staff; `ensureMysql` completes a partial clone by table set instead of
+   short-circuiting.
+5. **`npm run check` runs as packaged.**
+6. **Minted tokens (C12).** `tenants-door.js` fetches a `tenants:admin` token
+   per call from auth's `POST /internal/service-token` for the instance's
+   audience, cached until sixty seconds before expiry, using the
+   `AUTH_API_BASE`/`AUTH_INTERNAL_TOKEN` pair Strapi already holds. The worker
+   asks Strapi at `POST /api/worker/provisioning/token { audience }` (new
+   worker-gate route proxying auth) and `coreClient` takes a token function.
+   `TENANTS_DOOR_TOKEN` is removed everywhere. Until WS-D's endpoint lands,
+   test with a fake auth in `check:provisioning`.
+7. **The Sign key door (C11).** C7 gains `PUT /api/tenants/:db/platform-keys
+   { sign }`, which writes `platform.sign_key` into that tenant database's
+   settings store; the worker's `record` step obtains the key from Strapi
+   through a new worker-gate route `POST /api/worker/provisioning/:jobId/sign-key`
+   (which calls `api::sign.instance-keys`) and then the door. Until WS-E lands
+   the service, the route answers 501 and the step is skipped with a note in
+   `state`.
+8. **Devkit.** `devkit/services.json` gains `workers/provisioning`;
+   `gate-tokens.mjs` writes its worker gate token and the
+   `INDIVIDUAL_INSTANCE_*` lines for the dev estate (url `http://localhost:4003`,
+   authorize the same, api `http://localhost:4020`, db the dev tenant name,
+   product `sign`); `scripts/template-db.js` creates `tpl_<product>` from
+   the core's migrations as the dev stand-in for the fleet's `stage_template`.
+9. **Low.** Identifier-quote the template table and view names; a collision
+   check on the truncated database name.
+10. **Disclosure** of every file outside the list, with reasons.
+
+Acceptance: `check:provisioning` extended for the reap, the cleanup, the
+minted token through a fake auth and the amended record; worker check green
+as packaged; `smoke:tenants-door` extended for the key door; the live
+walkthrough on the dev estate against a directory core the smoke starts:
+purchase as a fresh organisation, job runs, tile appears, the instance's
+sign-in page answers for the owner's address.

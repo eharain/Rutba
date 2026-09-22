@@ -193,3 +193,53 @@ and perf; Strapi 85; management console typecheck and 59 tests. Management
 - **WS-A (C2):** nothing blocking. The handoff creates the `platform_operator`
   role row under that exact name when the seeder has not shipped it, as the
   README allows; once WS-A seeds it, the handoff finds it and creates nothing.
+
+## Round two (2026-09-22)
+
+Decisions accepted: the tenants credential is minted per call (C12, yours to
+expose); C4 amended so the hub reads `authorize` and `api`; operators only on
+the individual instance; C10 carries the prepare intent. Review findings are
+in REVIEW-2026-09-22.md, WS-D section.
+
+1. **C12 first.** `POST /internal/service-token { audience, scope }` behind
+   the internal key, audited, answering `{ token, expires_at }` from
+   `service-token.js`, scopes `tenants:admin` and `session:handoff` only.
+   Merge and announce; WS-C waits on it.
+2. **Fail closed.** `requireInternalKey` refuses every `/internal/*` request
+   when `INTERNAL_API_KEY` is unset, in every environment. `gate-tokens.mjs`
+   writes a dev key for auth and the matching `AUTH_INTERNAL_TOKEN` for
+   Strapi (shared file with WS-C; coordinate at merge).
+3. **The door is the record's.** `POST /internal/handoff` takes an
+   `instanceId` and resolves `url`, `authorize` and `api` through a new
+   identity-gate read of that instance's door fields, never from the body;
+   a body naming origins is refused.
+4. **Bind the code.** The handoff body carries the `authorize` origin and
+   `state`; the code is bound to both and the redeem must present the same
+   `state` from the same origin; `db` stays required at redeem (401 without
+   it) and the route is rate-limited per address.
+5. **Migration 114.** `114-up-users-rutba-sub-ensure` with `requires` on the
+   users table, guarded, so a fresh database gets the column; 112 stays as
+   applied. The README's next ordinal is 115; ask WS-A to mirror it in the
+   migrations README.
+6. **Allowance stored.** Redeem calls `storeSessionAllowance(sessionId,
+   { entitlements, quotas, sub })` and writes `metadata.sub`, so the operator
+   door and the allowance panel read what WS-A built.
+7. **Signed open links.** `/hub/open/:id` links carry a five-minute HMAC over
+   session and workspace, verified before minting, so no code is minted on a
+   bare GET.
+8. **Hub uses `authorize`.** The realm's authorize URL comes from the
+   workspace's `authorize`, falling back to the realm issuer only when
+   absent; the fake Strapi in tests carries the amended C4 shape.
+9. **C10.** The front door accepts `prepare:<pack>:<CC>` intents; `whereTo`
+   sends a `prepare:` intent for app `sign` to the Sign console sign-in with
+   `next=/prepare/<pack>?cc=<CC>`; a plan intent behaves as today.
+10. **Operator page test**, and the operator role row created by the handoff
+    carries the same domain link the seeder writes.
+11. **Disclosure** of every file outside the list; `src/estate/bridge*.js` is
+    now yours by the README amendment.
+
+Acceptance: auth suites with none skipped; consumer verifier and handoff
+tests extended for items 3, 4 and 6; `smoke:handoff`; Strapi and console
+tests; then the live walkthrough on the dev estate with the internal key set
+and WS-C's amended record: open the individual instance from the hub and from
+`/operator` without a password, and read `amr` off the session row.

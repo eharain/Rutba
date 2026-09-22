@@ -213,3 +213,45 @@ carry the token and a dev key; the dev gateway needs a restart.
   leave the intake out until a page exists to link it?
 - **The verify page's public origin** for Strapi's sign routes: the gateway
   routing `/v1/public/sign` to Strapi, or a public Strapi hostname.
+
+## Round two (2026-09-22)
+
+Decisions accepted: a key per instance now (C11); rutba.io's verify page keeps
+its public origin through the gateway; the countersign key stays its own; the
+abuse intake is built now. Review findings are in REVIEW-2026-09-22.md, WS-E
+section and addendum.
+
+1. **The gateway routes the public sign paths.** `/v1/public/sign/*` is
+   anonymous again at the gateway and proxied to Strapi's
+   `/api/sign/public/*`; `anonymous.test.ts` asserts the new arrangement and
+   `npm test` in `gateway` is green.
+2. **The verify page lives.** `portal/apps/web/src/lib/sign-api.ts` and the
+   verify page render a countersigned reference and link a working JWKS;
+   the catalogue seed's `workspace.ts` entry keyed `esign` is re-keyed and
+   its copy matched to what the platform answers.
+3. **C11.** `api::sign.instance-keys` with `issue(instance)` returning the
+   secret once and storing its hash, `verify(secret)` resolving the
+   instance, `rotate`, `revoke`; the sign-instance gate authenticates the
+   bearer against it and treats `x-rutba-instance` as a cross-check;
+   `GATE_TOKEN_SIGN_INSTANCE` remains only for a solo dev core. The consumer
+   seam reads `platform.sign_key` from the tenant database's settings store
+   when present, else `RUTBA_SIGN_PLATFORM_TOKEN`. The countersign route
+   carries `audit: true` with the instance named.
+4. **The seam reads its own names only.** `RUTBA_SIGN_PLATFORM_URL` and
+   `_TOKEN`; the shared `RUTBA_PORTAL_*` pair keeps its gateway meaning and
+   the seam no longer falls back to it.
+5. **Abuse intake.** `POST /api/sign/public/abuse-reports` with the constant
+   202 body and a per-address throttle.
+6. **Housekeeping.** Unpin `@rutba/contracts` to `*`; test the 503-no-key
+   path in `check:sign`; retire the esign Kubernetes overlay and the esign
+   row in `portal/scripts/test-integration.mjs` (a tracked-directory delete
+   may be refused by the tooling; if so mark it retired and name the command
+   for the owner); remove the stale `GATE_TOKEN_SIGN_CONSOLE` line where the
+   devkit writes it.
+7. **Disclosure** of every file outside the list, with reasons.
+
+Acceptance: gateway tests and typecheck; `check:sign` extended for keys,
+rotation, the cross-check and the 503 path; the contracts pack unchanged;
+`smoke:sign` section W in stand-in mode against the per-tenant key, and in
+live mode against the dev Strapi once WS-C's record exists; the verify page
+loaded in the browser pane against the dev gateway.
