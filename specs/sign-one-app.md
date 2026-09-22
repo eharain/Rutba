@@ -334,6 +334,27 @@ from a worktree).
   `sign_templates.owner_user_id` and `sign_envelopes.sender_user_id` (the
   entity names are in the thread), and Sign's proof with `sign` added to
   `OFFERED_TO_INDIVIDUALS`. Unblocked by item 1.
+- **The engine's writes emit outside their own transaction** (found by WS-A,
+  2026-09-22; a round-three item, not touched this round). Sign opens raw
+  `db.transaction(trx)` — 47 places across nine files of
+  `drive/api/sign/domain/` — and the ones that also emit pass `trx` to the
+  evidence append but reach the bus through `announce` → `emit`, which takes
+  its connection from `getDb()`. `getDb()` answers the ambient transaction
+  only inside `withTransaction` (`api/core/src/db/connection.js`), which is
+  how Drive's services emit and what the bus's own docblock says the outbox
+  depends on: "emitting after commit loses events to a crash in between,
+  emitting before commit announces work that never happened". Ten
+  transactions are affected — six in `envelope.service.js` (`createEnvelope`,
+  `addDocument`, `sendEnvelope` among them) and four in
+  `ceremony.service.js`. Two consequences: on MySQL the event escapes, so a
+  write that rolls back can have announced itself; on SQLite, whose pool is
+  pinned to one connection on purpose, the emit asks for a second connection
+  and the write deadlocks until `acquireTimeoutMillis`, which is why WS-A's
+  Sign proof seeds its envelope, document, party and token rows instead of
+  composing them. The fix is `withTransaction` at those ten sites, and its
+  prize is that WS-A's proof can drive the real write paths. Recorded in
+  `specs/individual-mode.md` under "For WS-B" and in the consumer's
+  `docs/individual-mode.md` follow-ups.
 - **The door, verified in a browser; the landing after sign-in, inferred.**
   The building session's browser pane was hidden, where no page hydrates.
   The coordinating session then checked it in a visible pane against the
