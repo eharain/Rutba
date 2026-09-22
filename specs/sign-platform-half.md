@@ -323,8 +323,20 @@ creates and drops (`rutba_signchk_<run>`, `SIGN_CHECK_DATABASE_URL` overrides),
 because a content type's table is made on boot and a shared database must meet
 it from `dev`; gateway 89 of 89 and typecheck; Strapi's unit tests 75 of 75;
 the contracts pack untouched; `smoke:sign` green in stand-in mode with section W
-against a per-instance key and the instance cross-check; the verify page loaded
-in the browser pane.
+against a per-instance key and the instance cross-check, and green in live mode
+against a Strapi of this branch; the verify page loaded in the browser pane.
+
+**One thing went wrong, and it is worth the whole estate's attention.** The
+consumer commit `f24def0e` was staged with a pathspec but committed without one,
+so two files another session had staged in that shared checkout rode along and
+were reverted to stale content under a message describing only the seam. WS-A
+caught one on merge (`8a796c51`); the other, `docs/individual-mode.md`, is
+restored in `214822fd`. The index is shared in a shared checkout, so a bare
+`git commit` commits whatever anybody has staged - and the result is worse than
+an ordinary mistake, because the diff looks deliberate and the message explains
+it away. The habit this round should carry: **pass the pathspec to `git commit`
+itself, not only to `git add`**, and when resolving a merge over a file you own,
+read `git show <sha> -- <path>` before taking your side.
 
 ### Files outside the list, and why
 
@@ -367,8 +379,11 @@ in the browser pane.
   the row says in so many words that it changes when this lands, so it is a
   request to that stream rather than an edit here.
 - **`smoke:sign` in live mode** has not been run against the dev estate's own
-  Strapi, because that process is pre-merge; it was run against a Strapi of this
-  branch instead.
+  Strapi, because that process is pre-merge. It was run against a Strapi of this
+  branch on a database of its own, with a key from `issue` presented by the
+  seam: section W live is 9 of 9 - the receipt and the sealed manifest
+  countersigned and verified at the public route, and the formality filed, read
+  and withdrawn at the desk.
 - The stale `gate:sign-instance` API token row stays in the dev database until
   somebody removes it. It opens nothing: the door's routes no longer consult
   Strapi's token check.
