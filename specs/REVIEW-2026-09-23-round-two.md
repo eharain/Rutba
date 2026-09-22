@@ -233,3 +233,24 @@ work can go to it or to a fresh thread with a standalone brief.
    whole licence or a fraction; Drive's capability model onto the helper.
 7. Per-instance countersign keys published for the life of the ledger
    (recommended) versus a single rotating key.
+
+## Addendum — the seams reviewer's late correction (2026-09-23)
+
+The seams reviewer's final report corrects one line of its own dossier. The
+refusal code `NOT_IN_THIS_MODE` does have a shared definition: the core's mode
+module (`consumer/api/core/src/config/mode.js`, lines 71 to 104) exports the
+constant, an error class whose name is `ConflictError` for a 409 and
+`ForbiddenError` otherwise with the code on `error.code` and in `details`, and
+a `refuseNotInThisMode` writer. Three of the four consumer sites use it: the
+setup bootstrap's `provisionOwner`, the grant CLI, and the first-run owner claim
+in the setup routes (409 for the claim, 403 for the recovery doors, with the
+split documented at the top of the file). The one outlier is the C7 owner door
+in the tenants domain, `consumer/console/api/tenants/domain/people.js` line
+171, which hand-rolls the literal through its local `fail` helper, so its 409
+carries the code as the error's name and not as `error.code`. The provisioning
+worker survives only by its fallback (`workers/provisioning/src/core.js` line
+86 reads `code`, then `name`), and its test stubs `code` directly, so a
+regression at the door would pass the suite. Verdict for C7 unchanged, fits,
+but by a fallback rather than by construction. Round three, WS-C: throw the
+shared class with status 409 at that site; the worker's test should exercise
+the door's real envelope.
