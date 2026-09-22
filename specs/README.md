@@ -243,10 +243,14 @@ tenant-instance (hashed at rest, status, rotated_at) through the service
 `api::sign.instance-keys` with `issue(instance)` and `verify(secret)`; the
 sign-instance gate verifies the bearer against it and derives the instance
 from the key, so `x-rutba-instance` becomes a cross-check, not the identity.
-The instance keeps the secret in its own tenant database's settings store
-under `platform.sign_key`, written through a new C7 door
-`PUT /api/tenants/:db/platform-keys { sign }`; `RUTBA_SIGN_PLATFORM_TOKEN`
-remains the fallback for a solo core.
+The instance keeps the secret in its own tenant database in a core-owned
+table `core_platform_keys` (`name` primary, `value_enc` sealed with the core's
+vault, `issued_by`, `updated_at`; migration 115, WS-C's), reached through
+`api/core/src/security/platform-keys.js` (`getPlatformKey(name)`,
+`setPlatformKey(name, value, { issuedBy })`, WS-C's) and written through the
+new C7 door `PUT /api/tenants/:db/platform-keys { sign }`; the seam reads
+`getPlatformKey('sign')` and falls back to `RUTBA_SIGN_PLATFORM_TOKEN`, which a
+solo core reads alone.
 
 **C12 — the service-token endpoint.** Auth exposes
 `POST /internal/service-token { audience, scope }` → `{ token, expires_at }`
@@ -262,8 +266,9 @@ and one identity-gate read of an instance's door fields; WS-E owns
 `gateway/src/**` including `anonymous.test.ts`, and the catalogue seed's
 `workspace.ts` verify entry; `devkit/scripts/gate-tokens.mjs` is shared by
 WS-C (worker and individual-instance lines) and WS-D (auth internal key),
-coordinate at merge. **Migration ordinals:** WS-D takes 114; the next free
-ordinal is 115. No other stream writes a core migration this round.
+coordinate at merge. **Migration ordinals:** WS-D takes 114, WS-C takes 115
+(`core_platform_keys`); the next free ordinal is 116. No other stream writes a
+core migration this round.
 
 **Sequencing.** WS-D lands C12 first; WS-C lands the amended C4 record first;
 WS-B gates the Sign key and policy reads before WS-A offers Sign; WS-E lands
