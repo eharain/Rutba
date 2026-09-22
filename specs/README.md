@@ -209,6 +209,13 @@ Added after the first round's review (2026-09-22, see
   stream that ships a helper with no production caller says so in its Left
   list, and the consuming stream's reviewer checks for the call, not the
   export.
+- **The pathspec goes on the commit, not only on the add.** The main
+  checkouts share one index, so a bare `git commit` commits whatever any
+  session has staged, and the stray files travel under a message that
+  describes only your change. Always `git commit -- <paths>`. When a merge
+  conflicts on a file you own, read `git show <sha> -- <path>` for the other
+  side before taking yours. (Round two: a seam commit reverted two other
+  sessions' staged docs this way; both were restored.)
 
 ## Round two (2026-09-22): decisions accepted, contracts amended
 
