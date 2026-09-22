@@ -243,7 +243,7 @@ shape and the operator refusals; `docs/individual-mode.md` updated.
 
 ## Status after round two (2026-09-22)
 
-Consumer, on `dev` and `main` at `8827cf6b` (pushed; temp branch `ws/a`
+Consumer, on `dev` and `main` at `8cb9f504` (pushed; temp branch `ws/a`
 merged and deleted, never pushed). No core migration was written this round:
 `113-rutba-permissions` from round one is this stream's only one.
 
@@ -256,7 +256,7 @@ merged and deleted, never pushed). No core migration was written this round:
 | 3. Storage cap per person | A person's quota row is created - and kept in step on every check - at the allowance the bridge stored (`storage_gb`), else `INDIVIDUAL_QUOTA_BYTES`, else a stated default, never at the licensed limit. Every write is checked against that cap **and** against the sum of every row the instance holds versus the licence, which is now the pool, under a lock on the org's row; a refusal says which ceiling it hit. Commit `5cd382f5`. |
 | 4. Operator narrowed | The people search needs three characters, takes `%` and `_` literally (so `%%%` is not "everyone"), answers at most twenty rows, and is audited answered or refused. A row holding `platform_operator` is out of every search and may not be the target of any act (403 `OPERATOR_TARGET`, audited, nothing written). The operator's subject is read **only** from the session the bridge opened; the row's own `rutba_sub` no longer passes the gate, which closes the operator-to-operator password path and the public forgot-password variant of it. Commit `3552fd64`. |
 | 5. Owner relations registered | `api/core/src/policy/owner-relations.js` declares `sign_templates.owner_user_id`, `sign_envelopes.sender_user_id` and the `created_by_actor` of `drive_nodes` and `workspace_documents` (each under its table name and, for the two registry types, its uid); the helper registers them as it loads, before it can answer anything, so Sign's adapter - its production caller - gets `owner` from the relation and shares on top. Commit `567a2f34`. |
-| 6. Sign offered | After WS-B's gating landed on dev (`f09ee88a`), `sign` joined `OFFERED_TO_INDIVIDUALS`, so registration grants `sign_individual`. The proof asks every list, read and search route of the module through its own handlers against WS-B's eight scenarios. Commit `619d3d0b`. |
+| 6. Sign offered | After WS-B's gating landed on dev (`f09ee88a`), `sign` joined `OFFERED_TO_INDIVIDUALS`, so registration grants `sign_individual`. The proof asks every list, read and search route of the module through its own handlers against WS-B's eight scenarios. Commits `619d3d0b`, and `047168eb` for the four points WS-B's fuller list carried that the first pass did not: saving a template from an envelope (and a stranger refused at the same door), an operator deleting the ownerless template, the sender's own ending-soon agreement listing, and the inbox turn rule - the first party opens theirs and gets a link that resolves, the second is told it is not their turn. |
 | 7. Ordinal record | `api/core/migrations/README.md` carries the next ordinal at its top. Read again at merge time: 115 had become WS-C's for C11, so it says **116**, naming 114 (WS-D) and 115 (WS-C). Commits `8b1bb9db`, `6a01af56`. |
 | 8. Disclosure | Below. |
 
