@@ -240,8 +240,10 @@ Added after the round-two review (2026-09-23, see
   browser pane never draws a frame, and Next's development client waits for a
   frame before it hydrates, so a page that "never settles" in a pane nobody
   is looking at is the pane, not the product. Before a record blames either,
-  it takes one screenshot (which forces a frame), then runs the `__react`
-  fibre check on the page and on the app's own 404 path, and quotes both.
+  it takes one screenshot (which forces a frame; one screenshot releases one
+  frame only, so take another before each observation that needs the page
+  to have moved on), then runs the `__react` fibre check on the page and on
+  the app's own 404 path, and quotes both.
   `router.isReady` decides nothing, it reads true either way. A screenshot of
   the landing goes with any browser verdict of severity high.
 - **A table read from a shared database carries the minute it was read.**
