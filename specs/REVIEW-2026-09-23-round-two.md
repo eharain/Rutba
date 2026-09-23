@@ -254,3 +254,14 @@ regression at the door would pass the suite. Verdict for C7 unchanged, fits,
 but by a fallback rather than by construction. Round three, WS-C: throw the
 shared class with status 409 at that site; the worker's test should exercise
 the door's real envelope.
+
+## Addendum — the seams row for the operator, corrected by the end-to-end round
+
+The C5/C6 row above says an operator "cannot sign in". The end-to-end round
+proved the opposite at the API and the same at the browser: a `purpose:
+operate` session authenticates at the instance and carries all five operator
+acts with their audit rows, but the row is created on the `authenticated`
+users-permissions role and the app's callback logs any other role type out
+and revokes the session, so the path is unusable from a browser. The verdict
+stays partial and the fix stays WS-A's; the corrected row and the evidence
+are in [REVIEW-2026-09-23-e2e.md](REVIEW-2026-09-23-e2e.md), finding 10.

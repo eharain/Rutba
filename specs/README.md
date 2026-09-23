@@ -236,6 +236,19 @@ Added after the round-two review (2026-09-23, see
   for the bridge names, the dev core needs them in its file and the affected
   suites are known to refuse on the dev machine; the loader change is a
   round-three item and this exception ends with it.
+- **A claim about a browser names the hydration check that backs it.** Before a
+  record blames the pane or the product for a page that never settles, it
+  reads `router.isReady` (or the `__react` fibre check) on the page and on the
+  app's own 404 path in the same pane, and quotes both. A screenshot of the
+  landing goes with any browser verdict of severity high.
+- **A table read from a shared database carries the minute it was read.**
+  Three threads write to the same databases; a count without its time cannot
+  be reproduced and will have drifted by the review.
+- **A restore is rehearsed before it is relied on, and it hashes the
+  destinations.** The way back is run once on a copy or checked line by line
+  against what it must undo: every database made, every row written, the
+  working directory each line runs from, and a proof step at the end. A
+  checksum of the backups proves the backups, not the restore.
 
 ## Round two (2026-09-22): decisions accepted, contracts amended
 
