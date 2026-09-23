@@ -556,17 +556,24 @@ the setup record describes.
 
 ## Step 5 — cleanup — PARTIAL, by the rule the brief gives
 
-**The gate.** E2E-IND reached `STATUS DONE`. **E2E-ORG never wrote a record
-at all**, and two and a half hours from this thread's start had passed, so the
-brief's fallback applies: only this thread's own accounts and data were
-cleaned, and everything else is listed as remaining.
+**The gate.** E2E-IND reached `STATUS DONE`. E2E-ORG had written no record at
+all by the time two and a half hours from this thread's start had passed
+(00:33Z), so the brief's fallback applied: only this thread's own accounts and
+data were cleaned, and everything else is listed as remaining.
 
-What E2E-ORG actually left, read from management's own rows rather than from a
-record it never wrote: one `up_users` row,
-`e2e-org-0145-owner@rutba.test` (id 178, `usr_144c1d5021c8531f`), **still
-unconfirmed**, registered 20:49:48Z; no organisation, no `tenant_instances`
-row and no `provision_jobs` row created after this programme began. That
-journey stopped at its first step and nothing it did needs undoing.
+E2E-ORG then committed the first half of its record a few minutes later
+(`a6dce52`, "registration stands, the confirmation is refused on this
+machine"), carrying `STATUS IN PROGRESS — steps 5 and 7 are running on
+pos_db`. So that journey is **still running as this record closes**, which is
+a second reason not to touch anything of its: its steps 5 and 7 are writing to
+`pos_db` now. Its own record owns its cleanup.
+
+What it had left when this thread inventoried management's rows at 00:33Z: one
+`up_users` row, `e2e-org-0145-owner@rutba.test` (id 178,
+`usr_144c1d5021c8531f`, password `E2e-Org-Owner-0145!` per its record),
+**unconfirmed**, registered 20:49:48Z; no organisation, no `tenant_instances`
+row and no `provision_jobs` row created since this programme began. Whatever
+its later steps write to `pos_db` after that reading is not in this record.
 
 ### Removed, through the products' own doors
 
@@ -740,13 +747,15 @@ tenant or in management.
    for a shop's *customers*, or has a staff-shaped policy set been seeded onto
    the customer role? On `pos_db` today, with registration open, they are the
    same people.
-5. **The organisational journey did not report.** E2E-ORG registered one
-   management account at 20:49:48Z and nothing after it: no confirmation, no
-   organisation, no purchase, no provision job, no record file. So this
-   programme has no organisational half at all, and the isolation this thread
-   measured is between a shared individual instance and a dev organisation
-   tenant that only this thread and the setup thread wrote to. Should that
-   journey be re-run before the round is read as complete?
+5. **The organisational journey was blocked at its first step and is still
+   running as this closes.** E2E-ORG registered one management account at
+   20:49:48Z and could not confirm it; by 00:33Z there was no organisation, no
+   purchase and no provision job, and its own record reports the confirmation
+   refused on this machine. So through the whole eleven-minute run in step 1
+   and everything after it, the organisation tenant carried only this thread's
+   load and the setup thread's row — the isolation measured here is real but
+   it was never measured against a busy organisation. Worth re-running both
+   halves together once that thread's confirmation is unblocked.
 
 ## Accounts and data created
 
