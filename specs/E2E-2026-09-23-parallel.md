@@ -443,16 +443,44 @@ session on the wrong database — and the moment `pos_db`'s directory entry
 said `individual`, or the stale record were repointed, it would be a session
 on the wrong database. Setup defect 1 is live.
 
-### The two browser hops
+### The two browser hops — BLOCKED by the browser this thread has
 
-Not driven. The estate's built-in browser is one shared context for all three
-threads running tonight, and `/authorize` redeeming a code writes the session
-into `http://localhost:4003`'s `localStorage` — which would have replaced the
-E2E-IND thread's own signed-in session while that thread was still working
-(step 1 shows that happening once already). The review's prediction for this
-leg — that the app's callback logs the operator out — is therefore neither
-confirmed nor contradicted here. Everything below it is proven: the code, the
-redeem, the session, the subject, the allowance, the role and all five acts.
+Driven twice, once E2E-IND had finished and the shared browser was free. Both
+attempts: storage on `http://localhost:4003` cleared (`localStorage`,
+`sessionStorage` and the cookies expired, all three confirmed empty), a fresh
+code minted, then the redirect URL opened.
+
+Both times the page stayed on
+
+```
+Checking your session
+One moment while we confirm you're still signed in to Rutba.
+SUITE-AUTH-AUTHORIZE · dev
+```
+
+`localStorage` stayed empty, no `POST /api/auth/handoff/redeem` was ever made
+(the tab's whole network history holds none), and the code was still `pending`
+in `individual_dev.strapi_sessions` afterwards, expiring unspent:
+
+```
+session_id aab8b454…  user_id 6  status pending  created 00:29:11Z  expires 00:31:11Z
+```
+
+**This is the browser, not the product, and the check that says so is in the
+page's own guard.** `console/apps/auth/pages/authorize.js:59` is
+`if (!router.isReady || loading) return;`, and in this browser pane
+`window.next.router.isReady` never becomes true on a page that carries a
+query: the same check on `/login?tenant=…&login_hint=…&state=…` also answers
+`isReady: false, query: {}` while that page renders and — earlier in this very
+session — signed a person in successfully. So the effect that would present
+the code never runs, and nothing about the product's own answer can be read
+from it.
+
+The review's prediction for this leg — that the app's callback logs the
+operator out — is therefore **neither confirmed nor contradicted**. It needs
+an ordinary browser. Everything below the page is proven here: the code, the
+redeem, the session and its `amr`, the subject, the allowance, the role, all
+five acts and their audit rows.
 
 ## Step 4 — setup state, storage headroom, the licence pool — PASS for the state, FAIL for the pool
 
@@ -526,7 +554,57 @@ The setup thread removed its probe key and management has issued none, so the
 platform half of Sign is unreachable from both tenants — unchanged from what
 the setup record describes.
 
-## Step 5 — cleanup — see below
+## Step 5 — cleanup — PARTIAL, by the rule the brief gives
+
+**The gate.** E2E-IND reached `STATUS DONE`. **E2E-ORG never wrote a record
+at all**, and two and a half hours from this thread's start had passed, so the
+brief's fallback applies: only this thread's own accounts and data were
+cleaned, and everything else is listed as remaining.
+
+What E2E-ORG actually left, read from management's own rows rather than from a
+record it never wrote: one `up_users` row,
+`e2e-org-0145-owner@rutba.test` (id 178, `usr_144c1d5021c8531f`), **still
+unconfirmed**, registered 20:49:48Z; no organisation, no `tenant_instances`
+row and no `provision_jobs` row created after this programme began. That
+journey stopped at its first step and nothing it did needs undoing.
+
+### Removed, through the products' own doors
+
+| What | Door | Answer |
+|---|---|---|
+| this thread's Workspace document and its 635 versions (`individual_dev`, drive node `wrr0rryqsapm4cnnviwwg7dy`) | `POST /api/drive/nodes/:id/trash` then `/purge`, as its owner | `200`, `200 { purged: true }` |
+| this thread's upload on `individual_dev` (id 1) | `DELETE /api/upload/files/1` | `200` |
+| this thread's upload on `pos_db` (id 6512) | `DELETE /api/upload/files/6512` | `200` |
+| this thread's address row on `pos_db` (`hb6kvng3b52z07fl58ilgqdf`) | `DELETE /api/me/addresses/:id` | `200 { archived: true }` — the door archives, it does not delete |
+| this thread's load account on `individual_dev` (`e2e-par-0146-ind@rutba.test`, id 3) | `PUT /api/user-admin/users/3 { blocked: true }`, through a fresh operator session | `200`, `blocked: true` |
+
+Verified after: the individual tenant's quota row for this thread's person is
+back to `used_bytes 0` (from 1 063 392), and `pos_db`'s public directory is
+empty again, exactly as the setup record found it.
+
+One thing the purge deliberately did **not** remove: the blob
+`08a73c3d72e4…` under
+`consumer/.data/tenants/individual_dev/drive-blobs/…`. The store is
+content-addressed and E2E-IND's own Workspace document has the same bytes and
+the same digest, so removing it would have taken away a file belonging to
+another thread's journey. `stored_bytes 1672` on the quota row is the tail of
+the same thing. Correct behaviour, noted so nobody reads the leftover blob as
+a failed cleanup.
+
+### Remaining, and why
+
+| Where | What | Why it stays |
+|---|---|---|
+| `pos_db` | `e2e-par-0146-org@rutba.test` (id 297, confirmed, `storefront_user`) | No door this thread can reach disables a person on an organisation tenant: `user-admin` there needs an admin role nobody in this programme holds, and there is no operator in organisational mode. Its data is gone; only the row remains. |
+| `individual_dev` | `e2e-par-0146-operator@rutba.test` (id 6, `platform_operator`) | The brief keeps the operator account. |
+| `rutba_strapi` | `e2e-par-0146-operator@rutba.test` (id 179, confirmed, TOTP enrolled) and the personal organisation its onboarding made, `org_ff441ae3cabd9a62` "E2E par operator" (id 139) | Same reason. The organisation is the product's own doing at confirmation, not a thing this thread asked for. |
+| `individual_dev` | E2E-IND's three people (ids 2, 4, 5) and every row of their journey — Drive folders and files, shares, Workspace documents, the Sign envelope and template, and the three blobs | Listed in E2E-IND's own record. Not touched: that record writes their passwords down for a reviewer to reuse, and their rows are the evidence behind that thread's own verdicts. Removing another thread's evidence on its behalf is not this step's job. |
+| `rutba_strapi` | E2E-IND's two unconfirmed management accounts (ids 180, 181) and E2E-ORG's one (id 178) | Unconfirmed and unusable; no door removes a person from management, and the one that exists is a suspension an admin applies. |
+| `individual_dev` | one expired `pending` handoff row (`053bc60c…`, and `aab8b454…` from the browser attempt) | A code minted and never spent. It is already past its two minutes and refuses; the door spends rows by deletion and has no sweeper this thread may run. |
+| `pos_db`, `individual_dev` | the audit rows this thread's operator acts wrote (`core_change_audits` 1–8) and management's `audit_events` | An audit is not cleaned up. |
+
+Nothing that pre-existed this programme was changed or deleted, on either
+tenant or in management.
 
 ## Defects
 
@@ -565,17 +643,16 @@ the setup record describes.
    names the cause: `drive` is absent from `VALID_APP_KEYS` and the Drive web
    app is a scaffold.
 
-4. **A second browser tab on the launcher never finishes loading and never
-   asks core anything.** (Low, step 1.) Opening a second tab at
-   `http://localhost:4003/` with a session already in that origin's
-   `localStorage` left the page on *"Loading your apps…"* indefinitely; the
-   network log for that tab holds only `_next` chunks and not one request to
-   `:4020`. It neither rendered the launcher nor fell through to `/login`. The
-   session in `localStorage` at the time had been replaced by another thread's
-   sign-in on the same shared browser, so the likeliest cause is the launcher
-   reading a context captured at mount and waiting for a state that the new
-   storage never produces — not diagnosed further, because diagnosing it means
-   signing in again and taking the shared browser away from the other thread.
+4. **Not a defect after all — a browser-pane limitation, kept because it was
+   recorded as a symptom in step 1.** A second tab at
+   `http://localhost:4003/` sat on *"Loading your apps…"* with no request to
+   `:4020` at all. Step 3's browser work found the cause and it is not the
+   product: in this browser pane `window.next.router.isReady` never becomes
+   true, so a page whose effect is guarded on it never runs that effect. The
+   same pane signs a person in through `/login` and renders the launcher
+   perfectly well, which is why the symptom is intermittent. Anything this
+   programme records about a consumer page that "hangs" needs an ordinary
+   browser before it is believed.
 
 5. **Auth's handoff door answers an instance's own numeric id exactly as it
    answers an id no record holds.** (Medium, step 3.)
@@ -663,17 +740,32 @@ the setup record describes.
    for a shop's *customers*, or has a staff-shaped policy set been seeded onto
    the customer role? On `pos_db` today, with registration open, they are the
    same people.
+5. **The organisational journey did not report.** E2E-ORG registered one
+   management account at 20:49:48Z and nothing after it: no confirmation, no
+   organisation, no purchase, no provision job, no record file. So this
+   programme has no organisational half at all, and the isolation this thread
+   measured is between a shared individual instance and a dev organisation
+   tenant that only this thread and the setup thread wrote to. Should that
+   journey be re-run before the round is read as complete?
 
-## Accounts and data created (so far)
+## Accounts and data created
 
-| Where | What | Detail |
-|---|---|---|
-| `individual_dev` | person | `e2e-par-0146-ind@rutba.test` / `E2e-par-pass-1`, `up_users` id 3, confirmed, roles `drive_individual` `workspace_individual` `sign_individual` |
-| `individual_dev` | workspace document | "e2e-par-0146 load doc", document `kybhvtpz333faeiebpntcd36`, drive node `wrr0rryqsapm4cnnviwwg7dy`, 635 versions from the load |
-| `individual_dev` | upload | `e2e_par_0146_individual_dev_b85127558f.txt`, upload id 1 |
-| `pos_db` | person | `e2e-par-0146-org@rutba.test` / `E2e-par-pass-1`, `up_users` id 297, confirmed, role `storefront_user` |
-| `pos_db` | address row | id 23, document `hb6kvng3b52z07fl58ilgqdf`, label "e2e-par-0146 load …" |
-| `pos_db` | upload | `e2e_par_0146_pos_db_fd14dace29.txt`, upload id 6512 |
-| `rutba_strapi` (management) | person | `e2e-par-0146-operator@rutba.test`, `up_users` id 179, `usr_076ebf9bbd2d9ab3`, confirmed (step 3) |
+Passwords are written down so a reviewer can reuse the accounts.
 
-STATUS IN PROGRESS
+| Where | What | Detail | State now |
+|---|---|---|---|
+| `individual_dev` | person | `e2e-par-0146-ind@rutba.test` / `E2e-par-pass-1`, `up_users` id 3, document `ls2nctdd2zv1o43n8p5zkal6`, roles `drive_individual` `workspace_individual` `sign_individual` | confirmed, **blocked** (step 5; an operator re-enables it) |
+| `individual_dev` | workspace document | "e2e-par-0146 load doc", document `kybhvtpz333faeiebpntcd36`, drive node `wrr0rryqsapm4cnnviwwg7dy`, 635 versions | **purged** |
+| `individual_dev` | upload | `e2e_par_0146_individual_dev_b85127558f.txt`, id 1 | **deleted** |
+| `individual_dev` | operator | `e2e-par-0146-operator@rutba.test`, `up_users` id 6, document `evxf02l03fa6d26imu8wjui4`, `rutba_sub usr_076ebf9bbd2d9ab3`, role `platform_operator`. No password: an operator arrives through the bridge. | kept, by the brief |
+| `individual_dev` | audit | `core_change_audits` ids 1–8, the operator's acts | kept |
+| `pos_db` | person | `e2e-par-0146-org@rutba.test` / `E2e-par-pass-1`, `up_users` id 297, document `iqlg88aurzjlndu2zv2ujo96`, role `storefront_user` | confirmed, active — no door to disable it |
+| `pos_db` | address row | id 23, document `hb6kvng3b52z07fl58ilgqdf` | **archived** |
+| `pos_db` | upload | `e2e_par_0146_pos_db_fd14dace29.txt`, id 6512 | **deleted** |
+| `rutba_strapi` | person | `e2e-par-0146-operator@rutba.test` / `E2e-par-Operator-1!`, `up_users` id 179, `usr_076ebf9bbd2d9ab3`, confirmed, TOTP enrolled with ten recovery codes | kept, by the brief |
+| `rutba_strapi` | organisation | `org_ff441ae3cabd9a62` "E2E par operator", personal, active — made by the product's own onboarding when the address was confirmed | kept |
+
+Nothing else was written anywhere, and nothing that pre-existed was changed or
+deleted.
+
+STATUS DONE
