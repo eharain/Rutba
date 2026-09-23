@@ -236,11 +236,14 @@ Added after the round-two review (2026-09-23, see
   for the bridge names, the dev core needs them in its file and the affected
   suites are known to refuse on the dev machine; the loader change is a
   round-three item and this exception ends with it.
-- **A claim about a browser names the hydration check that backs it.** Before a
-  record blames the pane or the product for a page that never settles, it
-  reads `router.isReady` (or the `__react` fibre check) on the page and on the
-  app's own 404 path in the same pane, and quotes both. A screenshot of the
-  landing goes with any browser verdict of severity high.
+- **A claim about a browser names the hydration check that backs it.** A hidden
+  browser pane never draws a frame, and Next's development client waits for a
+  frame before it hydrates, so a page that "never settles" in a pane nobody
+  is looking at is the pane, not the product. Before a record blames either,
+  it takes one screenshot (which forces a frame), then runs the `__react`
+  fibre check on the page and on the app's own 404 path, and quotes both.
+  `router.isReady` decides nothing, it reads true either way. A screenshot of
+  the landing goes with any browser verdict of severity high.
 - **A table read from a shared database carries the minute it was read.**
   Three threads write to the same databases; a count without its time cannot
   be reproduced and will have drifted by the review.
