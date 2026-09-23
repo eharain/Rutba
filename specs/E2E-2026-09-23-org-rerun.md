@@ -181,7 +181,7 @@ own comment says so.
   `--once` claims whatever job is queued first, which could be another
   thread's. Not run.
 - **The worker's environment on this estate**, read before deciding
-  (`workers/provisioning/src/cell.js` lines 43 to 53, its README's table,
+  (`workers/provisioning/src/cell.js` lines 44 to 55, its README's table,
   `devkit/services.json` lines 520 to 527): it needs `STRAPI_URL`,
   `STRAPI_API_TOKEN` (Strapi's `GATE_TOKEN_CONTROL_PLANE_WORKER`, present),
   `CORE_URL`, `CORE_AUDIENCE` (the core's `CORE__INSTANCE_AUDIENCE`,
@@ -225,8 +225,181 @@ link: Billing and invoices -> http://localhost:4118/auth/signin?next=%2Fbilling&
   workspace, which is C4 as built.
 - The Individuals tile was **not opened**: that instance is not this thread's,
   and opening it would bind this person into `individual_dev`.
-- "Account and billing" and every product's plan link go to the portal console
-  on 4118, which is not running. The Sign product's plans ("Pay as you go",
+- "Account and billing" and most products' plan links go to the portal console
+  on 4118, the rest to the portal site on 4110; neither is running. The Sign
+  product's plans ("Pay as you go",
   "Solo", "Team", "Agreements") link to the Sign site's pricing page on 4114,
   not to a checkout with an intent the way the other products' plans do; there
   is no one-click way from the hub to buy `sign.subscription`. Observation 1.
+
+## Step 4 — the owner's set-password link, and the instance's own sign-in
+
+**BLOCKED**, on step 2: no instance was provisioned, so no owner was
+bootstrapped and nothing mailed a set-password link. The way this record would
+have taken the token — from the new tenant's `up_users.reset_password_token`,
+then `POST /api/auth/reset-password/any` and `POST /api/auth/local/any` naming
+the database, as the walkthrough does (lines 497 to 502) — stands for the next
+run.
+
+## Step 5 — a day's work on the new tenant
+
+**BLOCKED**, on step 2. Drive, Workspace, the Sign pack with a country, the
+party at a second address, the send (the seal key is now in the core's file),
+the ceremony, the public verify path and the two organisational apps were not
+reached. No fallback was run on `pos_db`: the brief puts this step on the new
+tenant, and a fallback there would have meant minting a `tenants:admin`
+credential and creating people with administrator roles on the shared dev
+organisation, which is further than this re-run's brief goes and was not
+attempted after the guard's refusals.
+
+The hydration check the brief asks for at 4003 was started and not finished.
+The browser pane's front tab is shared with another session: this thread's
+navigation to `http://localhost:4003/login` was overtaken mid-check by another
+session's navigation of the same tab to
+`http://localhost:4029/verify/<digest>`, so no `router.isReady` value was read;
+a navigation in a separate tab of this thread's own was then refused by the
+guard and the tab was closed. Nothing is claimed here about how 4003 renders
+(finding 14 stands as the review left it).
+
+## Step 6 — invite a colleague from management
+
+**BLOCKED**, on step 1, three ways over:
+
+- the invitation refuses a personal organisation before it writes anything:
+  `throw conflict('A personal account holds one person. Convert it to an
+  organisation first, then invite colleagues.', 'ORGANIZATION_IS_PERSONAL')`
+  (`management/api/legacy/strapi/src/api/account/services/identity.js` lines
+  576 to 578), and organisation 140 is personal. Read from the code, not
+  exercised;
+- the page the step names is the portal console's `/organisation`, which is not
+  in this profile, and which loads the organisation and its members from
+  `GET /v1/organizations/<orgId>` and `/members` on the API gateway
+  (`portal-api.ts` lines 613 to 619). The first of those answered `404 No
+  route matches` for this organisation (step 1); the second is under the same
+  unrouted prefix. Defect 2;
+- the invitation's instance half (C7 invites, called by `identity.js` for each
+  active instance of the organisation) needs an instance, and there is none.
+
+No colleague was created, at management or in any tenant.
+
+## Step 7 — the refusals, including the narrower one
+
+**BLOCKED**, on step 6: there is no invited colleague holding some roles and
+not others, so neither the admin-settings refusal, the Sign keys page refusal
+nor the narrower case the first run missed could be exercised on a provisioned
+instance.
+
+## Defects
+
+1. **No door turns a personal account into an organisation, and the console's
+   convert button calls a route nothing serves.** (High.) Found at step 1.
+   Every organisation starts `personal` (`identity.js` line 548); a personal
+   organisation is never provisioned (`control-plane/provisioning.js` line 96)
+   and cannot invite (`identity.js` lines 576 to 578). The only product path out
+   is the portal console's "Convert to an organisation"
+   (`console/portal-console/src/app/(console)/organisation/ConvertForm.tsx`,
+   `actions.ts` `convertToTeamAction`), which posts to
+   `/v1/organizations/<orgId>/convert` on the API gateway
+   (`lib/portal-api.ts` lines 628 to 634). The gateway answers
+   `404 NOT_FOUND "No route matches"` (`req_r6eU-ofkqNYEx2w1`), because the
+   services map gives the management backend `/api` and `/v1/public/sign`
+   only (`management/devkit/services.json` lines 292 to 297), and management
+   Strapi has no conversion route (`src/api/account/routes/identity.js` lines
+   14 to 35). So on this estate no organisation can buy a space or invite a
+   colleague without a hand-written row, which is why the walkthrough carries
+   one (line 359). This is the review's decision 5 and WS-C's owner question
+   2, now shown to be a dead button and not only a missing step.
+2. **The portal console's organisation page reads the retired service.**
+   (Medium.) Found at step 6. `portalApi.organization` and `portalApi.members`
+   (`portal-api.ts` lines 613 to 619) call `/v1/organizations/<orgId>` and
+   `/members` on the gateway; the first answered `404 No route matches`
+   (`req_kfqnsBCURKcRtEXn`), the second is under the same unrouted prefix. The
+   page that holds the invite form cannot load the organisation it is about,
+   whatever the profile. The same client's subscription, invoice, usage and
+   refund calls were moved to Strapi on 2026-09-16 (its own comment,
+   `portal-api.ts` lines 440 to 443); `organization`, `members`, `convert`, the
+   jobs list (line 701) and the licences list (line 712) still go to
+   `/v1/organizations/…` on the gateway. The console README row for `/organisation`
+   ("Turn a personal account into a company, the people in it, invite a
+   colleague", `console/README.md` line 44) describes a page that cannot work
+   here.
+3. **The organisation journey still needs a shared-database write that this
+   machine refuses.** (High, process.) Found at step 1. Finding 7's wall moved
+   one step: the confirmation is unblocked, the conversion is not. The
+   walkthrough's one guarded statement on this thread's own organisation row
+   was refused as a modification of a shared resource, and every step from 2
+   to 7 depends on it. Evidence: step 1, "the walkthrough's write".
+4. **The provisioning worker has no environment on the dev estate.** (Low,
+   estate.) Found at step 2. The estate `.env` and `.env.local` carry no
+   `PROVISIONING_WORKER__*` line; `gate-tokens.mjs` (lines 139 to 176) would
+   write them, including `CELL_DEV_ADMIN_URL`, `CELL_K8S_DEV_1_ADMIN_URL` and
+   `PROVISIONING_TEMPLATE_DEFAULT=tpl_sign`, and has not been run on this
+   machine. A worker started from `devkit/services.json` (lines 520 to 527)
+   would stop at its first job with `CELL_<ID>_ADMIN_URL is unset`
+   (`workers/provisioning/src/cell.js` line 49). The review's note that
+   `PROVISIONING_TEMPLATE_SIGN` is unset is one symptom of this.
+
+Observations, not defects:
+
+1. The hub offers no checkout for `sign.subscription`: the Sign plans link to
+   the Sign site's pricing page (4114), unlike the other products' plans, which
+   carry `checkout?intent=<plan>` to the portal console.
+2. The management auth service restarted under its file watcher at 15:50 with a
+   clean management tree; a sign-in in that window answered `502`.
+3. The browser pane's front tab is shared between concurrent sessions, so one
+   session's navigation can overtake another's in the middle of a check.
+
+**Expected, already in the review.** Finding 7 (the management confirmation):
+cleared for row 178 by the owner's code, and management mail is now in log
+mode. Finding 8 (no seal key): the name is now in the core's file; not
+exercised. Findings 9, 15 and 16: not reached. Finding 14: not re-checked (step
+5). Finding 11 (row 47): the hub no longer shows it.
+
+## Accounts and data created
+
+This thread created **no account, no organisation and no tenant data** of its
+own; the marker `e2e-org2-1543` appears nowhere in any database. What changed
+because this thread opened the owner's confirmation code and signed in, all in
+management Strapi's Postgres:
+
+| Where | What | Notes |
+|---|---|---|
+| `up_users` id **178** | `e2e-org-0145-owner@rutba.test`, password `E2e-Org-Owner-0145!`, now `confirmed = true`, confirmation token cleared | made by the first run; confirmed at 15:43:39 by the owner's code |
+| `organizations` id **140** | `org_c2791c709b12b1fb`, slug `e2e-org-0145-owner-12d3`, name "E2E Org Owner", **`kind = 'personal'`**, `active` | made by onboarding at 15:43:39; the conversion was refused, so it is unchanged |
+| `memberships` id **148** | 178 in 140, `active`, portal role `owner` | made by onboarding; the seats reaction marked it (`evt_pd88Y7pAjG9vemlX`) |
+| auth records | one session for 178 (`rutba_sid`); the audit events of the confirmation, the sign-in and one token mint (app `portal`, azp `portal-console`) | written by auth into Strapi's `/api/auth-state` store |
+
+Nothing else: no subscription, no licence, no provision job, no tenant
+instance, no database, no directory entry, no consumer account, no Drive node,
+no document and no envelope. Nothing that pre-existed was changed or deleted.
+
+## Questions for the owner
+
+1. **Convert organisation 140, or give the estate a way to.** The one statement
+   the walkthrough uses, for this row only, on the management Strapi database:
+
+   ```
+   update organizations set kind = 'team', name = 'E2E Org2 1543 Ltd'
+    where id = 140 and kind = 'personal' and slug = 'e2e-org-0145-owner-12d3';
+   ```
+
+   or allow this session that write, or route a conversion door (defect 1).
+   Nothing has been bought on 140, so a re-run can start at step 2 with a clean
+   purchase; the owner's session and password are in place.
+2. **The worker's cell credential** (defect 4): run `gate-tokens.mjs` so the
+   estate gives the worker its lines, or confirm that composing
+   `CELL_DEV_ADMIN_URL` and `CELL_K8S_DEV_1_ADMIN_URL` at run time from the
+   consumer line's `POS_STRAPI__DATABASE_*` settings, as the walkthrough does
+   (its `cellUrl()`), counts as the estate giving it.
+3. **The guard's decisions before the next run.** After the conversion was
+   refused, this session was also refused read-only database queries, source
+   listings and a browser navigation. A re-run needs the one conversion write
+   and ordinary reads settled before it starts, as the review's process note
+   said of the confirmation.
+4. **One browser pane, several sessions.** Should each journey thread get its
+   own tab, or should browser steps be serialised across threads?
+5. **Defect 2:** move `organization`, `members` and `convert` on the portal
+   console's client to Strapi the way subscriptions moved on 2026-09-16, or
+   route `/v1/organizations` somewhere on the gateway?
+
+STATUS DONE
