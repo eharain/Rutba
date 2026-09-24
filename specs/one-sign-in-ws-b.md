@@ -505,3 +505,17 @@ and `packages/api-client` unchanged and passing; the smoke's unsigned half
 
 `git status --porcelain` in `D:/Rutba2.0/consumer` at `62af024b`: empty;
 `dev` and `main` both at `62af024b` on `origin`.
+
+## D29 from the last walk (2026-09-25)
+
+| # | Defect | Fix | Consumer commit |
+|---|---|---|---|
+| D29 (low) | A periodic check that got no answer during a core or management auth restart waited the full five minutes for the next, so three of the walk's four switch-follows took eight to nine minutes. | `nextLookAfter` (`packages/ui/lib/session-check.js`): an automatic check (load, back in view, the timer) that learnt nothing is asked again 30 seconds later, at most twice, then the five-minute timer takes over. Any answer ends the run (keep, replace, sign in, the act limit's waiting), so an idle tab still costs one request per five minutes while answers arrive, and the once-a-minute act limit stands. `AuthContext` runs its automatic checks through it, only while the tab is in view; a check that throws now reports itself uncertain. The person's own switch keeps D18's follow-up. Tests: the rule's decisions, and a ten-minute timeline (answers arriving: load plus one per five minutes; a restart across the timer: the switch followed 40 s after it; a long outage: three looks per five minutes). | `c0d4a05b` |
+
+The realm's refusal-page watch (D25) keeps its own timer and was not given
+the looks again; it can share `nextLookAfter` if wanted. Counts: `packages/ui`
+`test:session` 33 (was 31), the whole `npm test` passing; the realm (4003)
+and Sign (4029) compile with the change. Nothing walked live: the rule is a
+timing one, shown by the timeline test. `git status --porcelain` in
+`D:/Rutba2.0/consumer` at `c0d4a05b`: empty; `dev` and `main` both at
+`c0d4a05b` on `origin`.
