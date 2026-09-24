@@ -487,4 +487,8 @@ the new subject, unchanged from before. Whether a membership repair from
 management may move an address's row to another subject is a decision this
 change did not make.
 
-**Consumer checkout:** `git status --porcelain` at `40579cd8`: empty.
+**Consumer checkout:** `git status --porcelain` right after the commit at
+`40579cd8`: empty. Minutes later it showed `M console/api/auth/oidc.js` and
+`M console/api/auth/tests/oidc-callback.test.js`. That is another session's
+D19 work in progress (the realm confirming an invited row at sign-in), not
+WS-A's: it was left untouched and uncommitted.
