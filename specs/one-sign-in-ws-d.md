@@ -1090,3 +1090,17 @@ acceptable for now.
 
 **Counts at `85d0f14`:** Strapi 139 of 139; auth unit 378, integration 328,
 perf 5. Nothing skipped.
+
+**Round three, the second re-check (`5490684`, pushed; `origin` `dev` and
+`main` at it).** Two lows, one commit with tests. Strapi 141 of 141; auth
+unchanged at unit 378, integration 328, perf 5.
+
+- **L1:** a `none` written because a bind-only tell got `USER_UNKNOWN` no
+  longer keeps `bindOnly`. An administrator's re-invite of that instance is
+  therefore an ordinary invitation, with the roles, which may make the row.
+  Test: the re-invite sends `roles: ['viewer']`, not `bind_only`, and the
+  instance is `told`.
+- **L2:** an administrator's re-invite of a member clears their `joinedVia:
+  'reset'` mark, so the organisation's later instances reach them as they
+  reach anybody. Test: after the re-invite the mark is null, the instance
+  held back is `told`, and an instance recorded later is told to them.
