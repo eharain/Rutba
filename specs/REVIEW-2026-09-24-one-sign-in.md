@@ -26,7 +26,8 @@ addendum 8, the second consumer review addendum 9 and the session route's
 outage fix addendum 10, WS-B's last lows addendum 11, D2 addendum 12, D1
 addendum 13, the reviews of D2 and D1 addenda 14 and 15, the round-two
 walk addendum 16, the invite door addendum 17, the consoles' fixes
-addendum 18; the realm's and the auth stream's fix passes to follow.
+addendum 18, the members route addendum 19; the realm's fix pass, the auth
+stream's follow-up 8 and the members list wiring to follow.
 The journey walk's end is addendum 1; the review of WS-D's follow-ups 2 and
 3 is addendum 2.
 
@@ -380,8 +381,9 @@ below need none either. The rest waits on section 7.
   kept; the chooser reachable from `?local=1` only, as now.
 - **Fixes without a decision:** landed: D16 (addenda 4, 7, 11), D11 and
   D17 (addenda 5, 7), the estate map's `org` option (addendum 5). Open: D5.
-- **D1 and D2 landed** (addenda 12 and 13); their reviews are running. The
-  members route (decision 29) is with WS-D.
+- **D1 and D2 landed** (addenda 12 and 13), reviewed (14, 15) and their
+  findings fixed (17, 18). The members route landed (19); WS-C is wiring
+  the page to it.
 - **After the decisions:** D14, D13, F2's choice, F7's access-token half,
   the brakes' proxy trust, L3, L4, the reset path's step-up if asked for.
 - **Before production:** the release gate, first brought up to date with
@@ -923,3 +925,28 @@ console had stopped by 17:38): `/organisation` redirects to sign-in and
 `/checkout?intent=x` answers with the plan panel; the server's rewrite of
 the console's `tsconfig.json` and `next-env.d.ts` was put back. The page
 is ready to wire to the members route once its shape is confirmed.
+
+## Addendum 19: a members route (WS-D follow-up 7, decision 29)
+
+Management `0c379b1` on `dev`, `main` and origin; the section is in
+[one-sign-in-ws-d.md](one-sign-in-ws-d.md), with the response shape for
+WS-C. Tests: Strapi `org-members.test.js` 5 (the suite 115), auth
+`integration/org-members.test.js` 4 (unit 371, integration 309, perf 5),
+nothing skipped.
+
+Strapi's identity gate answers `GET /api/identity/users/me/organizations/:org/members`
+for the calling person's own token and an organisation they are active in;
+auth carries it as `GET /v1/auth/org/:orgId/members` like the invitation
+route (the organisation from the path, the caller from the session, the
+caller's own Strapi token, the directory rate budget, audited). The answer:
+the organisation, `scope` (`all` for an owner or admin, `self` for anyone
+else, whose list holds only their own row), the caller's role, the
+organisation's instances, and the members with their highest portal role,
+every app role, status (active, invited, deactivated), the membership's
+date, and the per-instance told state from addendum 12; the caller first,
+then active, invited and deactivated by name; 401 with no session, 403 with
+the same body for an organisation the caller is not active in and for one
+that does not exist, 429 over the budget. Retired: `POST
+/v1/auth/org/:orgId/identities`, which answered 501 and nothing called; it
+now answers 404. WS-C is wiring the organisation page to it, showing
+instances by label only.
