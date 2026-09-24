@@ -374,3 +374,61 @@ granted for L13.
 
 `git status --porcelain` in `D:/Rutba2.0/consumer` at `2a0dd377`: empty;
 `dev` and `main` both at `2a0dd377` on `origin`.
+
+## Round-two walk defects: D19, D25, D18, D24, D22 (2026-09-24, 22:41 to 22:52)
+
+The round-two walk's five defects in this stream, the high and the medium
+first, one commit each with its tests, on consumer `dev`, `main`
+fast-forwarded and both pushed after each.
+
+| # | Defect | Fix | Consumer commit |
+|---|---|---|---|
+| D19 (high) | The realm signed a person into a row management's own invitation made (`rutba_sub` set, `confirmed` false) before they accepted the instance's mail; the core refuses every token of an unconfirmed row, so the session opened was useless. | At the callback, a row bound to this very subject and not yet confirmed is confirmed (conditional on still being bound to the subject, `confirmation_token` cleared), a `core_change_audits` line `up:confirm` by `management:oidc` says so, and that one session's `amr` carries `management-confirmed` next to the usual mark; the next sign-in is ordinary. A blocked row is still refused `USER_BLOCKED`; a row bound to another subject is still refused (`USER_UNKNOWN`), and neither is confirmed. Tests: the unconfirmed bound row signs in and is confirmed after, with the audit and the `amr`; blocked and bound-elsewhere refused and left unconfirmed. Built under the lead's assumption (decision 30), pending the owner. | `a3232684` |
+| D25 (medium) | "No account here" and "nothing to open" ran no check, so a tab left on them never followed the person's next switch. | Those pages run the launcher's silent check (the realm's `/auth/check` frame, on arrival, on focus thirty seconds apart, every five minutes while visible). The first signed-in answer is the profile the page was refused for; another person or another organisation after it sends the page through `/login` again for the same destination. "Try again" stays. Test: `refusalWatchStep`, the page's decision (same profile stays; another org, another person or nothing pinned signs in again; uncertain answers stay; no baseline until somebody is signed in). | `c9f31bf7` |
+| D18 | After the person's own switch, one uncertain or busy check left the page to the five-minute timer. | The switcher asks again up to four times two seconds apart (`SWITCH_CHECK_ATTEMPTS`, `SWITCH_CHECK_GAP_MS`), stopping as soon as a check replaces, adopts or signs out; after the last it reloads and the page's own load check decides. Test: `switchFollowUp`. | `b3e76e23` |
+| D24 | `/login` hydration mismatch: the server drew the checking screen, the browser's first render the sign-in shell, because Next marks the router ready at once on a URL with no query. | `/login` and `/auth/callback` also wait for their own first effect (`signInView`: mounted and ready), so the first browser render draws what the server drew. Test: `signInView`. Live, unsigned: the realm's `/login` ran in the browser pane and handed the visitor on to management's sign-in page, the console showing only the DevTools and HMR lines, no hydration warning. | `f5f8b3d4` |
+| D22 | "(current) Team" on the refusal page's organisation list: Bootstrap's solid-blue `active` row, the kind in secondary grey on it (about 1:1). | The row takes the suite's current-item look, the amber tint and dark ink of the menus' active item (`profileRowClass`, `.si-profile` rules in `signin.css` over the app-home tokens), with the chrome switcher's check mark; the disabled current row keeps it. Test: the classes, and every label's contrast read from the stylesheets: name 17:1, "(current)" 6.9:1, kind 4.65:1 on the tint and 4.97:1 on white. | `0070ae5c` |
+
+**If the owner chooses "accept the invitation first" for D19** instead of
+confirming at the callback, the refusal path would take:
+
+1. The callback: a row bound to the subject, unconfirmed, not blocked, is
+   refused with a new code (say 409 `INVITATION_PENDING`), no session opened,
+   the row untouched. One test replaces D19's first.
+2. A way to send the mail again that is bound to the refusal, not to an
+   address: the refusal carries a short-lived ticket (as the context-password
+   ticket does) naming the subject and the row, and a resend door takes the
+   ticket and calls the core's existing confirmation mail. The core's own
+   `POST /api/auth/send-email-confirmation` takes a bare address, needs the
+   tenant chosen, and answers "Already confirmed" for a confirmed address, so
+   it would not be offered from the realm as it stands.
+3. The confirmation link's landing (`confirmationLanding`) must send the
+   person to the realm's `/login` for the management sign-in, not to a
+   local form: an invited row has no password.
+4. The realm: a refusal page ("your invitation to this instance is waiting:
+   open the mail sent to the address and accept it, then sign in again")
+   with "Send it again" and "Try again", and the D25 watch on it.
+5. The dev estate's mail must actually carry the link to be walked (the
+   environment line for the core's mail is the lead's); a person who never
+   opens the mail cannot sign in although management already lists them as
+   a member.
+
+**Noted, not this stream's:** D23 and D21 are the auth stream's; the realm
+keeps reading `amr` as it does.
+
+**Counts** (consumer `0070ae5c`, 23:00): callback 46, credential doors 13,
+break-glass 5, management-signin 18, allowed-redirect 14, frame documents
+20; `packages/ui` 303 (`test:session` 31); `packages/api-client` 42; the
+smoke's unsigned half 27 checks, all passing. Nothing was walked signed in
+(no account password is typed here): D19's confirmation, D25's follow and
+D22's list need a signed-in person with an invited row or two
+organisations, and stay on the tester's list.
+
+**Files:** `console/api/auth/oidc.js`, its callback tests,
+`console/apps/auth/{src/management-signin.js,src/management-signin.test.js,src/styles/signin.css,components/SignInOutcome.js,components/useRefusalWatch.js (new),pages/login.js,pages/auth/callback.js}`,
+`packages/ui/{lib/profile-switcher.js,lib/profile-switcher.test.js,components/ProfileSwitcher.js}`,
+`docs/one-sign-in-realm.md`. Nothing under `management/`, no environment
+file, no database by hand, no `.next`, no `dist`, no new dependency.
+
+`git status --porcelain` in `D:/Rutba2.0/consumer` at `0070ae5c`: empty;
+`dev` and `main` both at `0070ae5c` on `origin`.
