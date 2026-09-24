@@ -654,7 +654,7 @@ The new tests cover:
 - **The realm callback and the hub's handoff** (`oidc.js` findPerson,
   `handoff.js` resolveForOpen) also find rows by address or subject for
   management's purposes. They were not in this round's list. While this round
-  ran, another session role-scoped both with the same finders.
+  ran, WS-B role-scoped both with the same finders, in consumer `06e94995`.
 - **A customer row that an older door bound to a management subject** still
   holds that subject. The subject is unique per database, so it blocks binding
   that person's back-office row, and the invite door answers
