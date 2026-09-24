@@ -22,7 +22,8 @@ stage 4 review's fixes). Both pushed; nothing on GitHub but `dev` and
 release gate (addendum 3: it cannot run here); WS-B's stage 4 is addendum 4
 and WS-D's follow-up 4 addendum 5; the stage 4 review is addendum 6 and
 its fixes with stage 5's realm half addendum 7; WS-D's follow-up 5 is
-addendum 8; the round-two walk and the second consumer review to follow.
+addendum 8 and the second consumer review addendum 9; the round-two walk to
+follow.
 The journey walk's end is addendum 1; the review of WS-D's follow-ups 2 and
 3 is addendum 2.
 
@@ -142,6 +143,8 @@ WS-D as follow-up 4:
 | WS-B | M3 the cross-site test ignores the app's own site, so an app on another site than management clears every managed session on every check | medium | `15df55a3` |
 | WS-B | M4 a stale tab revokes the session a sibling tab just received | medium | `7076109d` |
 | WS-B | L5 `/authorize` hands over a stored session without D8's check; L6 three OIDC errors read as `login_required`; L7 the return address after sign-in is unchecked (pre-existing open redirect); L8 the check door's limit keys on the proxy's address; L9 the D10 relay message has no state; L10 the organisation list outlives sign-out | low | `2671c10a` (L5, L10), `58103b07` (L6, L8 moot: no `prompt=none` and no check door), `b7402d6c` (L7, L9) |
+| WS-B | L11 the way back after sign-in, and the realm's `withoutContext`, can still come out starting with `//` after dot segments (the router collapses it today); L12 D16 sets the core's clock against management's `auth_time`, separate boxes in production; L13 the single-box `redeploy.sh` keeps the `.rutba.pk` suffix in a stage that no longer runs | low | WS-B follow-up (in progress) |
+| WS-D | while Strapi is down, `GET /v1/auth/session` must answer 503, never 401, or the check frame signs every suite tab out | to confirm | WS-D (in progress) |
 
 ## 4. The journeys
 
@@ -568,3 +571,39 @@ Three response types still declare `sid` on this route
 make it optional. The access-token half of F7 (decision 11) stays open.
 Live after the restart: auth booted with no warning and the route answers
 401 without a cookie.
+
+## Addendum 9: the second consumer review (stage 5's realm half and the fixes)
+
+Read-only at consumer `cfdbb998`; every suite matches the builder's counts,
+nothing skipped; nothing signed in was walked.
+
+**Nothing high or medium.** H1's fix is what was asked: the only list the
+frame pages, the relay and the sign-in page's notice trust (their
+`frame-ancestors` included) is the new exact-origin list; a leading dot, a
+`*`, a bare host, a path and an explicit `:443` are dropped at parse time
+and never widened; a production build with the variable unset answers the
+realm alone and fails closed; the fleet's 21 hosts are exactly the
+Caddyfile's back-office blocks with none of the seven storefront hosts; the
+Dockerfile's argument reaches the bundles. Stage 5 leaves no route for
+`db`, `tenant`, `org` or `org_id` to reach tenant resolution: the
+callback's body carries none, the core reads only the token's claim or the
+edge headers, no page reads them from its URL, the operator's redemption is
+unchanged. `USER_UNKNOWN` is answered only when neither subject nor address
+finds a row; the brake counts it; each is audited. M2 spends the ticket
+atomically and writes no mark. The check frame posts `status`, `sub` and
+`org` and stores nothing; 401 is `login_required` and anything else
+uncertain; L6 and L8 are moot. M3, M4, L5, L7, L9 and L10 hold as fixed.
+
+**Found:** L11, L12, L13 (section 3), sent to WS-B. Info, also sent: unused
+verify answers stay in memory until the map passes 10,000 entries; `?db=`
+can still appear in `state` cosmetically (nothing reads it). Noted: "site"
+is a host's last two labels; dev admits any loopback origin, so the
+storefront guarantee is for production builds.
+
+**Not checked, and the one that matters:** what `GET /v1/auth/session`
+answers while Strapi or the session store is unavailable. A thrown error
+becoming 503 is safe (the check reads uncertain); a store that returns
+nothing, so the route answers 401, would sign every suite tab out during an
+outage. WS-D is asked to make it 503 and test it. Also unchecked: tenant
+1's older realm's build arguments (unset, it fails closed and is another
+site anyway), the bridge suites, real clock skew between the boxes.
