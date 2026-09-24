@@ -13,17 +13,17 @@ jobs:
     if: >-
       github.event.pull_request.state == 'open' &&
       github.event.pull_request.head.repo.full_name == github.repository &&
-      contains(
-        fromJSON(format('["{0}","@{0}"]', github.actor)),
-        vars.AUTO_MERGE_ALLOWED_USER != '' && vars.AUTO_MERGE_ALLOWED_USER || 'eharain'
+      (
+        contains(fromJSON(format('["{0}","@{0}"]', vars.AUTO_MERGE_ALLOWED_USER || 'eharain')), github.actor) ||
+        contains(fromJSON(format('["{0}","@{0}"]', vars.AUTO_MERGE_ALLOWED_USER || 'eharain')), format('@{0}', github.actor))
       )
     runs-on: ubuntu-latest
     steps:
       - name: Disable auto-merge for draft PRs
-        if: github.event.pull_request.draft == true
+        if: github.event.action == 'converted_to_draft' && github.event.pull_request.draft == true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh pr merge "${{ github.event.pull_request.number }}" --disable-auto --repo "${{ github.repository }}"
+        run: gh pr merge "${{ github.event.pull_request.number }}" --disable-auto --repo "${{ github.repository }}" || true
 
       - name: Enable auto-merge (squash)
         if: github.event.pull_request.draft == false
