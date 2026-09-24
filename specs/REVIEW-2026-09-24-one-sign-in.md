@@ -13,8 +13,8 @@ four status files ([WS-A](one-sign-in-ws-a.md), [WS-C](one-sign-in-ws-c.md),
 the detailed sources. Times are UTC.
 
 **Where the code is.** Round one: management `50367fd`, consumer `5d3c36f4`.
-Round two so far: management `31f664b` (follow-ups 4 to 6, stage 5's
-management half), consumer `2a0dd377` (stage 4, stage 5's realm half, both
+Round two so far: management `98d954a` (follow-ups 4 to 6, stage 5's
+management half, D1 and D2), consumer `2a0dd377` (stage 4, stage 5's realm half, both
 reviews' fixes). Both pushed; nothing on GitHub but `dev` and
 `main`. The dev estate runs these checkouts.
 
@@ -23,8 +23,8 @@ release gate (addendum 3: it cannot run here); WS-B's stage 4 is addendum 4
 and WS-D's follow-up 4 addendum 5; the stage 4 review is addendum 6 and
 its fixes with stage 5's realm half addendum 7; WS-D's follow-up 5 is
 addendum 8, the second consumer review addendum 9 and the session route's
-outage fix addendum 10, WS-B's last lows addendum 11, D2 addendum 12; the
-round-two walk and WS-C's D1 to follow.
+outage fix addendum 10, WS-B's last lows addendum 11, D2 addendum 12, D1
+addendum 13; the round-two walk and the reviews of D1 and D2 to follow.
 The journey walk's end is addendum 1; the review of WS-D's follow-ups 2 and
 3 is addendum 2.
 
@@ -203,7 +203,7 @@ The journey record's D1 to D15, with where each stands now.
 
 | # | Severity | What | Now |
 |---|---|---|---|
-| D1 | high | The portal console's organisation page reads the retired Organization Service; the invite form lives only there, so no owner can invite through the product. Pre-existing. | open, decision 1, round two |
+| D1 | high | The portal console's organisation page reads the retired Organization Service; the invite form lives only there, so no owner can invite through the product. Pre-existing. | management `24ec0b7` (addendum 13): the page and the invite read auth; the members list needs a route (decision 29) |
 | D2 | high | Management's invitation tells the organisation's instance once; a 503 at that moment is logged and dropped, and inviting again answers `ALREADY_A_MEMBER` before the instance is asked. | management `31f664b` (addendum 12): told until acknowledged, repaired at sign-in, re-told on re-invite; the walk of a repaired row is pending |
 | D3 | medium | Auth's 2 s Strapi timeout read as "no organisation" on the hub and dropped the sign-in's fan-out. | fixed, `e087f4e` `b5b737b`; not yet seen live |
 | D4 | low | The Sign app shows its landing with a "Sign in" button on a live realm session; Workspace signs in by itself. | open, decision 6 |
@@ -318,6 +318,15 @@ under are decisions 20 to 22.
 28. **The dialog's silent restore works only in production builds** (WS-B
     question 5): a dev build's hidden frames never hydrate. Recommend:
     accept; dev walks cannot see it, the README's hydration rule says why.
+29. **Who sees an organisation's members, and can a personal account become
+    a team?** The organisation page today lists only the signed-in person
+    (addendum 13). Recommend: a token-bound members route that answers the
+    list to the organisation's owners and admins (the invite form's
+    audience) and only the person's own row to members and viewers, being
+    built under that assumption; and no conversion route in this round (a
+    personal organisation stays personal; a team is made by the onboarding
+    or the operator, as org 140 was), unless you want conversion in the
+    product.
 ## 8. Round two
 
 Stages 4 and 5 of the plan are approved work and need no decision; the fixes
@@ -342,10 +351,8 @@ below need none either. The rest waits on section 7.
   kept; the chooser reachable from `?local=1` only, as now.
 - **Fixes without a decision:** landed: D16 (addenda 4, 7, 11), D11 and
   D17 (addenda 5, 7), the estate map's `org` option (addendum 5). Open: D5.
-- **Being built now, no decision needed:** D1 (the portal console's
-  organisation page and its invite form off the retired service, WS-C, with
-  the three stale `sid` types). D2 landed (addendum 12). Both block the
-  invitation journey.
+- **D1 and D2 landed** (addenda 12 and 13); their reviews are running. The
+  members route (decision 29) is with WS-D.
 - **After the decisions:** D14, D13, F2's choice, F7's access-token half,
   the brakes' proxy trust, L3, L4, the reset path's step-up if asked for.
 - **Before production:** the release gate, first brought up to date with
@@ -688,3 +695,45 @@ person it has and makes no second row, though it resends the set-password
 mail to a never-confirmed row. On the estate Strapi reloaded at 17:07 with
 the new fields and ten schedules, no new error; no live tell seen yet. The
 tester is told that journey 2's expectation flips once A signs in again.
+
+## Addendum 13: D1, the portal console's organisation page (WS-C round two)
+
+Management `24ec0b7`, `74ec02f`, `98d954a` on `dev`, `main` and origin; the
+section is in [one-sign-in-ws-c.md](one-sign-in-ws-c.md) (records
+`af5f505`). Tests: `@rutba/portal-session` 48 → 50, the portal console
+17 → 29, the management, partners and relay consoles unchanged (74, 13,
+163), type-check clean in all five consoles and the package.
+
+| What | Commit |
+|---|---|
+| D1: the organisation page reads the organisation, its kind and the person's role from the console's token and the pinned profile (`GET /v1/auth/session`, the same list `GET /v1/auth/orgs` answers, so no second call; a new `tokenRoles` in `@rutba/portal-session`); the invite still goes to auth's `POST /v1/auth/org/:orgId/invitations`, offered to a team's owners and admins, and shows what happened (invited, added, reinstated); the gateway calls for the organisation, its members, conversion and adding a member are gone, with two unused gateway clients and auth's `/org/:orgId/identities`, which answers 501; auth's calls moved to `auth-client.ts` with a unit test pinning the invite call | `24ec0b7` |
+| Found on the way: `/checkout` showed "Billed to" the first organisation in the person's list while the confirm action billed the pinned one, so with two organisations it named the wrong company; it now shows the pinned profile and asks for the switcher when several are held and none is chosen | `74ec02f` |
+| `sid` removed from the session-view types in `@rutba/portal-session`, the portal console and the management console; nothing read it; the remaining `sid` reads are the staff console's session list and the sign-in and step-up answers | `98d954a` |
+
+Seen unsigned on the estate's portal console (hot-reloaded): `/organisation`
+redirects to sign-in, `/checkout?intent=x` answers 200 with the plan panel.
+For the tester: a team owner or admin sees the name, slug, their own row
+and the invite form; a member or viewer no form; a personal account a "Not
+in the console yet" notice; with two organisations `/checkout` bills the
+pinned one and the other after a switch.
+
+**Left open, each needing a route first:** the page lists only the
+signed-in person, because no route lists an organisation's members to a
+member (auth's `/identities` answers 501; Strapi's identity gate has
+invitations and licences for an organisation but no members; the console's
+`/people` is for staff). WS-D is asked for a token-bound members route in
+Strapi's identity gate with auth's route on top, carried like invitations;
+the page is ready for it. Converting a personal account to a team has no
+route anywhere (Strapi's `onboard` makes personal organisations only); the
+convert form is removed and the page says so, with the contact address.
+Decision 29 below.
+
+**Other console pages still on retired services** (listed, not fixed; each
+needs a Strapi route first): portal console `/updates`, `/feedback`,
+`/feedback/[ref]`, `/api/feedback` (the gateway); management console
+overview (the gateway, the provisioning estate, the licence service's
+suspensions), `/organizations` and `/organizations/[orgId]` with the member
+actions, `/staff`, `/feedback`, `/announcements` (the gateway),
+`/suspensions` (the licence service), `/catalog`, `/estate`,
+`/estate/[storeKey]`, `/domains` (provisioning), `/instances` (its
+licences).
