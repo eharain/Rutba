@@ -322,7 +322,8 @@ both pushed. Code and docs moved together (`consumer/docs/one-sign-in-realm.md`)
 | F9 | the logout frame accepted a plain top-level link | `iss` (the trusted issuer) and `sid` are required, otherwise 400 and nothing is cleared. Even then only a kept session whose management session id (`oidcSid`) is the `sid` named is cleared. The core now answers `management_sid` beside the session when the ID token or userinfo names `sid`, the page keeps it with the ID token, and it rides through a context-password ticket | `1622d80c` |
 | F4 | `POST /api/auth/local` marked no break-glass `amr` and logged nothing | the same `amr ['instance-password']` and the same `instance password sign-in (break-glass)` log line as `/api/auth/local/any` | `64aa5995` |
 
-**What F9 needs from WS-D.** Management names no `sid` today: its frame URL
+**What F9 needed from WS-D** (landed in management `50367fd`; see "WS-D's
+claims used" below). At the time of follow-up 2, management named no `sid`: its frame URL
 is `<origin>/auth/logout-frame?iss=<issuer>` (`auth/src/oidc/logout.js`), and
 neither the ID token nor userinfo carries `sid` for the realm's client (the
 account's claims are `sub`, `email`, `email_verified`, `name`, `org`, and at
@@ -363,3 +364,54 @@ the suite and the smoke of `handoff.js` (F3), and
 **Consumer checkout:** `git status --porcelain` in `D:/Rutba2.0/consumer`
 at `64aa5995`, after the last commit and push: empty. `dev` and `main`
 are both at `64aa5995` on `origin`.
+
+## WS-D's claims used (2026-09-24, after management `50367fd`)
+
+WS-D landed the two claims WS-A asked for. The realm uses both.
+
+1. **`sid`, for the logout frame (F9).** Management now puts an opaque
+   `fcs_...` value, derived from its session (never the session id), on the
+   ID token under the `openid` scope, and the same value as `sid` on every
+   logout-frame URL its two sign-out pages build (`?iss=<issuer>&sid=<fcs>`).
+   The realm needed no code change for this. Since `1622d80c`:
+   - the core reads `sid` from the ID token (or from userinfo when only it
+     names one) and answers it as `management_sid`;
+   - the page keeps it beside the ID token as `oidcSid`;
+   - `/auth/logout-frame` refuses a call without the trusted `iss` and a
+     `sid` (400), and clears only a stored session whose `oidcSid` is the
+     `sid` named.
+
+   New tests pin that behaviour with the value in management's real shape:
+   the callback keeps an `fcs_` sid from the ID token or from userinfo, and
+   a frame URL built as management's logout page builds it matches the
+   session kept under that sid and no other. Consumer `5d3c36f4`.
+2. **`db`, on the credential token (WS-D's F5).** The W1 doors now compare
+   the token's `db` claim with the body's instance database, in the same shape
+   as the address check: none is 400 `DB_CLAIM_REQUIRED`, another is 403
+   `DB_MISMATCH`. The check runs after the body's own `db` is validated and
+   before any tenant is entered. The test covers both doors, proves nothing is
+   bound or set on a refusal, and checks the code crosses the wire. Consumer
+   `372ec44a`, with `consumer/docs/one-sign-in-realm.md` amended for both
+   claims.
+
+**Live probe (13:35 UTC, after the lead's rebuild):** the core's config door
+answered 200. `/auth/logout-frame` with the trusted `iss` and an `fcs_`
+sid answered 200; with the sid alone it answered 400. The smoke's parts A
+to C passed. I built nothing and cleaned nothing: no `packages/*/dist` was
+touched.
+
+**Not done:** the signed-in half is still unwalked, for the reason given in
+"Live check". Neither of these has been seen end to end with a real sign-in:
+
+- a real ID token's `fcs_` sid kept by the page;
+- management's own sign-out page framing the realm with it.
+
+The suites and the shape of management's code are the evidence for both.
+
+**Tests** (13:34 UTC): `console/api/auth/tests` 47 of 47 (callback 30,
+credential doors 12, break-glass 5); `console/apps/auth/src` 28 of 28
+(management-signin 14, allowed-redirect 14); the bridge suites under the
+test-only preload as recorded in follow-up 2 (handoff 24 of 24).
+
+**Consumer checkout:** `git status --porcelain` at `5d3c36f4`: empty. `dev`
+and `main` are both at `5d3c36f4` on `origin`.
