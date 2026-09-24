@@ -1276,5 +1276,21 @@ management's own sign-in (intended: the route pins on the session); one
 recurred. Not done, the owner's: a signed-in walk, and in particular a
 rutba.pk staff address at the address-first form, since federated
 discovery forwards a customer address to the realm and the realm now
-forwards to management; the loop question is being answered from the code
-and a read-only discovery check.
+forwards to management; answered below.
+
+**The rutba.pk staff question, answered.** From the code: only the
+estate's address-first door (`/signin` in `discovery.routes.js`) forwards
+an address to a realm, to that realm's `/authorize`; auth's own sign-in
+form (`/login`), which the realm's OIDC interaction lands on, never calls
+discovery, so even a forwarded address ends at management after one hop.
+From the data (the Infra session's read-only check on 2026-09-25, bare
+domains only): both `rutba.pk` and `rutba.io` resolve to the portal realm
+with management's `/login` as the sign-in, so the Directory maps neither
+to an org realm and a rutba.pk address is kept at management's form. No
+loop. What remains is the migration the plan describes: a tenant 1 staff
+member with no management account cannot sign in at management until
+they register there with the address their instance row carries (the
+same password then carries them in; a different one is asked for once at
+the realm), or use the realm's break-glass form at
+`auth.consumers.rutba.io/login?local=1`. **For the owner:** tenant 1's
+staff need to be told this, since their sign-in changed with this deploy.
