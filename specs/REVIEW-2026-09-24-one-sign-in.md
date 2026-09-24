@@ -19,7 +19,8 @@ reviews' fixes, the invite door under retries, the walk's defects, their
 review and its re-check, D29). Round three: consumer `aee646a8` (decision 35's consumer half, its
 review's fixes and the re-check's lows, addenda 26, 28, 30) and management
 `5490684` (the reset that creates the account, its review's fixes and the
-re-check's lows, addenda 27, 29); both closed; the walk in progress. Both pushed; nothing on GitHub but `dev` and
+re-check's lows, addenda 27, 29); both closed; the walk is addendum 31,
+with D33 to settle before the deploy. Both pushed; nothing on GitHub but `dev` and
 `main`. The dev estate runs these checkouts.
 
 **Still to come in this record**, appended as addenda when they report: the
@@ -249,6 +250,12 @@ The journey record's D1 to D15, with where each stands now.
 | D26 | medium | A newly invited member arrives in the organisation's instance with no apps (the invite door gives a member none by design), so their first open stops at "You cannot open the suite" until the owner grants an app in the instance's own console; nothing in management tells the owner. | decision 34 |
 | D27 | low | Members told before the tell record existed show no told state, so "told" and "never told" look the same for them. | management `cace52f`: one line under the roster when a non-owner active or invited member has no workspace state |
 | D28 | low | "You are member in …" on the member's view of the organisation page. | management `cace52f` |
+| D30 | low | A reset for an address no instance knows leaves no line at management; only the core's "no" shows it. | WS-D |
+| D31 | low | The dev storefront serves no tenant (no edge in front of it), so its register answers a tenant-context error and shows the visitor nothing; decision 35's customer half cannot be walked on the dev estate. | estate gap, noted |
+| D32 | low | The core's log-mode mail prints only recipient and subject, so no link the core sends can be checked on the dev estate. | WS-A |
+| D33 | low, **deploy-blocking** | The instance console's "New User" offers "Staff" and other roles beside "Rutba App User"; the round-three rule counts only the latter as back-office, so a person on another role, tenant 1's staff possibly included, is treated as a storefront customer: management's reset does not find them and the storefront's would mail them. | WS-A: a set of back-office role types; the Infra session asked for a count per role type in production |
+| D34 | low | The "Set your Rutba password" page for a new account still shows the authenticator field and the "Everywhere / Only here" choice. | WS-D |
+| D35 | info | A reset-made account has no personal organisation and no name; the hub greets by the address's local part. | WS-D |
 | D29 | low | A periodic check that gets no answer during a restart waits five minutes for the next one; three of four switch-follows in the walk took eight to nine minutes. | consumer `c0d4a05b`: an automatic check with no answer is asked again after 30 s, at most twice, then the timer; a real answer ends the retries, so an idle tab still costs one request per five minutes; a check that throws counts as no answer; the refusal pages' own check does not retry yet |
 
 ## 7. Decisions for the owner
@@ -1535,3 +1542,34 @@ production; the operator suite (7) checks where the link lands and that
 the storefront's reset refuses the code while the realm's accepts it; the
 individual smoke 49 of 50 as before. The fleet already passes the realm's
 address to the core.
+
+## Addendum 31: the round-three walk
+
+The tester walked round three on the dev estate, 21:58 to 22:21 UTC on
+2026-09-24, consumer `aee646a8` and management `5490684` at start and
+end, trees clean, all four doors answering; the section "Round three
+walked" in [one-sign-in-journeys.md](one-sign-in-journeys.md) (records
+`313373c`).
+
+| Step | Verdict |
+|---|---|
+| The reset that creates the account: F made in the team's instance console on the "Rutba App User" role with Sign access (the instance's invite mail); management's reset for F answering "Check your email" like any address; auth's log a password request line with the digest only; the core's log the instance asked and saying yes; Strapi's log "a reset for an address with no account: 1 instance(s) know it; a set-password link was mailed"; the link with a code and `new=1` and no address; the password set, the account created confirmed, F a viewer of the team, the instance told and the password carried, every log naming the address as a digest; F's hub tile with no "not yet told"; the open confirming F's row and landing in Sign as the team, the envelopes list 200, no app grant needed. An address nobody knows: the same answer in about the same time, no mail, but no management line saying so (D30) | **Pass** |
+| A second reset for F, now with an account: today's ordinary mail, no instance asked | **Pass** |
+| The separation: the storefront woke but serves no tenant on the dev estate (D31), so no customer row could be made; the realm's break-glass reset for A accepted and mailed, the link not visible in the core's log (D32), by the code and the estate's settings the realm's own `/login?code=` | **Not walkable here** |
+| The operator path: nothing minted; B's ordinary realm session on the people search 403 `NOT_IN_THIS_MODE` (the answer for anyone without the operator role; `OPERATE_HANDOFF_REQUIRED` applies to an operator, and no test account is one) | **Pass as far as walkable** |
+| Journey 2 once more: the launcher followed a console switch in 4 min 23 s | **Pass** |
+
+New: D30 to D35 (section 4). D33 is the one to settle before the deploy:
+the instance console can make people on roles other than "Rutba App
+User", and the rule counts only that role as back-office, so staff on
+another role, tenant 1's possibly included, would be invisible to
+management's reset. WS-A is redefining the predicate as a set of
+back-office role types and the Infra session is asked for a read-only
+count per role type in production. The members page shows F as "viewer ·
+Rutba Sign: told" with the footnote that answers D27. Left behind: F
+(`e2e-osi-2201-f@rutba.test`, the pattern password), a confirmed
+management account and viewer of the team with a bound row and Sign
+access; an unused break-glass code on one of A's rows that will expire;
+everyone signed out; the instance console and the storefront woken by
+the walk and left under the gateway; no build or clean script, no
+`.next` deleted, no database written by hand.
