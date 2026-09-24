@@ -340,14 +340,16 @@ below need none either. The rest waits on section 7.
   the realm's normal path); `tenant=` and `?db=` retired from `/authorize`
   and the launcher (D7); the C5 open purpose retired, the operator's purpose
   kept; the chooser reachable from `?local=1` only, as now.
-- **Fixes without a decision:** D16 (the realm's bounded wait, WS-B, in
-  progress); D11 (`USER_UNKNOWN` is not "unbound") and D17 (remember "no
-  row" beside "bound"), WS-D; `@rutba/estate-map`'s
-  `consoleSignInHref(..., { org })` still builds `org=` and nothing asks for
-  it any more; D5.
-- **After the decisions:** D1, D2, D14, D13, F2's choice, F7, the brakes'
-  proxy trust, L3, L4, the reset path's step-up if the reviewer of
-  follow-up 3 asks for it.
+- **Fixes without a decision:** landed: D16 (addenda 4, 7, 11), D11 and
+  D17 (addenda 5, 7), the estate map's `org` option (addendum 5). Open: D5.
+- **Being built now, no decision needed:** D1 (the portal console's
+  organisation page and its invite form off the retired service, WS-C, with
+  the three stale `sid` types) and D2 (management retries telling an
+  instance about an invitation, records the outcome on the membership and
+  re-tells on a re-invite or the next fan-out, WS-D follow-up 6). Both
+  block the invitation journey.
+- **After the decisions:** D14, D13, F2's choice, F7's access-token half,
+  the brakes' proxy trust, L3, L4, the reset path's step-up if asked for.
 - **Before production:** the release gate, first brought up to date with
   the consolidated estate (addendum 3), then run with the operator's
   password;
