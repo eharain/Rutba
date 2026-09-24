@@ -143,6 +143,24 @@ for the lead (see Requests).
 3. **"None pinned, several held"**: is the account page's full switcher the
    picker the owner means for a first sign-in, or should auth always pin at
    first sign-in so a console never sees `choose`?
+4. **(L3, the review, low, no regression) A console's GET `/auth/signout`
+   signs a person out everywhere without asking.** Any site can navigate a
+   signed-in person to it (`packages/session/src/routes.ts`, `signOutRoute`),
+   and with the console's client id auth then signs them out of every app
+   without a question, because the console names them with its ID token.
+   Before the round the same GET already ended the console's own session, so
+   nothing new is lost, but WS-D's claim that a link on another site cannot
+   sign anybody out does not hold through a console. The fix would be a POST
+   with an origin check, or a confirmation page when the request carries no
+   `Sec-Fetch-Site: same-origin`. For the owner to decide.
+5. **(L4, the review, low) `/profile` tells an org-zero member the staff
+   console exists.** A member of org-zero without the platform role, pinned
+   elsewhere or not pinned, now lands on `/profile` instead of the 404 that hid
+   the console (`console/management-console/src/lib/gate.ts`,
+   `decideStaffGate`). Only Rutba's own members learn it exists, so it is a
+   question rather than a defect: keep, or check the platform role before
+   offering the switch (a mint in org-zero, which the pin forbids until they
+   switch)?
 
 ## Requests to other streams
 
@@ -243,8 +261,8 @@ small commits on management `dev`, fast-forwarded to `main`, both pushed.
 
 ### Left from the review
 
-- **L3 and L4** stay as recorded questions, as the lead directed. Their text
-  did not reach this stream; the lead's review holds it.
+- **L3 and L4** stay as recorded questions, as the lead directed: questions 4
+  and 5 above, in the review's wording as the lead relayed it.
 - **The signed-in walk** of M2's two cases (a switch on the same session
   reloads; "use another account" in one console resyncs the others) is for
   somebody who signs in. No dev server of mine ran: 4118 and 4111 belonged to
