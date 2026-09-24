@@ -160,7 +160,7 @@ WS-D as follow-up 4:
 | WS-C | D1's M1 a re-invite's `retold` outcome is shown as "we have emailed an invitation"; L2 checkout's confirm button drawn with nothing pinned; L3 the invite form promises role changes and removal no door supports; L5 stale `roles.ts` | medium | management `5976bf4` (M1 and the role check), `0299832` (L2), `cc2af47` (L3), `1cc2879` (L5) |
 | WS-D | the staff person page prints full raw session ids from auth's internal sessions route | low | management `6aa11a3`: a handle in place of the id on the staff list, revocation by handle; `1bb6826`: the audit feed carries the handle too |
 | WS-A | Round three: M1 a reset started at the realm's break-glass form completes on the storefront's reset page, and a storefront code can be spent at the realm's; M2 both password sign-ins pick either kind of row; M3 W1 verify 500s with the SQL in the message when a customer row holds the subject; M4 address case compared exactly at the invite and forgot doors and lower-cased elsewhere; M5 the owner door can promote a customer row; M8 a second row's username may collide with a unique index | medium | WS-A (in progress) |
-| WS-B | Round three: the operator path takes over any row by address; operator rows on the authenticated role now count as customers | medium | WS-B (in progress) |
+| WS-B | Round three: the operator path takes over any row by address; operator rows on the authenticated role now count as customers | medium | consumer `b9cfcb0d`: a row is reused by address only when it already holds `platform_operator`, else 409; operator rows are created on, and moved to, the back-office role; operator actions being limited to operate sessions |
 | WS-D | Round three: H1 the set-password link makes the person a viewer at every live instance of the organisation, not only the one that recognised the address, and the asks include non-live instances; M2 a pending invitation at an instance is demoted to viewer by the re-invite; M3 an unbounded fan-out anyone can trigger; M4 the ordinary forgot answer's timing reveals whether an account exists (older) | **high** | WS-D (in progress) |
 | WS-B | D19's M1 the callback confirms a row without checking that management holds the address as verified and equal to the row's; M2 the refusal pages have no "Try again" at all; L3 the confirmation is not conditional on still-unconfirmed and not-blocked and not in one transaction with its audit; L4 test gaps; L5 the mailed set-password link survives (decision 33); L8 D25's baseline is the first answer, not the refused profile | medium | consumer `ebf6d41b` (M1, L3, L4, L5, I6), `4d9f2523` (M2), `9aa4d3e5` (L8), `1ed304ff` (the hub's handoff uses the same rule) |
 
@@ -413,6 +413,17 @@ under are decisions 20 to 22.
     apart only by the users-permissions role, which neither the credential
     doors nor the realm's callback filtered on; both are being scoped to
     the back-office role.
+36. **Existing operator rows' passwords.** Before consumer `b9cfcb0d`, the
+    operator handoff took over any row with the staff member's address, so
+    an operator row may still carry the password of whoever registered
+    that address first, and nothing can tell such a row from a genuine one.
+    Operators never use a password (the operate door signs them in).
+    Recommend: at the next deploy, give every `platform_operator` row in
+    each individual-mode database a fresh random password, and move those
+    rows onto the back-office role in the same pass (the SQL is in
+    [one-sign-in-ws-b.md](one-sign-in-ws-b.md)'s round three note; the
+    operate path also moves a row on its next use). A production data
+    change, so yours to say.
 ## 8. Round two
 
 Stages 4 and 5 of the plan are approved work and need no decision; the fixes
