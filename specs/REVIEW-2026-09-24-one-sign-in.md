@@ -14,8 +14,8 @@ the detailed sources. Times are UTC.
 
 **Where the code is.** Round one: management `50367fd`, consumer `5d3c36f4`.
 Round two so far: management `98d954a` (follow-ups 4 to 6, stage 5's
-management half, D1 and D2), consumer `2a0dd377` (stage 4, stage 5's realm half, both
-reviews' fixes). Both pushed; nothing on GitHub but `dev` and
+management half, D1 and D2), consumer `40579cd8` (stage 4, stage 5's realm half, both
+reviews' fixes, the invite door under retries). Both pushed; nothing on GitHub but `dev` and
 `main`. The dev estate runs these checkouts.
 
 **Still to come in this record**, appended as addenda when they report: the
@@ -25,7 +25,8 @@ its fixes with stage 5's realm half addendum 7; WS-D's follow-up 5 is
 addendum 8, the second consumer review addendum 9 and the session route's
 outage fix addendum 10, WS-B's last lows addendum 11, D2 addendum 12, D1
 addendum 13, the reviews of D2 and D1 addenda 14 and 15, the round-two
-walk addendum 16; the fix passes to follow.
+walk addendum 16, the invite door addendum 17; the other fix passes to
+follow.
 The journey walk's end is addendum 1; the review of WS-D's follow-ups 2 and
 3 is addendum 2.
 
@@ -148,7 +149,7 @@ WS-D as follow-up 4:
 | WS-B | L11 the way back after sign-in, and the realm's `withoutContext`, can still come out starting with `//` after dot segments (the router collapses it today); L12 D16 sets the core's clock against management's `auth_time`, separate boxes in production; L13 the single-box `redeploy.sh` keeps the `.rutba.pk` suffix in a stage that no longer runs | low | `44ec719c` (L11), `2a0dd377` (L12), `43298bad` (L13) |
 | WS-D | during an outage `GET /v1/auth/session` could answer 401 (a coded refusal from the gate), 400, or 200 with no organisation, which the check frame reads as signed out or as a change of organisation | medium | `e5686a1`: every failed read is 503; 401 only when the store answered |
 | WS-D | D2's M1 tells for one membership are not serialised across the schedule, the sign-in repair and a re-invite; M3 a pass has no time budget; L4 retry or final by status alone; L5 instance names and raw errors reach the administrator's page; L6 the hub's wording | medium | WS-D follow-up 8 (in progress) |
-| WS-A | D2's M2 the core's invite door re-mails a row bound but never confirmed, so the first sign-in after deploy mails every such row; and it is idempotent only one call at a time (no unique address index) | medium | WS-A (in progress) |
+| WS-A | D2's M2 the core's invite door re-mails a row bound but never confirmed, so the first sign-in after deploy mails every such row; and it is idempotent only one call at a time (no unique address index) | medium | consumer `40579cd8`: `exists` with no mail for a row bound to the same subject; an insert-or-select on the subject index for concurrent invites |
 | WS-C | D1's M1 a re-invite's `retold` outcome is shown as "we have emailed an invitation"; L2 checkout's confirm button drawn with nothing pinned; L3 the invite form promises role changes and removal no door supports; L5 stale `roles.ts` | medium | WS-C (in progress) |
 | WS-D | the staff person page prints full raw session ids from auth's internal sessions route | low | WS-D, with follow-up 8 |
 
@@ -349,6 +350,12 @@ under are decisions 20 to 22.
 31. **The realm's refusal pages follow a switch (D25).** Recommend, and
     being built: they run the same silent check as the launcher and go
     through `/login` on "replace", with "Try again" kept.
+32. **A confirmed instance row bound to one person, and management's tell
+    names another for the same address.** Today the door silently re-binds
+    the row to the new subject behind an `exists` answer (pre-existing).
+    Recommend, and being built: refuse with a distinct code, change
+    nothing, and let the operator resolve it; an unconfirmed row may still
+    be re-bound, since nobody has proven it.
 ## 8. Round two
 
 Stages 4 and 5 of the plan are approved work and need no decision; the fixes
@@ -867,3 +874,28 @@ which it could not place (another session using that account would have
 been signed out); the portal console and both headless browsers stopped;
 no clean or build script, no `.next` deleted, no database written. B and
 C did not sign in this round, so addendum 14's M2 did not come up.
+
+## Addendum 17: the invite door under management's retries (WS-A)
+
+Consumer `40579cd8` on `dev` and `main`; the section is in
+[one-sign-in-ws-a.md](one-sign-in-ws-a.md) (records `715eef6`, `c51c1c6`).
+Tests: a new `console/api/tenants/tests/invites.test.js` 7, the auth door
+suites 62, the realm pages 49; the core reloaded and reported ready.
+
+A row whose address already carries the same `rutba_sub` answers `exists`,
+sends nothing and leaves any outstanding set-password link alone, confirmed
+or not (addendum 14's M2); an unconfirmed row with no subject yet is still
+`reinvited`. Two invites at once for a new address make one row: the new
+row is inserted with its subject set and the insert yields to the unique
+index that column already has in every tenant (`ON CONFLICT DO NOTHING`,
+`INSERT IGNORE` on MySQL), the loser finds the winner's row and answers
+`exists`; within one core, invites for the same address in one database
+also run one at a time. No unique index on the address, because the sign-in
+system allows one address under several providers and a live instance with
+two rows for an address could not take it without rewriting them; no
+migration number needed. Remaining gap: an invite with no subject racing one
+in a second core process is protected only by that process's queue, and
+management's calls always name the person. Not run: the tenants-door smoke,
+which creates and drops databases. Flagged and now decision 32: a confirmed
+row bound to another person is still silently re-bound; WS-A is building
+the refusal.
