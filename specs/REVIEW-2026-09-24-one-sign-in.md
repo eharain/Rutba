@@ -16,7 +16,8 @@ the detailed sources. Times are UTC.
 Round two so far: management `cace52f` (follow-ups 4 to 9, stage 5's
 management half, D1, D2 and the members list), consumer `c0d4a05b` (stage 4, stage 5's realm half, both
 reviews' fixes, the invite door under retries, the walk's defects, their
-review and its re-check, D29). Both pushed; nothing on GitHub but `dev` and
+review and its re-check, D29). Round three so far: consumer `64b946cc`
+(decision 35's consumer half, addendum 26); management's reset in progress. Both pushed; nothing on GitHub but `dev` and
 `main`. The dev estate runs these checkouts.
 
 **Still to come in this record**, appended as addenda when they report: the
@@ -1328,3 +1329,26 @@ management account and the two ways in above apply. Noted for round
 three: auth's password routes write no log or audit line of their own, so
 an operator reading auth alone cannot see a reset request happened; a
 line without the address (the outcome and a digest) would do.
+
+## Addendum 26: round three, decision 35's consumer half (WS-A and WS-B)
+
+Four commits on consumer `dev` and `main`, `b70b0ec2`, `06e94995`,
+`1440e692`, `64b946cc`; the sections are in
+[one-sign-in-ws-a.md](one-sign-in-ws-a.md) (records `d3f9d6d`, `4ea5651`)
+and [one-sign-in-ws-b.md](one-sign-in-ws-b.md) (records `81f473d`). Suites
+only, the dev estate being stopped: tenants doors 15 (invites 9, exists 6),
+auth doors 86 (callback 62, credential doors 17, break-glass 7), the realm
+pages 55, the handoff suite 27 with its preload.
+
+| What | Commit |
+|---|---|
+| Management's doors see only back-office rows: new lookups in the core (`findAppUserRow`, `findAppUserByEmail`, `findCustomerUserRow`) with the role check inside the same query as an EXISTS on the role link joined to the role type `rutba_app_user`, no extra round trip; the core repeats the role-type string because it does not import console code, and a test keeps it equal to the console's constant. W1 verify: a customer-only row is `USER_UNKNOWN`, and beside a back-office row the customer's password proves nothing. W1 set never touches a customer row, even one an older door bound. The invite door creates a back-office row beside a customer-only one. Test rows in the auth suites now sit on a role, as live rows do | `b70b0ec2` |
+| The realm's callback and the hub's handoff find a person, by subject and by address, only among back-office rows through the same lookups; a customer row wrongly carrying a subject is `USER_UNKNOWN` and is never confirmed, bound or marked (the D19 confirmation checks the role inside its transaction); the operator's `operate` path unchanged, since it makes operator rows on the `authenticated` role | `06e94995` |
+| `POST /api/tenants/:db/people/exists` for management's reset: the invite door's token and scope; 200 `{ exists: true }` only for an unblocked back-office row with that address, 200 `{ exists: false }` for everything else, the one field unwrapped; ten per database and address per fifteen minutes, then 429 with `Retry-After` (to be read as "don't know, don't mail"); one audit row and one log line per call naming the address only as a digest | `1440e692` |
+| Each reset mails only its own kind of account: the storefront's `POST /api/auth/forgot-password` writes no code and sends nothing for a back-office row, the realm's break-glass `POST /api/auth/forgot-password/any` the same for a customer row, both answering `{ ok: true }` either way; both controllers live in `console/api/auth/routes.js`, one file outside the stream's list | `64b946cc` |
+
+Known and left: a customer row that an older door bound to a management
+subject keeps it, so the invite door answers `SUBJECT_TAKEN` for that
+person's back-office row; clearing such a binding is an administrator's
+job. Management's half (the reset that creates the account, WS-D) is in
+progress.
