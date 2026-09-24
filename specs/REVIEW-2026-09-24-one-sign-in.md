@@ -13,16 +13,16 @@ four status files ([WS-A](one-sign-in-ws-a.md), [WS-C](one-sign-in-ws-c.md),
 the detailed sources. Times are UTC.
 
 **Where the code is.** Round one: management `50367fd`, consumer `5d3c36f4`.
-Round two so far: management `a3eaabc` (follow-up 4, stage 5's management
-half), consumer `cfdbb998` (stage 4, stage 5's realm half, the stage 4
-review's fixes). Both pushed; nothing on GitHub but `dev` and
+Round two so far: management `7e32e89` (follow-ups 4 and 5, stage 5's
+management half), consumer `cfdbb998` (stage 4, stage 5's realm half, the
+stage 4 review's fixes). Both pushed; nothing on GitHub but `dev` and
 `main`. The dev estate runs these checkouts.
 
 **Still to come in this record**, appended as addenda when they report: the
 release gate (addendum 3: it cannot run here); WS-B's stage 4 is addendum 4
 and WS-D's follow-up 4 addendum 5; the stage 4 review is addendum 6 and
-its fixes with stage 5's realm half addendum 7; the walks of stages 4 and
-5 and the second consumer review to follow.
+its fixes with stage 5's realm half addendum 7; WS-D's follow-up 5 is
+addendum 8; the round-two walk and the second consumer review to follow.
 The journey walk's end is addendum 1; the review of WS-D's follow-ups 2 and
 3 is addendum 2.
 
@@ -543,3 +543,28 @@ hosts must be named one by one. The core still accepts the C5 `open`
 purpose that nothing calls. WS-D is asked to stop answering the raw session
 id on `GET /v1/auth/session`, which the check frame now reads. A second
 consumer reviewer is reading these commits.
+
+## Addendum 8: WS-D follow-up 5, the session route's id (F7's front-channel half)
+
+Management `7e32e89` on `dev`, `main` and origin; the record's section is in
+[one-sign-in-ws-d.md](one-sign-in-ws-d.md) (records `c88db29`). Tests at
+`7e32e89` against the suites' own fakes: unit 370, integration 294 (one
+more), perf 5, nothing skipped.
+
+`GET /v1/auth/session`, which the realm's check frame now reads every five
+minutes (decision 27), answers `user`, `session` (`amr`, `created_at`,
+`expires_at`, `last_org_id`), `org` and `organizations`, and no session id
+at all, raw or derived. The id is still answered only to a caller that has
+just authenticated: sign-in, the second factor's verify and step-up, and the
+handoff exchange for a site's server. Nothing read it from this route: the
+consoles hold it in their own cookie (`@rutba/portal-session` reads the
+user, the organisation, the pin and the list), the hub takes the session
+from the cookie through the store, the provisioning walkthrough takes its
+id from the sign-in answer, and auth's tests now take it from the cookie
+they hold, with a new case that the id appears nowhere in the answer.
+Three response types still declare `sid` on this route
+(`packages/session/src/index.ts`, the portal and management consoles'
+`auth-api.ts`); nothing reads the field, and WS-C is asked to drop it or
+make it optional. The access-token half of F7 (decision 11) stays open.
+Live after the restart: auth booted with no warning and the route answers
+401 without a cookie.
