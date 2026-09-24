@@ -14,8 +14,8 @@ the detailed sources. Times are UTC.
 
 **Where the code is.** Round one: management `50367fd`, consumer `5d3c36f4`.
 Round two so far: management `e5686a1` (follow-ups 4 and 5, stage 5's
-management half), consumer `cfdbb998` (stage 4, stage 5's realm half, the
-stage 4 review's fixes). Both pushed; nothing on GitHub but `dev` and
+management half), consumer `2a0dd377` (stage 4, stage 5's realm half, both
+reviews' fixes). Both pushed; nothing on GitHub but `dev` and
 `main`. The dev estate runs these checkouts.
 
 **Still to come in this record**, appended as addenda when they report: the
@@ -23,7 +23,8 @@ release gate (addendum 3: it cannot run here); WS-B's stage 4 is addendum 4
 and WS-D's follow-up 4 addendum 5; the stage 4 review is addendum 6 and
 its fixes with stage 5's realm half addendum 7; WS-D's follow-up 5 is
 addendum 8, the second consumer review addendum 9 and the session route's
-outage fix addendum 10; the round-two walk and WS-B's last lows to follow.
+outage fix addendum 10, WS-B's last lows addendum 11; the round-two walk to
+follow.
 The journey walk's end is addendum 1; the review of WS-D's follow-ups 2 and
 3 is addendum 2.
 
@@ -143,7 +144,7 @@ WS-D as follow-up 4:
 | WS-B | M3 the cross-site test ignores the app's own site, so an app on another site than management clears every managed session on every check | medium | `15df55a3` |
 | WS-B | M4 a stale tab revokes the session a sibling tab just received | medium | `7076109d` |
 | WS-B | L5 `/authorize` hands over a stored session without D8's check; L6 three OIDC errors read as `login_required`; L7 the return address after sign-in is unchecked (pre-existing open redirect); L8 the check door's limit keys on the proxy's address; L9 the D10 relay message has no state; L10 the organisation list outlives sign-out | low | `2671c10a` (L5, L10), `58103b07` (L6, L8 moot: no `prompt=none` and no check door), `b7402d6c` (L7, L9) |
-| WS-B | L11 the way back after sign-in, and the realm's `withoutContext`, can still come out starting with `//` after dot segments (the router collapses it today); L12 D16 sets the core's clock against management's `auth_time`, separate boxes in production; L13 the single-box `redeploy.sh` keeps the `.rutba.pk` suffix in a stage that no longer runs | low | WS-B follow-up (in progress) |
+| WS-B | L11 the way back after sign-in, and the realm's `withoutContext`, can still come out starting with `//` after dot segments (the router collapses it today); L12 D16 sets the core's clock against management's `auth_time`, separate boxes in production; L13 the single-box `redeploy.sh` keeps the `.rutba.pk` suffix in a stage that no longer runs | low | `44ec719c` (L11), `2a0dd377` (L12), `43298bad` (L13) |
 | WS-D | during an outage `GET /v1/auth/session` could answer 401 (a coded refusal from the gate), 400, or 200 with no organisation, which the check frame reads as signed out or as a change of organisation | medium | `e5686a1`: every failed read is 503; 401 only when the store answered |
 
 ## 4. The journeys
@@ -634,3 +635,22 @@ unreadable organisations, each 503 with the session still live after; an
 unknown id, an impossible id, an ended session, each 401); against the code
 before the fix three of them failed. The test Strapi can now simulate
 failed answers.
+
+## Addendum 11: the second review's lows fixed (WS-B)
+
+Three commits on consumer `dev` and `main`, `43298bad`, `44ec719c`,
+`2a0dd377`; the note is in [one-sign-in-ws-b.md](one-sign-in-ws-b.md)
+(records `c3cfe9c`). Suites green: callback 44, credential doors 13,
+break-glass 5, management-signin 15, allowed-redirect 14, frame documents
+20, `packages/ui` 302, `api-client` 42, the unsigned smoke 27.
+
+| What | Commit |
+|---|---|
+| L13: the retired apps stage's build steps and its default redirect list (with the `.rutba.pk` suffix) deleted from the single-box `redeploy.sh`; the stage still refuses to run and points at the fleet | `43298bad` |
+| L11 and the `?db=` item: `safeReturnPath` and the realm's `withoutContext` judge the path after parsing, and anything resolving to `//host` or keeping a backslash becomes `/`; both remove `db`, `tenant`, `org` and `org_id` in any case from the query and a hash; `ProtectedRoute`, `signInHref`, `realmSignInUrl` and `/authorize` clean the state they pass on; a relay's random state is kept | `44ec719c` |
+| L12 and the registry item: D16 judges freshness on management's clock alone (`iat` minus `auth_time`, at most 10 s); a verify answer counts from 10 s before `auth_time` for skew; each new answer clears answers older than 30 s; one answer serves every sign-in for that row within 30 s | `2a0dd377` |
+
+Left as it is: the "Login" links in the account menu and the top bar still
+pass the raw current path as state, so a `?db=` can appear on the realm's
+`/authorize` URL in between; it never reaches a page the person lands on,
+because the callback cleans it. The tester's list stands.
