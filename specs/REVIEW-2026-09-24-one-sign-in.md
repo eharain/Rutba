@@ -1117,5 +1117,23 @@ as in WS-A's runs). The realm's doc and the identity-bridge doc updated.
 | L8: a refusal carries the person's own subject and organisation, and the page's watch starts from that profile, deciding as the launcher does | `9aa4d3e5` |
 | I7: the hub's `open` path uses the same rule instead of opening an unusable session; cutting `open` was not small (the handoff suite and smoke are built on its codes, and management's internal handoff route still accepts the purpose); the handoff body has no `email_verified`, so the address counts as management's word behind its service token | `1ed304ff` |
 
-The reviewer is re-checking the rule. Nothing walked signed in; the core
-and realm reloaded under the tester's walk on each commit.
+Nothing walked signed in; the core and realm reloaded under the tester's
+walk on each commit.
+
+**The re-check** (callback 56, management-signin 20, doors 13, break-glass
+5): the rule does exactly what M1 and L3 asked; "Try again" never presents
+the spent code; a refusal's profile carries only the caller's own subject
+and pinned organisation, after the ID token verifies, to the page holding
+the code verifier; the hub's use is safe behind the service token, which
+could already create confirmed rows. Two new lows, with WS-B: a legacy
+bound row whose `confirmed` is NULL, which the core accepts, is now sent
+into the rule as unconfirmed and refused if its address has changed; and
+the refusal page's watch has no once-a-minute guard, so a persistent
+disagreement between the ID token's organisation and the session's pin
+would send it through `/login` on every arrival. Info: the hub confirms
+when the code is issued, not when redeemed. **The point that matters:**
+management's provider always sends `email_verified: true` rather than the
+identity's real state, so the rule's check learns nothing from the claim
+and the protection is only that management signs in confirmed addresses;
+WS-D is asked to send the real flag and to say where an unconfirmed
+address is refused at sign-in (follow-up 9).
