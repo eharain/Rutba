@@ -536,9 +536,9 @@ parts A to C and E to G pass. Files outside the stream: the fleet's
 `run-fleet.sh` (granted) and `infra/docker-build/Dockerfile` (the new build
 argument). **For the lead and the owner:** production builds need
 `NEXT_PUBLIC_AUTH_FRAME_ORIGINS` at build time, which the fleet's build now
-derives from its host list; `infra/deploy/rutba-io/fleet/redeploy.sh` line
-428 still carries a `.rutba.pk` suffix for the redirect allowlist (outside
-the grant), and if tenant 1's back office signs in at the fleet's realm its
+derives from its host list; `consumer/infra/deploy/rutba-io/redeploy.sh` line 428
+(`DEFAULT_AUTH_ALLOWED_HOSTS`, the single-box deploy) still carries a
+`.rutba.pk` suffix for the redirect allowlist (outside the grant), and if tenant 1's back office signs in at the fleet's realm its
 hosts must be named one by one. The core still accepts the C5 `open`
 purpose that nothing calls. WS-D is asked to stop answering the raw session
 id on `GET /v1/auth/session`, which the check frame now reads. A second
