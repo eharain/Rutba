@@ -238,3 +238,104 @@ no environment file, no database written.
 
 All of it WS-C's work in progress. `git status --porcelain -- auth
 devkit/scripts/gate-tokens.mjs` is empty; nothing of WS-D's is staged.
+
+## Round one, follow-up (2026-09-24, 11:45 to 12:23 UTC)
+
+What the lead relayed from WS-C (`one-sign-in-ws-c.md`, "Requests to other
+streams"), plus this stream's own leftover, and one change to keep W2 working
+after WS-A's follow-up F2. Five commits on management `dev`, each
+fast-forwarded to `main` and pushed; `origin` holds both at `679f217`.
+
+| # | What | Management commit |
+|---|---|---|
+| 1 | **The hub pins a console's organisation, and no link names one.** Every console link on the hub (tiles, billing, checkout offers, and the one destination a sign-in skips the hub for: a site's console, a plan's checkout, the C10 prepare intent) is auth's own signed route `/hub/console/:orgId/:app?next=&t=`. It pins the organisation on the session and sends the person to the console's sign-in with no `org=`. A bare, forged, re-aimed or stale link, or an organisation the person is not in, goes back to the hub and moves nothing; `next` is a path on the console only. A sign-in that skips the hub resolves the route at once (pinned, then the console's link). | `7cc5a38` |
+| 2 | **I1 strict: refuse, not ignore.** A named organisation that is not the pinned one is refused with a code and never swapped, because ignoring it would hand a caller a token for an organisation it did not ask for. 409 `ORG_NOT_PINNED` (with `details.pinned`) on `/v1/auth/token` and its refresh; at the OIDC interaction for a first-party client's `org_hint` or resource organisation (after the membership check, so a non-member still gets the access-request path; 409 `ORG_CONTEXT_REQUIRED` with nothing pinned); at the token endpoint, a first-party grant bound to another organisation (one from before a switch) stops minting (`invalid_grant`). Naming the pinned one is accepted. `POST /v1/auth/session/org` is retired: 410 `USE_ORG_SWITCH`. | `1e90758` |
+| 3 | **The switcher's list says which profiles are demos.** Each organisation on `GET /v1/auth/orgs` also carries `environment` (`live` when any instance is live; the environment its instances share when none is, e.g. `demo`; null with none), `demo` (true for anything not live) and `instances: [{ id, label, product, environment }]`, read from the instance records the hub reads, with the person's own token. A failed read leaves those empty, never the list. | `112cf35` |
+| 4 | **The hub's sign-out reaches every app.** `POST /hub/signout` answers with the same page of logout frames as the end-session confirmation, then `/login` (one function in `logout.js` for both); with no first-party clients configured it redirects as before. | `975d536` |
+| 5 | **The credential token names the address (W1 after WS-A's F2).** Seen on the estate: after `609ea52e` every W2 call answered 400 `EMAIL_CLAIM_REQUIRED` (auth's log, 12:15:35 UTC, both instances of `usr_2764bbc37cdb69a7`; the same fan-out at 12:06:39 had answered one bound, one unmatched). `identity:credential` tokens now carry `email` beside `sub` (required, lower-cased, the body's own address); every call, retries included, gets a fresh token and `jti`, which the door spends once. The suites' fake core enforces both. | `679f217` |
+
+### Choices
+
+- **Refuse over ignore** for strict I1 (above). The consoles already name no
+  organisation, and fall back to naming the pin only on a 400, which a named
+  pin passes.
+- **One route for every console link** rather than a pin per kind of link:
+  billing and checkout open the customer console as an organisation too.
+- **The route's signature covers the page** (`next`), so a signed tile cannot
+  be re-aimed at another console page.
+- **The list's `environment` is the organisation's**: `live` if any instance
+  is live. An organisation with a live instance and a practice one shows no
+  mark; its `instances` carry each one's environment for when the switcher
+  lists instance profiles.
+- **`/v1/auth/session/org` answers 410** rather than disappearing, so a
+  caller from before gets a code that says what to use.
+
+### Tests (12:15 to 12:21 UTC)
+
+| Suite | Before the follow-up | After |
+|---|---|---|
+| `npm run test:unit` | 343 | 346 of 346 |
+| `npm run test:integration` | 260 | 265 of 265 |
+| `npm run test:perf` | 5 | 5 of 5 |
+
+Suites that mint for an organisation (`token-flow`, `mfa-flow`,
+`front-door-mfa`, `key-rotation-drill`, `oidc-flow`) now pin it first with
+`tests/helpers/profile.js`, as a person would; `oidc-flow`'s first sign-in
+lands in Acme through the "last choice on another session" fallback.
+`context-passwords` now waits for every background question before counting
+(a loaded run showed a late one could land after the count).
+
+### Live
+
+Auth reloaded on each commit under its watcher: `/health` 200, `oidc
+provider constructed` with `clients: 5` (the lead's registration), no error
+lines, at 12:19 UTC. Without a session, `/hub/console/org_x/portal` and
+`/hub` answer 303 to `/login` and `/v1/auth/session/org` 401. The journey
+test (`one-sign-in-journeys.md`) walked the console route from the working
+tree at 11:51 UTC (303 into the portal console). Not re-walked signed in
+after `679f217`: the next password sign-in on the estate shows whether W2
+now binds (auth logs `instances asked about the password just proved`).
+
+### Left
+
+- **D3 of the journey record** is auth's: the 2 s Strapi timeout is shorter
+  than Strapi's first reads after a quiet spell, and the hub then tells an
+  owner they belong to no organisation; the same timeout drops that
+  sign-in's W2 fan-out. Not in this request; not changed.
+- **Callers outside auth that name an organisation to `/v1/auth/token`** work
+  only when it is the pinned one (or the person's only organisation): the
+  portal e2e suites (`portal/tests/e2e/suites/00-preflight.mjs`,
+  `04-licensing.mjs`, `05-provisioning.mjs`, `06-console.mjs`,
+  `ecosystem.e2e.mjs`) and the Strapi provisioning walkthrough
+  (`api/legacy/strapi/scripts/provisioning-walkthrough.js`). The admin in
+  `00-preflight` and `06-console` names org-zero and gets 409
+  `ORG_NOT_PINNED` if pinned elsewhere; each needs
+  `POST /v1/auth/org/switch { org_slug }` before its mint, or no organisation
+  named. Not in this stream's files.
+- **`@rutba/estate-map`'s `consoleSignInHref(..., { org })`** still builds
+  `org=` when asked; auth no longer asks. Not in this stream's files.
+
+### Requests
+
+- **The lead:** the e2e suites and the walkthrough above, before the next
+  release gate; and one signed-in password sign-in on the estate to confirm
+  W2 after `679f217`.
+- **WS-C:** the list now carries `environment` / `demo` / `instances` for the
+  demo mark; the console links arrive with no `org=`.
+- **WS-A:** nothing new; the credential token carries `email` and a fresh
+  `jti` per call, as F2 asks.
+
+### Management checkout
+
+`git status --porcelain` in `D:/Rutba2.0/management` on `dev` at `679f217`,
+12:23 UTC:
+
+```
+ M packages/session/src/handlers.ts
+ M packages/session/src/routes.ts
+ M packages/session/src/signout.test.ts
+ M packages/session/src/silent.test.ts
+```
+
+WS-C's work in progress. `git status --porcelain -- auth
+devkit/scripts/gate-tokens.mjs` is empty; nothing of WS-D's is staged.
