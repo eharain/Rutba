@@ -593,3 +593,62 @@ Nothing skipped.
 
 - **WS-C:** drop `sid` from those three response types, or make it
   optional.
+
+## Round one, follow-up 6 (2026-09-24, 16:55 to 17:20 UTC)
+
+From the lead: defect D2 of the journey walk, which is high. Management told
+an organisation's instance about an invitation once. A 503 was logged and
+dropped, and inviting again answered `ALREADY_A_MEMBER`, so a member whose
+instance never heard of them could not be repaired. The code is Strapi's
+(`api/legacy/strapi/src/api/account/services/identity.js`), not auth's. One
+commit on management `dev`, fast-forwarded to `main` and pushed. `origin`
+holds both at `31f664b`.
+
+| What | Where |
+|---|---|
+| **The record.** Two new attributes on the membership, which Strapi adds as columns when it starts. `instanceTell` is `{ [tenantRef]: { state, attempts, at, nextAttemptAt?, toldAt?, outcome?, error?, code?, retryable? } }`, where `state` is `told`, `pending` or `failed`. `instanceTellDueAt` is the earliest pending try, so the schedule reads only memberships with a try due. Writing these two fields does not emit `membership.updated` (`control-plane/membership-events.js`). | `src/estate/instance-tell.js`, `membership/schema.json` |
+| **The retry.** A new control-plane schedule, `identity.instance-tell`, runs every minute under a lease. It makes each due try and records the outcome. The wait starts at 30 s, doubles, and is capped at 30 min. After eight tries (about an hour and a half) the entry is `failed`. It retries when there is no answer, a 5xx (a door not configured yet is 501), 401, 408 or 429. Any other 4xx is a refusal about the person and is final at once. A pending entry whose instance stopped running, or whose membership ended, is dropped. I used the outbox's pattern (the record written with the change, a leased pass delivering it with a growing wait) rather than the outbox table itself: that table delivers to the bus, and the bus reactions run only where a bus is configured, whereas a schedule runs on every host. | `src/control-plane/registry.js` |
+| **The first tell** at an invitation is made at once, as before, and its outcome is now recorded instead of dropped. The answer keeps its old shape. | `inviteToInstance` in `identity.js` |
+| **Repair at sign-in.** Every completed sign-in (password, second factor, confirmation, reset) queues each running instance of the person's team organisations that has no record for them, meaning a membership from before this change such as A's, or that ran out of tries. The tries are then made at once, in the background, without holding the sign-in up. A told instance, or one that refused for good, is not asked again. | `repairAfterSignIn` |
+| **Repair by an administrator.** Inviting an existing member re-tells every instance that has not acknowledged, with a fresh set of tries, and answers `outcome: 'retold'` with `instance` (what each instance said). It answers `ALREADY_A_MEMBER` as before when everything is told, when there is no instance, or when the member holds no invitable role. Auth passes `instance` through `POST /v1/auth/org/:orgId/invitations`. | `invite` in `identity.js`, `strapi-invitation.service.js` |
+| **The hub.** Strapi's hub read carries `told` on each workspace. Auth's hub marks the tile `data-told` and says "Not yet told you are a member - it is being told…" while pending, and "…Ask an administrator of this organisation to invite you again" when it failed. A told workspace, or one with no record, says nothing. The tile stays a link. | `hub.js`, `hub.page.js` |
+
+Only the invitable roles are told: admin, member and viewer. An owner is the
+provisioner's to bootstrap, and the core refuses `owner` as an invitation
+role. The core's invite door is idempotent for someone it already has
+(`exists`), so a repeated try never makes a second row. It does resend the
+set-password mail to a row that was never confirmed (`reinvited`).
+
+### Tests
+
+- **Strapi, `src/estate/instance-tell.test.js`:** 13 cases on an in-memory Strapi with a door that fails on cue:
+  - the drop, where a 503 at the invitation is recorded as pending rather than forgotten;
+  - the retry: not before it is due, again when due, then told, with nothing left due;
+  - the retry's bound: eight tries, then failed;
+  - a refusal about the person, which is final;
+  - the re-tell, which asks only what has not acknowledged, with a fresh set of tries, and answers null (ALREADY_A_MEMBER) once all is told;
+  - the sign-in repair, which queues no-record and out-of-tries entries but not told ones, final refusals, personal organisations or owners;
+  - a pending entry outliving neither its instance nor its membership.
+- **Strapi suite:** `npm test` 110 of 110 (97 before).
+- **Auth unit:** `hub` (the tile notes).
+- **Auth integration:**
+  - `hub-journey` shows a pending workspace saying so;
+  - an administrator's re-invite answers 201 `retold` with `instance`, then 409 `ALREADY_A_MEMBER`.
+- **Auth counts at `31f664b`:** unit 371, integration 305, perf 5. Nothing skipped.
+
+### Live (17:07 UTC)
+
+Strapi reloaded on these files under its watcher and started with the new
+columns. Its log says "hosting 3 reaction(s) and 10 schedule(s)", which was 9
+before this change. Nothing new was logged as an error or a warning. Nothing
+was walked: no invitation or sign-in was made by this stream. A's missing row
+in the team's instance is repaired at A's next sign-in, or when an
+administrator invites A again. The instance then sends A its own invitation
+mail if it had no row.
+
+### Requests
+
+- **The journey tester:** after A signs in again, the team's instance should
+  have A's row (the core logs the invite), and the hub stops saying "not yet
+  told". The management console's member list could show the same record,
+  which is WS-C's to decide.
