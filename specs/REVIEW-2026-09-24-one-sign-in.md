@@ -1223,3 +1223,19 @@ round three: decision 34 (what an invitation hands out), decisions 10, 11,
 29, 30 to 33 to confirm, D5, D13, D14, F2, F7's access-token half, the
 release gate brought up to date. The walk's three lows (D27 to D29) landed
 after the walk (management `cace52f`, consumer `c0d4a05b`), not re-walked.
+
+## Deploy requested (2026-09-25)
+
+On the owner's word, the Infra session was asked to ship management
+`cace52f` and consumer `c0d4a05b` (dev and main identical; workers
+unchanged) to production, with: backups first (the membership table gains
+three nullable columns on boot; tenant schemas unchanged); the realm's
+build arguments `NEXT_PUBLIC_AUTH_FRAME_ORIGINS` and
+`NEXT_PUBLIC_AUTH_ALLOWED_REDIRECT_HOSTS` as exact hosts derived by the
+fleet's build, checked before building, storefronts on neither; the
+first-party client and worker lines from `gate-tokens.mjs` and the cookie
+keys; a control-plane worker restart where it hosts the schedules; the
+order Strapi, auth, core and realm and apps, consoles; the read-only checks
+after; the accepted gap of decision 34; rollback to the previous images.
+The release gate could not run this round, which the request says. The
+Infra session's answer goes here when it comes.
