@@ -326,3 +326,15 @@ core migration this round.
 **Sequencing.** WS-D lands C12 first; WS-C lands the amended C4 record first;
 WS-B gates the Sign key and policy reads before WS-A offers Sign; WS-E lands
 C11's issue/verify before WS-C's worker writes a key.
+
+## One sign-in, round one (2026-09-24)
+
+The owner's direction of 2026-09-24 and its plan are in
+[one-sign-in.md](one-sign-in.md): management auth authenticates everyone, a
+profile sticks until the switcher changes it, nothing in the URL, context
+passwords asked once, a password change everywhere or announced. Round one
+runs three streams in the main checkouts on `dev`: WS-D in
+`management/auth` and the devkit token script; WS-A in the consumer realm
+(`console/apps/auth`, `console/api/auth`); WS-C in the portal consoles and
+the design system. Ownership, the wire contracts W1 to W4 and the items are
+in that file. Every rule above applies; ordinals: none expected this round.

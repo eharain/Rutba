@@ -255,3 +255,120 @@ Migration ordinals: none expected; `rutba_sub` (migration 112, ensured by
 2. Five minutes for the silent check, or shorter.
 3. Whether a demo instance should be visible to every member or only to
    admins of the organisation.
+
+## Round one (2026-09-24)
+
+The owner said build, on Opus. Three streams in parallel in the main
+checkouts on `dev`, disjoint files, pathspec commits, the shared index left
+empty. The three open questions run under these assumptions until the owner
+says otherwise: consumer-only people are created at management on their first
+sign-in by a confirmed address that matches an instance row, with a forced
+reset; the silent check runs every five minutes; a demo instance shows to
+every member with its mark.
+
+### Wire contracts added for the round
+
+- **W1, the credential doors on the realm** (WS-A builds, WS-D calls). Both
+  behind the C8 verifier with scope `identity:credential`, audience the
+  core's origin, audited, rate-limited per address:
+  `POST /api/auth/credential/verify { email, password }` answers
+  `{ bound: true }` when the row is already bound to the caller's subject,
+  `{ bound: true, matched: true }` when it was not bound and the password
+  verifies, in which case the door binds `rutba_sub` from the token's
+  subject, and `{ bound: false }` otherwise. `POST /api/auth/credential/set
+  { email, password }` sets the instance password for a bound row only and
+  answers `{ changed: true }`. Neither stores the plaintext; neither logs it.
+- **W2, the fan-out at management** (WS-D). After a password sign-in
+  succeeds, auth calls W1 verify once per instance of the person's
+  organisations, in the background, with the just-verified password; the
+  sign-in never waits for it. After a password change with scope
+  `everywhere`, auth calls W1 set on every bound instance and answers
+  `{ changed: [instance ids], failed: [{ instance, reason }] }`.
+- **W3, the relying-party callback** (WS-A). The realm's auth app page
+  `/auth/callback` receives management's `code` and `state`, and posts
+  `{ code, code_verifier, redirect_uri }` to `POST /api/auth/oidc/callback`
+  on the core, which exchanges the code at management's token endpoint,
+  verifies the ID token with the C8 verifier, binds or finds the row by
+  `rutba_sub` (first match by confirmed address), resolves the tenant from
+  the token's `org.id` and the app's product, mints the local session with
+  `amr ["management-oidc"]` and the token's entitlements, and answers the
+  same shape `/authorize` hands the apps today. Refusals travel as codes:
+  `USER_UNKNOWN`, `NO_INSTANCE`, `CONTEXT_PASSWORD_REQUIRED` (a row exists,
+  unbound, and the person must enter that context's password once).
+- **W4, the switcher's reads** (WS-C builds first, WS-A reuses):
+  `GET /v1/auth/orgs` for the list and `POST /v1/auth/org/switch` for the
+  choice, both with the management session cookie, from any first-party
+  origin (auth's CORS list carries the console and realm origins).
+
+### WS-D — management auth, stage 1 and the management half of 3b
+
+Files: `management/auth/src/**`, its tests and `GLOBAL-AUTH.md`,
+`management/devkit/scripts/gate-tokens.mjs` for the client ids only.
+
+1. I1: `org` on ID tokens and userinfo for first-party app clients from the
+   session's `last_org_id`, falling back to the only membership or the last
+   picker choice; a test that a token minted after a switch carries the new
+   organisation.
+2. I2: `prompt=none` for first-party app clients, no consent screen for
+   them; tests for both answers.
+3. I3: first-party client registration for the dev estate, idempotent, run
+   from the token script or beside it: every console origin in the services
+   map and the consumer realm origin, redirect `<origin>/auth/callback`,
+   post-logout `<origin>/`; client ids written to the estate env under the
+   console's and the realm's prefixes. The lead runs it.
+4. I7 groundwork: RP-initiated logout and front-channel logout for
+   first-party clients, `end_session_endpoint` in discovery; a test.
+5. W2 and I10: the sign-in fan-out, the password change route with scope
+   `everywhere` or `here` and its report, the account page copy for the
+   choice and the warning, the reset flow's choice. A stub W1 in tests.
+6. CORS for W4 from the first-party origins.
+
+### WS-A — the consumer realm, stage 3 and the realm half of 3b
+
+Files: `consumer/console/apps/auth/**`, `consumer/console/api/auth/**`,
+their tests and docs; `consumer/packages/ui` only for the callback helper
+the auth app needs. The C8 verifier is read, not changed.
+
+1. W3, the callback door and page, reusing the handoff's bind and mint
+   code; `/authorize` and the iframe callback unchanged.
+2. `login.js` on the normal path: PKCE and state in the browser, silent
+   authorization first in a hidden iframe (`prompt=none`), interactive on
+   `login_required`; `?local=1` keeps the password form with its note (I8).
+3. W1, both doors, behind the verifier; the context-password page for
+   `CONTEXT_PASSWORD_REQUIRED` that binds on success (I9); the break-glass
+   form's change marks the row's password as its own and mails the notice
+   through the instance mail (I10's last sentence).
+4. Tests: unit for the door and both W1 doors with a stubbed management;
+   a smoke against the dev management auth once WS-D's client exists.
+5. The tenant chooser and `tenant=` leave the normal path; the chooser
+   stays reachable only from `?local=1`.
+
+### WS-C — the portal consoles, stage 2
+
+Files: `management/console/**`, the portal design system's shared components
+and their tests. Nothing in `management/auth`.
+
+1. Every console reads its organisation from the token's `org` and nowhere
+   else; `org=` handling is removed from links the consoles build and
+   ignored on arrival.
+2. The switcher component in the design system, mounted in every console
+   header: the current organisation, a demo mark, the list from W4, choose,
+   re-mint, reload. No query parameter written or read.
+3. The silent check every five minutes in the consoles' session helper:
+   `prompt=none` once WS-D lands it, `GET /v1/auth/session` for a changed
+   `last_org_id` until then; a changed profile reloads, a lost session shows
+   the sign-in.
+4. Sign out goes to management's end-session once it exists; each console
+   gets a `/auth/logout-frame` page that clears its state for front-channel
+   logout.
+
+### Rules for the round
+
+Everything in README.md, and: no new dependency without a line in the status
+saying why; the dev estate runs from these checkouts and hot-reloads, so
+commit in small runnable steps and never leave a file half-written; unit
+suites are the gate, not estate restarts; environment files are the lead's
+(a stream that needs a line says so in its status); a promise to another
+stream ships with its caller; each stream ends with a "Status after round
+one, WS-X" subsection here: done, left, questions, with the commit ids and
+the porcelain status of its checkout.
