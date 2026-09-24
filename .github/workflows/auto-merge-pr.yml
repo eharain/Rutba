@@ -4,6 +4,9 @@ on:
   pull_request_target:
     types: [opened, reopened, synchronize, edited, ready_for_review, converted_to_draft]
 
+env:
+  AUTO_MERGE_ALLOWED_USER_NORMALIZED: ${{ vars.AUTO_MERGE_ALLOWED_USER != '' && vars.AUTO_MERGE_ALLOWED_USER || 'eharain' }}
+
 permissions:
   contents: read
   pull-requests: write
@@ -15,8 +18,8 @@ jobs:
       github.event.pull_request.head.repo.full_name == github.repository &&
       (
         github.event.action == 'converted_to_draft' ||
-        (vars.AUTO_MERGE_ALLOWED_USER != '' && vars.AUTO_MERGE_ALLOWED_USER || 'eharain') == github.actor ||
-        (vars.AUTO_MERGE_ALLOWED_USER != '' && vars.AUTO_MERGE_ALLOWED_USER || 'eharain') == format('@{0}', github.actor)
+        env.AUTO_MERGE_ALLOWED_USER_NORMALIZED == github.actor ||
+        env.AUTO_MERGE_ALLOWED_USER_NORMALIZED == format('@{0}', github.actor)
       )
     runs-on: ubuntu-latest
     steps:
@@ -39,8 +42,8 @@ jobs:
         if: >-
           github.event.pull_request.draft == false &&
           (
-            (vars.AUTO_MERGE_ALLOWED_USER != '' && vars.AUTO_MERGE_ALLOWED_USER || 'eharain') == github.actor ||
-            (vars.AUTO_MERGE_ALLOWED_USER != '' && vars.AUTO_MERGE_ALLOWED_USER || 'eharain') == format('@{0}', github.actor)
+            env.AUTO_MERGE_ALLOWED_USER_NORMALIZED == github.actor ||
+            env.AUTO_MERGE_ALLOWED_USER_NORMALIZED == format('@{0}', github.actor)
           )
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
