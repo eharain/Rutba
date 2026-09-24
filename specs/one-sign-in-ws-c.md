@@ -62,8 +62,9 @@ organisation a console works in".
 - **Sign-out lands on the console's front page**, the registered post-logout
   address, rather than the page it was pressed on.
 - **The demo mark** reads `environment` (demo, sandbox, test, staging) or
-  `demo` on a list entry. W4's list carries neither today, so no console shows
-  the mark yet (see Requests).
+  `demo` on a list entry. W4's list carried neither at the time. *Amended in
+  the follow-up:* WS-D added both (`112cf35`), and the mark shows since
+  `79576e6`.
 - **Relay's blanket `X-Frame-Options: DENY`** now spares `/auth/silent`,
   `/auth/callback` and `/auth/logout-frame`, each of which names who may frame
   it with `frame-ancestors`.
@@ -115,11 +116,13 @@ for the lead (see Requests).
 ## Left
 
 - **The signed-in walk** of the stage 2 gate and of sign-out everywhere.
-- **The hub still sends `org=` to consoles**, which now ignore it: opening
-  "Acme's console" from the hub opens the console in the pinned profile. WS-D's
-  item 1 has the hub pin a workspace's organisation when it opens one; consoles
-  need the same (request below).
-- **No demo mark data** on W4's list (request below).
+- ~~**The hub still sends `org=` to consoles**~~ *Answered by WS-D's
+  `7cc5a38`:* every console link on the hub is auth's signed
+  `/hub/console/:orgId/:app`, which pins the organisation and sends the person
+  to the console's sign-in with no `org=`. The journey test (journey 1) saw it
+  land in the pinned organisation.
+- ~~**No demo mark data** on W4's list~~ *Answered by WS-D's `112cf35`; the
+  consoles show the mark since `79576e6`.*
 - **`@rutba/estate-map`'s `consoleSignInHref(..., { org })`** still builds
   `org=` links; its caller is auth's hub and the package is not in my list.
 - **`POST /v1/auth/session/org` has no console caller any more.**
@@ -145,15 +148,14 @@ for the lead (see Requests).
 
 **WS-D (management auth):**
 
-1. Pin the organisation when the hub opens a console, as it does for a
-   workspace, and stop adding `org=` to console links: the consoles ignore it.
-2. I1 may go strict for first-party clients: no console names an organisation
-   to auth any more (`/v1/auth/token` without one since `683aa30`, the switch
-   without an app since `82d9853`, `/v1/auth/session/org` unused since
-   `f80aa80`). The consoles fall back to naming the pin only when a mint
-   without one is refused with 400.
-3. W4's list: add `environment` (or `demo: true`) for instance profiles, so the
-   switcher's demo mark can show.
+1. ~~Pin the organisation when the hub opens a console~~ *done in `7cc5a38`.*
+2. ~~I1 may go strict for first-party clients~~ *done in `1e90758`.* The
+   consoles name no organisation to auth (`/v1/auth/token` without one since
+   `683aa30`, the switch without an app since `82d9853`,
+   `/v1/auth/session/org` unused since `f80aa80`); they fall back to naming
+   the pin only when a mint without one is refused with 400.
+3. ~~W4's list: add `environment` (or `demo: true`)~~ *done in `112cf35`;
+   read since `79576e6`.*
 4. Keep the front-channel frame at `<origin>/auth/logout-frame?iss=<issuer>`;
    the consoles allow framing from the public auth origin only.
 
@@ -194,3 +196,61 @@ are the design system's shared components. No external dependency added.
 
 `git status --porcelain -- console packages/session packages/design-system package-lock.json`
 in `D:\Rutba2.0\management` at 11:37 UTC, after `683aa30`: empty.
+
+## Round one, follow-up (2026-09-24, 12:10 to 12:40 UTC)
+
+The reviewer's findings in WS-C's scope, as the lead relayed them, fixed in
+small commits on management `dev`, fast-forwarded to `main`, both pushed.
+`dev` and `main` on `origin` at `d3660ff` (12:40 UTC).
+
+| Finding | Fix | Management commit |
+|---|---|---|
+| **M1.** The portal, management and partners consoles sent no `X-Frame-Options` and no `frame-ancestors` (seen live on 4118), and each carries a one-click switcher and a session cookie: clickjacking. | Each `next.config.js` now carries the Relay console's header block: `nosniff` and `strict-origin-when-cross-origin` everywhere, `X-Frame-Options: DENY` on every path but `/auth/silent`, `/auth/callback` and `/auth/logout-frame`, which name their own framers. A `frame-headers` test in all four consoles (the Relay's included) reads the config and holds both halves. Seen live after the config reload: `DENY` on `/` at 4118 and 4111, none on the two frame routes at 4118. | `4335de6` |
+| **L1.** One `_silent` cookie per console: two tabs checking at once overwrote each other's handshake and the loser's hidden frame drew the front page. | The handshake cookie is named by the check's own state (`<cookie>_silent_<state>`, two minutes, cleared when spent), and every OIDC reply without a `rutba_code` is the silent frame's: one whose handshake is missing, spent or not its own is answered with the silent page (`unknown`), never the front page. Tests: two tabs each finish their own check; a stray reply gets the silent page and auth is not called. | `788cc74` |
+| **L2.** A new sign-in left the previous session's ID token (`_idt`), so the next sign-out could name the person who was here before. | `signedInCookies` lands the session and clears the spent PKCE handshake and `_idt` together; tested. | `788cc74` |
+| **M2.** The watch compared the page, drawn from the console's own session, with the browser's session at auth, and cross-checked only a sign-out: after "use another account" or a later sign-in a switch was never followed and a lasting mismatch reloaded every five minutes without fixing anything. | Any disagreement from the frame is confirmed with `/auth/profile`. The console's session moved too: the page is stale, and a reload (or, the session gone, the sign-in) follows it. The console's session is exactly as drawn: the two sessions disagree, and the console goes to its new `/auth/resync`, which forgets its own session locally and runs its sign-in again, taking whatever auth now holds, or showing the sign-in when auth holds nothing. A reload and a resync each at most once a minute per tab. Without a client id the console's own session is the only answer, as before. Seen live: `/auth/resync?next=%2Fbilling` on 4118 answered 303 to `/auth/signin?next=%2Fbilling` with the session cookies cleared. | `e7f94e9` |
+| (WS-D's `112cf35`) | The demo mark: the consoles' `/auth/orgs` passes `demo` and `environment` through, `isDemo` takes auth's `demo` over the environment's name, and the chrome's mark for the current organisation comes from that list, read once after the page draws and remembered five minutes per organisation in the tab. | `79576e6` |
+| docs | `console/README.md`: the confirmation, the resync, the frame headers. | `d3660ff` |
+
+### Choices
+
+- **The resync is local.** It forgets the console's session and signs in
+  again; it does not end the old session at auth, which another console may
+  still hold (that console finds the same disagreement on its own check and
+  resyncs too).
+- **The disagreement is read from the frame**, so it needs the console's
+  client id. Without one the watch reads only the console's own session and
+  cannot see that the browser signed in as somebody else; that console
+  follows only its own session, as in round one.
+- **A frame refused auth's cookie** (a cross-site deployment) reads as a
+  sign-out and would now resync every five minutes, bouncing through a
+  sign-in that returns at once. Every console and auth share a site today
+  (`localhost`, `*.rutba.io`); a console on another site should not be given a
+  client id for the silent check.
+
+### Test counts (12:30 to 12:38 UTC)
+
+| Suite | Round one | Now |
+|---|---|---|
+| `@rutba/portal-session` | 44 | 48 |
+| `@rutba/design-system` | 15 | 19 |
+| portal console | 14 | 17 |
+| management console | 71 | 74 |
+| partners console | 10 | 13 |
+| Relay console (vitest) | 161 | 163 |
+
+`tsc --noEmit` clean in all six; nothing skipped.
+
+### Left from the review
+
+- **L3 and L4** stay as recorded questions, as the lead directed. Their text
+  did not reach this stream; the lead's review holds it.
+- **The signed-in walk** of M2's two cases (a switch on the same session
+  reloads; "use another account" in one console resyncs the others) is for
+  somebody who signs in. No dev server of mine ran: 4118 and 4111 belonged to
+  another session and were only read, and both had stopped by 12:37.
+
+### Management checkout
+
+`git status --porcelain -- console packages/session packages/design-system package-lock.json`
+in `D:\Rutba2.0\management` at 12:40 UTC, after `d3660ff`: empty.
