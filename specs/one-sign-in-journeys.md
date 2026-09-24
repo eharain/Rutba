@@ -938,4 +938,253 @@ addendum 14, M2) did not arise here.
 9. **The refusal page** (D25): should it run the same check as the launcher,
    so a tab parked there follows the person's next switch?
 
+## Round two, the last walk (2026-09-24, 18:02 to 18:58 UTC)
+
+The builders' answers to round two: D19 (the realm's callback confirms a row
+bound to the person management's own tell created), D25 (the refusal pages
+run the silent check), D18 (an own switch retries its check), D24 and D22;
+management's members route and the serialised tell. The method is round
+two's: headless Edge, one profile per person, each suite app in its own
+window, a screenshot and the hydration check before every verdict
+(`r4-*.png`), and a recorder per window (`rec-r4*.log`).
+
+### The estate
+
+| | Start (18:02:04, all four doors answering) | End (18:58:02, all four answering) |
+|---|---|---|
+| records | `cddc873` | `ce71271` (before this commit), porcelain empty |
+| consumer | `0070ae5c` | `62af024b`, porcelain empty |
+| management | `6aa11a3`, porcelain 4: the members list uncommitted (`organisation/page.tsx`, `auth-client.ts`, `organisation.ts`, a new `members.test.ts`), running from the tree | `cb61de1`, porcelain empty |
+
+Landed during the walk, and the walk ran on each as it came:
+
+- Management:
+  - `c222e73` (18:02, the organisation page lists people from auth's
+    members route; the tree I saw at 18:05).
+  - `7a393be`.
+  - `8b83ffb` (18:07, D20).
+  - `d2f02ce` (18:11, D21: the hub's route puts nothing after `/login`).
+  - `435b232`.
+  - `bcc511b` (18:20, D23: ID tokens carry `amr`).
+  - `1bb6826`, `08e264d`.
+  - `cb61de1` (18:50).
+- Consumer:
+  - `ebf6d41b` (18:25, the D19 review: the confirmation also checks the
+    address).
+  - `4d9f2523` (18:28, the refusal pages' "Try again").
+  - `9aa4d3e5`, `1ed304ff`, `1e899483`.
+  - `62af024b` (18:50, a refusal page signs in again at most once a minute).
+
+The core restarted under nodemon on each consumer commit and auth on each of
+its own. Auth restarted fully at 18:04:08, 18:17:31, 18:22:25, 18:40:13,
+18:46:28 and 18:47:31. Every stall below lines up with one of those.
+
+### Verdicts
+
+| # | Step | Verdict |
+|---|---|---|
+| 1 | The invitation journey end to end | **PASS, with a step the product does not take for the owner (D26).** Invited 18:05:31 ("already had a Rutba account and is now in E2E Org2 1543 Ltd. We have let them know."); the instance told at once (201); E's hub never showed "not yet told"; the realm confirmed E's row; E's first open ended at "You cannot open the suite. Your account has no app access assigned" until the owner, as the instance's administrator, gave E the Sign app in the instance's own console; then the launcher and Sign as the team, the envelopes list 200 |
+| 2 | Journey 2 both ways, and D25 | **PASS.** A followed into the team's instance (launcher and Sign) and back; each direction moved at the first check that reached management (3 min 46 s for Sign's return). Three of the four moves took 8 to 9 minutes because the check before met a core or auth restart (D29). D25: E's refusal page followed the switch back by its own check in 3 min 58 s, no "Try again" pressed |
+| 3 | The members page | **PASS.** The owner sees four people with roles, statuses, dates and "Rutba Sign: told" for A and E; A sees only A's row and "The full list … is for its owners and admins"; no database name on either page. Two rows show no told state (D27) |
+| 4 | D22 | **PASS.** The current organisation's row reads "E2E OSI E (current) Personal" on amber with a tick (`r4-17-E-launcher-personal-refusal.png`) |
+| 5 | D18 | **PASS.** An own switch in the launcher's chip: the launcher in the new organisation about 6 s after the click |
+
+### 1. The invitation journey
+
+- **E**: `e2e-osi-1803-e@rutba.test`, password `E2e-osi-e-pass-1` (the
+  pattern the other test accounts use), name "E2E OSI E". Registered at
+  `http://localhost:4101/signup` at 18:03:25 ("Check your email"). The
+  "Confirm your Rutba account" mail was in Strapi's log. Its link, opened at
+  18:03:32, gave `/login?confirmed=1&login_hint=…` (`r4-01`, `r4-02`).
+- **The owner's organisation page**, `http://localhost:4118/organisation`,
+  18:04:55 (the first sign-in at 18:04:05 met auth restarting at 18:04:08
+  and was retried). "E2E Org2 1543 Ltd, e2e-org-0145-owner-12d3.rutba.io,
+  3 PEOPLE", then the invite form with the roles member, admin and viewer
+  (`r4-03-owner-organisation-page.png`, hydrated).
+- **The invitation**, 18:05:31, E's address as a member. The page said:
+  "e2e-osi-1803-e@rutba.test already had a Rutba account and is now in E2E
+  Org2 1543 Ltd. We have let them know." The roster then listed "E2E OSI E …
+  active, member · since 24 Sep 2026, Rutba Sign: told" (`r4-04`). The logs,
+  in order:
+  - Strapi, 23:05:32 local: the mail "You now have access to E2E Org2 1543
+    Ltd on Rutba" to E.
+  - The core, 23:05:33.071: `POST /api/tenants/sign_e2eorg0145owner12d3/invites`
+    **201**, and "You have been invited to Rutba Suite" to E.
+  - Strapi: `POST /api/identity/users/me/organizations/org_c2791c709b12b1fb/invitations`
+    201 (1,028 ms).
+  - Auth, 18:05:33.156: `invitation issued`, `outcome: added`.
+- **E at management**, 18:06:21. The hub: "You belong to 2 organisations",
+  the team's "Rutba Sign Live" tile and E's personal "Individuals Live" tile
+  (`r4-05-E-hub.png`). **No "not yet told" at any point**: the tell had
+  already answered 201 before E first saw the hub. E's fan-out, 18:06:24:
+  `instances: 2, bound: 1, matched: 0, unmatched: 0, noRow: 1` (the team's
+  row bound by the invitation's `rutba_sub`; no row for E on
+  `individual_dev`).
+- **E opens the team's tile**, 18:06:48. The 303 went to the realm's `/login`
+  with `state=/?db=sign_e2eorg0145owner12d3`: management's D21 fix landed at
+  18:11. Then the silent `prompt=none` and `POST /api/auth/oidc/callback`
+  200 at 18:06:55.041. The core logged `[core] [oidc] confirmed user 4 by a
+  management sign-in (management usr_e01740908288bbd8); the invitation was
+  not accepted at the instance`, then `signed in through management in
+  sign_e2eorg0145owner12d3`. The line names E's management subject, **not
+  E's address**; the audit row itself is in the database, which this walk
+  does not read.
+- E's session was real: `/api/users/me` 200 and `/api/me/permissions` 200.
+  The realm then signed E straight out (`/api/auth/logout` 200) and showed:
+  "Signing in did not finish. **You cannot open the suite.** Your account has
+  no app access assigned. Contact your administrator."
+  (`r4-06-E-team-tile-landing.png`). This is the instance's invite door as
+  designed: a management member or viewer "joins with no app roles, and the
+  instance's administrator hands apps out"
+  (`consumer/console/api/tenants/domain/people.js` lines 26-28 and 78). D26.
+- **The owner hands E an app**, through the product.
+  - 18:11 to 18:12: the instance's own console, `http://localhost:4022/users`
+    (woken by this walk). It listed:
+    - E, Active, app access **None**;
+    - A, **Invited**, None;
+    - the colleague, Drive, Workspace and Sign;
+    - the owner (`r4-07`).
+  - On `/users/4`, "Sign: user access" was ticked and "Save Changes" pressed at
+    18:12:53: "User updated successfully",
+    `PUT /api/user-admin/users/4` 200 (`r4-08`, `r4-09`).
+- **E opens the tile again**, 18:13:15. The 303 now went to a bare
+  `http://localhost:4003/login` (D21 fixed). The chain was the silent path,
+  the callback, then `http://localhost:4003/`, with **no URL in the chain
+  naming the instance** (none of `db=`, `tenant=` or the database). The
+  launcher, as the team: "Welcome back, E2E OSI E. You have access to 1 app"
+  (`r4-10`, hydrated).
+- **E in Sign**, 18:14: `http://localhost:4029/` on the team's database, the
+  chip "E2E OSI E · Sign Manager · E2E Org2 1543 Ltd". The envelopes list,
+  `/envelopes`, showed "Nothing here yet" (`r4-11-E-sign-envelopes.png`,
+  hydrated). The core answered `GET /api/sign/envelopes?status=sent` 200,
+  `/api/sign/inbox` 200 and `/api/sign/summary` 200. No "That sign-in did not
+  finish". (The instance calls "user access" to Sign "Sign Manager" in the
+  chip.)
+
+### 2. Journey 2 both ways, and D25
+
+- **A.** The owner gave A the Sign app on the instance's `/users/3` the same
+  way (18:15:51, "User updated successfully"); A's row was still "Invited".
+  - A signed in at 18:17:11. The fresh session pinned nothing ("Choose one",
+    D14 as before), and I chose A's personal organisation.
+  - The launcher and Sign each opened in its own window on `individual_dev`
+    (18:18:18).
+- **To the team, 18:18:39.764.**
+  - The launcher's check at 18:22:38 and Sign's at 18:23:02 stalled on their
+    first request (`GET /api/auth/oidc/config`, no answer): the core was
+    restarting for the builder's D19 review. Nothing changed, as an uncertain
+    check is meant to leave things.
+  - At the next checks both followed at once:
+    - The launcher, **18:27:38**: the session read 200, "another organisation
+      is pinned", the callback 200, `/api/users/me` 200.
+    - Sign, **18:28:04**: the same, landing on `http://localhost:4029/` on
+      the team's database, the chip "E2E individual A · Sign Manager · E2E
+      Org2 1543 Ltd" (`r4-13-A-*-in-team.png`, hydrated).
+  - The core, on the new build: `[core] [confirm] confirmed user 3 by a
+    management sign-in (management-oidc, management usr_2764bbc37cdb69a7);
+    the instance's own confirmation had not happened`. A's row, invited at
+    17:12, is now usable.
+- **Back to the personal organisation, 18:29:31.274.**
+  - Sign followed at **18:33:17** (3 min 46 s), on `individual_dev`.
+  - The launcher's check at 18:32:43 stalled on the config read (the core
+    restarting again); its next check at **18:37:43** followed
+    (`r4-14-A-*-back-personal.png`).
+- **D25, with E.** E's launcher and console each in its own window.
+  - 18:41:36.946: E switched to E's personal organisation in the console. The
+    launcher's check at 18:45:53 met auth restarting; the next, at
+    **18:50:55**, followed. The callback answered 404: E has no row on
+    `individual_dev`, the instance a personal organisation maps to, so the
+    page was "Your account is not set up here yet … Ask your organisation's
+    administrator to add you, then try again", with a "Try again" button (the
+    fix that landed at 18:28). The list read "E2E OSI E (current) Personal" and
+    "E2E Org2 1543 Ltd Team" (`r4-17`, hydrated). So "nothing to open" was not
+    seen: a personal organisation always maps to the individual instance.
+  - 18:52:03.613: E switched back to the team in the console. Hands off.
+  - The refusal page ran its own check at 18:51:04 (its first) and at
+    **18:56:01**: the session read 200, `/login`, the callback 200, the
+    launcher on the team's database (`r4-18-E-refusal-followed-back.png`,
+    hydrated). **3 min 58 s, "Try again" never pressed.**
+
+### 3. The members page
+
+- The owner, 18:57: "4 PEOPLE". The rows:
+  - E2E Org Owner (you), active, owner · since 23 Sep 2026;
+  - E2E individual A, active, member · since 24 Sep 2026, **Rutba Sign: told**;
+  - E2E OSI E, active, member · since 24 Sep 2026, **Rutba Sign: told**;
+  - e2e-org3-1607-colleague@rutba.test, active, member · since 23 Sep 2026.
+
+  The invite form follows. The instance appears by its label ("Rutba
+  Sign"); no database name anywhere on the page (`r4-19-owner-members.png`,
+  hydrated).
+- A (a member), 18:57 (`r4-20-A-members.png`):
+  - "PEOPLE: E2E individual A (you) … member · since 24 Sep 2026, Rutba Sign:
+    told", with "The full list of people in E2E Org2 1543 Ltd is for its
+    owners and admins."
+  - No invite form, and "You are member in E2E Org2 1543 Ltd, so this is
+    somebody else's to do" (D28).
+- The owner's row and the colleague's show no told state, though both have
+  rows in the instance (the owner as its owner; the colleague with Drive,
+  Workspace and Sign in the instance's console). D27.
+
+### 4 and 5. D22 and D18
+
+- D22: the refusal page's current row, above.
+- D18, A's launcher on the personal organisation:
+  - 18:38:53.440, the chip's menu: "E2E individual A, Personal"
+    `aria-checked="true"` and "E2E Org2 1543 Ltd, Team" `false`
+    (`r4-15-launcher-switcher-open.png`, no development overlay now: D24 not
+    seen).
+  - "E2E Org2 1543 Ltd" clicked: `POST /v1/auth/org/switch` 200 at
+    18:38:54.949; the session read at 18:38:55.267; `/login` at 18:38:57.833;
+    the callback 200 at 18:38:59.616.
+  - The launcher showed "Welcome back, E2E individual A. You have access to
+    1 app" with "E2E Org2 1543 Ltd" in the chip (`r4-16`). **About 6 s.**
+
+### Defects found in the last walk
+
+| # | Severity | What | Where |
+|---|---|---|---|
+| D26 | medium | The invitation journey stops one step short for a member or viewer: the tell creates the instance row with no app roles by design, so the person's first open, after a clean invitation and a clean confirmation, ends at "You cannot open the suite. Your account has no app access assigned". Nothing in management says so. The members page says "Rutba Sign: told", and the owner learns only by opening the instance's own console (`/users/:id`) and ticking an app. The acceptance journey's "lands in the Sign app as the team" needs that extra act. | `consumer/console/api/tenants/domain/people.js` lines 26-28 and 78 (`member: null, viewer: null`) |
+| D27 | low | The members page's told state is missing for rows told before the tell ledger existed: the owner's row (the instance's owner) and the colleague's (a row with three apps) show nothing, so "told" and "never told" look the same for older members. | the told state behind auth's members route (management `0c379b1`, `c222e73`) |
+| D28 | low (copy) | The member's view says "You are member in E2E Org2 1543 Ltd" (missing "a"). | `management/console/portal-console/src/app/(console)/organisation/page.tsx` |
+| D29 | low | A check whose first request gets no answer (the core or auth restarting) changes nothing and waits for the next five-minute tick. That is right, but it doubled three of the four follows in this walk to 8 or 9 minutes, and on a live estate a deploy does the same. A shorter retry after an uncertain answer (as D18's fix does for an own switch) would keep "within five minutes" true through a restart. | `consumer/packages/ui/context/AuthContext.js` (the interval check; `session-check.js` `CHECK_INTERVAL_MS`) |
+
+Resolved as seen: D18, D19 (for A and E), D21, D22, D24 (no overlay in
+this walk's screenshots), D25. D23 (`amr` on ID tokens) landed at 18:20 and
+was not re-checked. D16's wait branch was still not walked: no product door
+makes a same-password unbound row.
+
+### Accounts, rows and sessions in the last walk
+
+- **E, left in place:** `e2e-osi-1803-e@rutba.test`, password
+  `E2e-osi-e-pass-1`. A management account, confirmed; a personal
+  organisation (`org_a0a4812665adf282`); a member of the team
+  (`org_c2791c709b12b1fb`). A row in `sign_e2eorg0145owner12d3` (user 4),
+  created by the invitation's tell, confirmed by the realm at E's first
+  sign-in, bound, with Sign user access given by the owner in the instance's
+  console. No row on `individual_dev`.
+- **A:** its row in `sign_e2eorg0145owner12d3` (user 3) confirmed by the
+  realm at 18:27:41, with Sign user access given by the owner. A's password
+  is unchanged, `E2e-ind-a-pass-1`.
+- **The owner:** two app grants made in the instance's console, as above;
+  nothing else.
+- **Sessions:** at 18:57:35 to 18:57:38 `POST /v1/auth/logout-all` for the
+  owner, E and A revoked one session each; each then answered 401
+  `SESSION_REQUIRED`. Realm and app sessions from this walk were ended by
+  those or left to expire.
+- **Processes:** the portal console on 4118, the instance console on 4022 (the
+  dev gateway woke it; it stays under the gateway), three headless browsers
+  (ports 9341 to 9343) and the recorders. Mine all stopped at 18:58; nothing
+  listens on 4118 or 9341-9343.
+- No clean or build script run, no `.next` deleted, no database written by
+  hand.
+
+### Questions for the owner (the last walk)
+
+10. **A member's first open** (D26): should the tell give a member the
+    organisation's licensed products at their user level (here Sign), so the
+    invitation journey ends in the app, or should the members page tell the
+    owner "E can sign in but has no app yet: give one in the instance's
+    console"?
+
 STATUS DONE
