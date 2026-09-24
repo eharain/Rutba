@@ -13,7 +13,7 @@ four status files ([WS-A](one-sign-in-ws-a.md), [WS-C](one-sign-in-ws-c.md),
 the detailed sources. Times are UTC.
 
 **Where the code is.** Round one: management `50367fd`, consumer `5d3c36f4`.
-Round two so far: management `e5686a1` (follow-ups 4 and 5, stage 5's
+Round two so far: management `31f664b` (follow-ups 4 to 6, stage 5's
 management half), consumer `2a0dd377` (stage 4, stage 5's realm half, both
 reviews' fixes). Both pushed; nothing on GitHub but `dev` and
 `main`. The dev estate runs these checkouts.
@@ -23,8 +23,8 @@ release gate (addendum 3: it cannot run here); WS-B's stage 4 is addendum 4
 and WS-D's follow-up 4 addendum 5; the stage 4 review is addendum 6 and
 its fixes with stage 5's realm half addendum 7; WS-D's follow-up 5 is
 addendum 8, the second consumer review addendum 9 and the session route's
-outage fix addendum 10, WS-B's last lows addendum 11; the round-two walk to
-follow.
+outage fix addendum 10, WS-B's last lows addendum 11, D2 addendum 12; the
+round-two walk and WS-C's D1 to follow.
 The journey walk's end is addendum 1; the review of WS-D's follow-ups 2 and
 3 is addendum 2.
 
@@ -204,7 +204,7 @@ The journey record's D1 to D15, with where each stands now.
 | # | Severity | What | Now |
 |---|---|---|---|
 | D1 | high | The portal console's organisation page reads the retired Organization Service; the invite form lives only there, so no owner can invite through the product. Pre-existing. | open, decision 1, round two |
-| D2 | high | Management's invitation tells the organisation's instance once; a 503 at that moment is logged and dropped, and inviting again answers `ALREADY_A_MEMBER` before the instance is asked. | open, decision 2, round two |
+| D2 | high | Management's invitation tells the organisation's instance once; a 503 at that moment is logged and dropped, and inviting again answers `ALREADY_A_MEMBER` before the instance is asked. | management `31f664b` (addendum 12): told until acknowledged, repaired at sign-in, re-told on re-invite; the walk of a repaired row is pending |
 | D3 | medium | Auth's 2 s Strapi timeout read as "no organisation" on the hub and dropped the sign-in's fan-out. | fixed, `e087f4e` `b5b737b`; not yet seen live |
 | D4 | low | The Sign app shows its landing with a "Sign in" button on a live realm session; Workspace signs in by itself. | open, decision 6 |
 | D5 | low | The dead licence-service line in the estate `.env`. | removed (section 5); the Strapi reader is round two |
@@ -344,10 +344,8 @@ below need none either. The rest waits on section 7.
   D17 (addenda 5, 7), the estate map's `org` option (addendum 5). Open: D5.
 - **Being built now, no decision needed:** D1 (the portal console's
   organisation page and its invite form off the retired service, WS-C, with
-  the three stale `sid` types) and D2 (management retries telling an
-  instance about an invitation, records the outcome on the membership and
-  re-tells on a re-invite or the next fan-out, WS-D follow-up 6). Both
-  block the invitation journey.
+  the three stale `sid` types). D2 landed (addendum 12). Both block the
+  invitation journey.
 - **After the decisions:** D14, D13, F2's choice, F7's access-token half,
   the brakes' proxy trust, L3, L4, the reset path's step-up if asked for.
 - **Before production:** the release gate, first brought up to date with
@@ -656,3 +654,37 @@ Left as it is: the "Login" links in the account menu and the top bar still
 pass the raw current path as state, so a `?db=` can appear on the realm's
 `/authorize` URL in between; it never reaches a page the person lands on,
 because the callback cleans it. The tester's list stands.
+
+## Addendum 12: D2, an instance told until it acknowledges (WS-D follow-up 6)
+
+Management `31f664b` on `dev`, `main` and origin; the section is in
+[one-sign-in-ws-d.md](one-sign-in-ws-d.md) (records `421876a`). The code
+was Strapi's identity service, not auth; most of the work is the new
+`api/legacy/strapi/src/estate/instance-tell.js`. Tests: 13 new Strapi
+cases (the dropped 503 recorded as pending, the retry to acknowledgement,
+the eight-try limit, a final refusal, the re-invite re-tell, the sign-in
+repair; the Strapi suite 110), auth unit 371, integration 305, perf 5.
+
+Each membership now records, per instance, `told`, `pending` or `failed`
+(two new fields; Strapi added the columns on reload; writing them sends no
+event). A schedule `identity.instance-tell` runs every minute and makes
+the tries that are due, 30 s doubling to 30 min, eight tries then
+`failed`; retried on no answer, any 5xx, 401, 408, 429; final at once on
+any other 4xx, the instance refusing the person. It follows the outbox's
+pattern but not its table, which delivers only to the bus, since the
+schedule must run on every host. Repair: at a person's sign-in, any running
+instance of their team organisations with no record for them, or out of
+tries, is told again in the background (memberships from before this
+change, A's included, have no record, so A's missing row is repaired at
+A's next sign-in); an administrator re-inviting an existing member re-tells
+every instance not yet acknowledged and answers `retold` with each
+instance's answer, passed through auth's invitation route, and
+`ALREADY_A_MEMBER` only when everything is told, there is no instance, or
+the member holds no invitable role. The hub's tile says "Not yet told you
+are a member" while pending and, when failed, to ask an administrator to
+invite again; it stays clickable. Owners are never told (the provisioner
+sets them up). A repeat is safe: the instance answers `exists` for a
+person it has and makes no second row, though it resends the set-password
+mail to a never-confirmed row. On the estate Strapi reloaded at 17:07 with
+the new fields and ten schedules, no new error; no live tell seen yet. The
+tester is told that journey 2's expectation flips once A signs in again.
