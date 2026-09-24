@@ -431,3 +431,114 @@ W2 (`instances asked about the password just proved`, now with `skipped`).
 
 `git status --porcelain` in `D:/Rutba2.0/management` on `dev` at `50367fd`,
 13:24 UTC: empty.
+
+## Round one, follow-up 4 (2026-09-24, 13:30 to 15:15 UTC)
+
+From the lead: the reviewer's findings G1 to G4 and the info items on
+follow-ups 2 and 3, D11 and D17 from the journey walk, stage 5's management
+half, and the estate map's `org` option (outside the original list, granted).
+Partway through, the lead passed on two asks from the suite's builder, whose
+stage 4 had landed (consumer `e4a728d5`). Nine commits on management `dev`,
+each fast-forwarded to `main` and pushed. `origin` holds both at `a3eaabc`.
+
+| # | Finding | What changed | Commit |
+|---|---|---|---|
+| G1 | medium: a password reset reached every instance on the strength of the mailbox alone | For a person who holds a second factor, a reset reaches the instances only with a code from it (`mfa_code` on `/v1/auth/password/reset`, an optional field on `/reset`). Without a code, or with a wrong one, the reset is "here": the warning, `carry_pending`, and `code_refused` when a code was wrong. The carry waits for a sign-in that used the factor. `POST /v1/auth/password/carry` `{ password, mfa_code? }`, or the account page's "Use it everywhere", takes the current password, typed again and checked by Strapi, into every bound instance. The checks are the same as for a change with "everywhere". | `5109ec8` |
+| G2 | low: an ID token from an earlier session signed out without the question | A first-party hint skips the question only when its `sub` is the person signed in here and its `sid` is the front-channel `sid` of this browser's management session. A hint from an earlier session of the same person gets the question. | `fc62b0f` |
+| G3 | low: an http door in production was dropped from the change report | Such an instance stays in the list and is never called. A change or carry reports it in `failed` with reason `insecure_door`, and the page says so in words. A sign-in skips it and counts it as skipped. | `024a0a6` |
+| G4 | low: a disabled client's origin stayed trusted | New file `src/oidc/first-party-trust.js`: the listed origins minus the clients the register holds disabled. It is set when registration runs at boot. CORS with credentials, the same-origin guard, `form-action` and the sign-out frames all read it. `ALLOWED_ORIGINS` is only what the environment says again. An origin two listed clients share stays trusted while either is enabled. The README says what delisting does and what disabling does. Both take effect at the next boot, because the provider reads the register only at boot. | `47d90d2` |
+| info | the end-session alignment kept the other account's session id; nothing exercised it; an ID token's organisation read failure looked like "none" | `alignOnEndSession` re-signs another account's provider session under a new id (`resetIdentifier`, as `sso.js` does) and points the request at the new id, so the route reads it. New test: Sara's provider session, then Omar signs in with no new authorize and clicks the question. Omar's session ends, Sara's stands, and the provider cookie is a new id. On D3's rule: a pinned organisation that cannot be read, even after the retried read, fails the request instead of leaving `org` off. The token request, userinfo and the access token claims answer `temporarily_unavailable` (503). An authorization naming an organisation answers `ORG_UNREADABLE` (503). | `3d078f2` |
+| D11, D17 | "no row" counted as "not linked yet"; "no row" asked at every sign-in | A door's `USER_UNKNOWN` is its own kind. A change reports `no_account` ("No account there" on the page, with "ask that organisation's administrator to add you"), and `NOT_BOUND` stays `unbound`. A sign-in remembers `USER_UNKNOWN` for an hour (`NO_ROW_TTL_MS`), skips the instance meanwhile and counts it in `skipped`. The first answer is logged as `noRow`. One commit, because both rest on the same memory and the same code. **See the finding below: the realm's doors do not say `USER_UNKNOWN` yet.** | `cd5c673` |
+| stage 5 | the hub's workspace links were the C5 handoff (`tenant=`, then `?db=` on the launcher; D7) | Every workspace tile, and a sign-in's one destination when it is a workspace, is auth's own signed route `GET /hub/open/:orgId/:workspace?t=`, shaped like the console route. The signature covers `open:<org>:<workspace>`. The route pins the organisation, then sends the person to the realm's `/login`. For an app on another origin it adds the app's `/auth/callback` as `redirect_uri` and the page as `state`: the shape the app's own "Sign in" uses, which the realm's allowlist accepts. A workspace that is its own realm (the individual launcher) gets plain `/login`. The link has no tenant, no db, no code and no `login_hint`. A bare, forged, re-aimed or old one-segment link, a workspace not listed under that organisation, or an organisation the person is not in goes back to the hub, and nothing moves. The hub no longer calls the C5 `open` purpose. | `5209896` |
+| granted | `consoleSignInHref(..., { org })` still built `org=` | The option is gone from `packages/estate-map`, and so is its use in the tests. Nothing passed it: only auth depends on the package, and the hub passes no `org`. The hub and offers unit tests pass (38 of 38) and the hub service imports. `packages/*/dist` was not touched. | `0ba1b8f` |
+| suite | two asks from WS-B's stage 4 | (1) Every listed first-party client (`consumer-realm` and every console on `OIDC_FIRST_PARTY_CLIENTS`) is handed to the provider with `require_auth_time`, so its ID tokens carry `auth_time`. Nothing is stored in the register for this. (2) Each entry on `GET /v1/auth/orgs` carries `current`. It is true on the organisation the session acts as: the session's own choice, or else the pinned profile's fallback. | `a3eaabc` |
+
+### Findings
+
+- **The realm's credential doors never answer `USER_UNKNOWN`** (checked in
+  consumer `console/api/auth/credential.js`, not the doc). Verify answers
+  `{ bound: false }` when there is no row: its audit records `no-row`, but
+  the answer is the same as for a wrong password. Set answers 409 `NOT_BOUND`
+  whether or not a row exists. So management cannot tell "no account there"
+  from "not linked yet". D11 and D17 are built on `USER_UNKNOWN` (the word the
+  handoff door already uses for "none") and change nothing in production
+  until the realm says it. The suites' fake core has a switch for the
+  requested answer (`saysNoRow`). It is off by default, so the other suites
+  still see the realm as it is.
+- **Where the C5 `open` purpose's code lives**, for the cut that removes it
+  after the consumer stream retires `tenant=` and `?db=`: `createInstanceBridge().open`
+  in `auth/src/domain/hub/bridge.js`, which takes any purpose (the operator
+  path passes `operate`), and `workspaceHref` and `bridgedHref` in
+  `auth/src/domain/hub/hub.js`, which only the operator path still uses
+  (`openInstance` in `hub.service.js`, `POST /internal/handoff`). Nothing in
+  management auth passes `purpose: 'open'` any more. `licenceKeysFor` in
+  `hub.service.js` stays: it serves the W3 profile extras. The realm's
+  handoff redeem is untouched and keeps working.
+- **Which claim the realm reads for D16:** `auth_time` on the ID token, in
+  seconds. It is the time of the management sign-in the session stands on. A
+  later silent authorization in the same session carries the same value,
+  with a later `iat`, so "fresh" means `auth_time` within a few seconds of
+  `iat`. The test covers both.
+
+### Tests (15:08 to 15:10 UTC, at `a3eaabc`)
+
+| Suite | After follow-up 3 (`50367fd`) | After follow-up 4 |
+|---|---|---|
+| `npm run test:unit` (auth) | 357 | 370 of 370 |
+| `npm run test:integration` (auth) | 275 | 293 of 293 |
+| `npm run test:perf` (auth) | 5 | 5 of 5 |
+| `npm test` (packages/estate-map) | 10 | 10 of 10 |
+
+Nothing skipped. New suite: `integration/first-party-disabled`. Cases added
+to `oidc-logout` (G2, the alignment), `context-passwords` (G1, D11, D17),
+`hub-slow-strapi` (an unreadable organisation), `hub-journey` and
+`unit/hub` (stage 5), `unit/instance-credentials` (G3, D11, D17),
+`first-party-clients` (the trust holder), `oidc-first-party` (`auth_time`)
+and `w4-switcher-cors` (`current`). The alignment, unreadable-organisation
+and `auth_time` tests were also run against the code without the change,
+and they failed there.
+
+### Live (15:07 UTC)
+
+Auth on 4101 is ready and Strapi on 4116 answers. Auth reloaded on these
+commits under its watcher. Seen:
+
+- `GET /hub/open/org_x/ws_y` answers 303 to `/login` with `no-store`. The
+  code before this change had no two-segment route there.
+- The old `/hub/open/ws_y` answers 303 to `/login`.
+- A preflight from `http://localhost:4003` is allowed with credentials, and
+  one from another origin is not.
+- `/login`'s `form-action` lists the listed origins.
+- Discovery advertises `end_session_endpoint`, and `claims_supported`
+  includes `auth_time`.
+- `/oidc/session/end` with no session asks "Sign out of Rutba?".
+
+Not walked: anything behind a sign-in, meaning a hub tile opening the realm,
+`auth_time` on a live ID token, and `current` on the live list. This stream
+signs in to no account on the estate.
+
+### Requests
+
+- **WS-A (through the lead):** have both W1 doors answer 404 `USER_UNKNOWN`
+  when the database holds no row for the address. Set would keep 409
+  `NOT_BOUND` for a row that exists but is not bound to the subject. Verify
+  would keep `{ bound: false }` for everything else. Until then D11 and D17
+  have no effect in production. Also: read `auth_time` for D16 (above).
+- **The consumer stream:** the hub sends no `tenant`, no db and no handoff
+  code any more, so retiring `tenant=` and `?db=` on the normal path can go
+  ahead. The operator path (`purpose: 'operate'`) still goes through
+  `/authorize` with `tenant` and `code`.
+- **The lead:** walk a tile on the estate as a signed-in person, which this
+  stream did not do: the hub should open the realm's `/login` and land in
+  the app as the pinned organisation.
+
+### Not done
+
+Nothing on the list was left undone. D11 and D17 went in as one commit rather
+than two. Both depend on the realm request above before they show in
+production.
+
+### Management checkout
+
+`git status --porcelain` in `D:/Rutba2.0/management` on `dev` at `a3eaabc`,
+15:10 UTC: empty.
