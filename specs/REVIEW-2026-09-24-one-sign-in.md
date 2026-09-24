@@ -13,7 +13,7 @@ four status files ([WS-A](one-sign-in-ws-a.md), [WS-C](one-sign-in-ws-c.md),
 the detailed sources. Times are UTC.
 
 **Where the code is.** Round one: management `50367fd`, consumer `5d3c36f4`.
-Round two so far: management `1bb6826` (follow-ups 4 to 8, stage 5's
+Round two so far: management `08e264d` (follow-ups 4 to 8, stage 5's
 management half, D1, D2 and the members list), consumer `0070ae5c` (stage 4, stage 5's realm half, both
 reviews' fixes, the invite door under retries, the walk's defects). Both pushed; nothing on GitHub but `dev` and
 `main`. The dev estate runs these checkouts.
@@ -1010,6 +1010,16 @@ the unit tests reach the 403 sentence, since a removed member is refused
 at the token before the page asks. For WS-D: the console's audit type
 still expects a session id on auth events, so `/internal/audit` may still
 carry raw ids to the console server; asked to answer the handle there.
+
+Follow-up 8's two shape changes read correctly in management `08e264d`
+(records `e042562`; the portal console 56, the management console 74,
+type-check clean): the invitation view's `workspaces`, and `session_handle`
+in the console's audit type, which nothing ever drew. One addition: when
+the answer says another telling is already in flight, the retold message
+says the workspace is already being told again instead of showing the
+record from before it; a first invitation not yet taken says so and that
+it will be tried again. The members answer keyed by instance id was
+already handled.
 
 ## Addendum 22: the review of the realm's walk fixes
 
