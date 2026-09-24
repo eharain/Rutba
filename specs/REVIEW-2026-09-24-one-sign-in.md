@@ -25,8 +25,8 @@ its fixes with stage 5's realm half addendum 7; WS-D's follow-up 5 is
 addendum 8, the second consumer review addendum 9 and the session route's
 outage fix addendum 10, WS-B's last lows addendum 11, D2 addendum 12, D1
 addendum 13, the reviews of D2 and D1 addenda 14 and 15, the round-two
-walk addendum 16, the invite door addendum 17; the other fix passes to
-follow.
+walk addendum 16, the invite door addendum 17, the consoles' fixes
+addendum 18; the realm's and the auth stream's fix passes to follow.
 The journey walk's end is addendum 1; the review of WS-D's follow-ups 2 and
 3 is addendum 2.
 
@@ -150,7 +150,7 @@ WS-D as follow-up 4:
 | WS-D | during an outage `GET /v1/auth/session` could answer 401 (a coded refusal from the gate), 400, or 200 with no organisation, which the check frame reads as signed out or as a change of organisation | medium | `e5686a1`: every failed read is 503; 401 only when the store answered |
 | WS-D | D2's M1 tells for one membership are not serialised across the schedule, the sign-in repair and a re-invite; M3 a pass has no time budget; L4 retry or final by status alone; L5 instance names and raw errors reach the administrator's page; L6 the hub's wording | medium | WS-D follow-up 8 (in progress) |
 | WS-A | D2's M2 the core's invite door re-mails a row bound but never confirmed, so the first sign-in after deploy mails every such row; and it is idempotent only one call at a time (no unique address index) | medium | consumer `40579cd8`: `exists` with no mail for a row bound to the same subject; an insert-or-select on the subject index for concurrent invites |
-| WS-C | D1's M1 a re-invite's `retold` outcome is shown as "we have emailed an invitation"; L2 checkout's confirm button drawn with nothing pinned; L3 the invite form promises role changes and removal no door supports; L5 stale `roles.ts` | medium | WS-C (in progress) |
+| WS-C | D1's M1 a re-invite's `retold` outcome is shown as "we have emailed an invitation"; L2 checkout's confirm button drawn with nothing pinned; L3 the invite form promises role changes and removal no door supports; L5 stale `roles.ts` | medium | management `5976bf4` (M1 and the role check), `0299832` (L2), `cc2af47` (L3), `1cc2879` (L5) |
 | WS-D | the staff person page prints full raw session ids from auth's internal sessions route | low | WS-D, with follow-up 8 |
 
 ## 4. The journeys
@@ -904,3 +904,22 @@ unconfirmed row bound to another person is still re-bound and re-invited,
 with a log line naming the address, the database and both subjects. Tests:
 the invites suite 8, the auth door suites 64, the realm pages 51; the core
 reloaded and reported ready; the tenants README describes the refusal.
+
+## Addendum 18: the D1 review's findings fixed (WS-C)
+
+Four commits on management `dev` and `main`, `5976bf4` to `1cc2879`; the
+note is in [one-sign-in-ws-c.md](one-sign-in-ws-c.md) (records
+`d1efba8`). The portal console's tests 29 → 44, type-check clean.
+
+| What | Commit |
+|---|---|
+| M1 and the role check: one sentence per invite result; a re-invite says the person is already in the organisation and no mail was sent, then what the workspace answered (has them, not answered yet, did not take them); `ALREADY_A_MEMBER`, auth down and an unknown result each get their own sentence, none claiming a mail; the `Invitation` type has the four outcomes and a reduced instance view (id or label, state); the page says each invitation reports what it did; a new `mayInvite` (owner or admin, matching Strapi) decides whether the form shows and stops the action before calling auth, the platform role not counted | `5976bf4` |
+| L2: `billingTarget` decides who a checkout bills; the confirm button only with a pinned organisation, else a notice | `0299832` |
+| L3: the form says roles cannot be changed and people not removed from the console yet, that a new person has nothing until they use their link while an existing account joins at once; a test fails if the old promises return | `cc2af47` |
+| L5: `portalRoles` and `holdsAtLeast` removed; the header names Strapi as the authority | `1cc2879` |
+
+Seen on the builder's own server above port 5000 (the estate's portal
+console had stopped by 17:38): `/organisation` redirects to sign-in and
+`/checkout?intent=x` answers with the plan panel; the server's rewrite of
+the console's `tsconfig.json` and `next-env.d.ts` was put back. The page
+is ready to wire to the members route once its shape is confirmed.
