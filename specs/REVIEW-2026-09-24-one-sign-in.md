@@ -283,6 +283,14 @@ under are decisions 20 to 22.
 21. **Five minutes** for the silent check (plan question 2). Confirm.
 22. **A demo instance shows to every member** with its mark (plan question
     3). Confirm, or admins only.
+23. **The same-password promise (D16).** Either management finishes the
+    fan-out before it hands a first-party app its code (a second or two on a
+    first sign-in), or the realm waits for it. Recommend the realm side: at
+    the callback, a bounded wait of about three seconds for the fan-out's
+    verify to arrive at the same core, then one re-read of the row before
+    the prompt; management's sign-in keeps not waiting. WS-B is building that
+    under this assumption.
+
 24. **Break-glass sessions are never cleared by the suite's check** (WS-B
     question 1): they are not management sessions. Recommend: keep.
 25. **A hub-opened personal-instance session does not move on a switch**
@@ -298,14 +306,6 @@ under are decisions 20 to 22.
 28. **The dialog's silent restore works only in production builds** (WS-B
     question 5): a dev build's hidden frames never hydrate. Recommend:
     accept; dev walks cannot see it, the README's hydration rule says why.
-23. **The same-password promise (D16).** Either management finishes the
-    fan-out before it hands a first-party app its code (a second or two on a
-    first sign-in), or the realm waits for it. Recommend the realm side: at
-    the callback, a bounded wait of about three seconds for the fan-out's
-    verify to arrive at the same core, then one re-read of the row before
-    the prompt; management's sign-in keeps not waiting. WS-B is building that
-    under this assumption.
-
 ## 8. Round two
 
 Stages 4 and 5 of the plan are approved work and need no decision; the fixes
