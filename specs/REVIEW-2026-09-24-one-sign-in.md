@@ -12,14 +12,15 @@ four status files ([WS-A](one-sign-in-ws-a.md), [WS-C](one-sign-in-ws-c.md),
 [WS-D](one-sign-in-ws-d.md), [journeys](one-sign-in-journeys.md)), which stay
 the detailed sources. Times are UTC.
 
-**Where the code is.** Management `dev` and `main` at `50367fd`; consumer
-`dev` and `main` at `5d3c36f4`, WS-A's answer to WS-D's last two claims
-(`sid`, `db`) included. Both pushed; nothing on GitHub but `dev` and
+**Where the code is.** Round one: management `50367fd`, consumer `5d3c36f4`.
+Round two so far: management `a3eaabc` (follow-up 4, stage 5's management
+half), consumer `e4a728d5` (stage 4), with stage 5's realm half in progress. Both pushed; nothing on GitHub but `dev` and
 `main`. The dev estate runs these checkouts.
 
 **Still to come in this record**, appended as addenda when they report: the
-release gate (addendum 3: it cannot run here); WS-D's follow-up 4 as it
-lands; WS-B's stage 4 is addendum 4, its review and its walk to follow.
+release gate (addendum 3: it cannot run here); WS-B's stage 4 is addendum 4
+and WS-D's follow-up 4 addendum 5; the stage 4 review, its walk and the
+realm's half of stage 5 to follow.
 The journey walk's end is addendum 1; the review of WS-D's follow-ups 2 and
 3 is addendum 2.
 
@@ -130,10 +131,10 @@ WS-D as follow-up 4:
 
 | Stream | Finding | Severity | Fixed in |
 |---|---|---|---|
-| WS-D | G1 a password reset carries the new password everywhere on mailbox proof alone, people with a second factor included; the carried password then signs in at every bound instance's break-glass form with no factor | medium | follow-up 4 |
-| WS-D | G2 an old ID token of the signed-in person still signs them out without the question: the hint names the `sub`, not the session, and expiry is ignored | low | follow-up 4 |
-| WS-D | G3 in production an instance with an http door drops out of the change report silently | low | follow-up 4 |
-| WS-D | G4 a disabled listed client's origin stays trusted for CORS, the write guard, `form-action` and the logout frame | low | follow-up 4 |
+| WS-D | G1 a password reset carries the new password everywhere on mailbox proof alone, people with a second factor included; the carried password then signs in at every bound instance's break-glass form with no factor | medium | `5109ec8`: with a factor, the carry needs a code, else the reset stays "here" with `carry_pending` and a later "Use it everywhere" |
+| WS-D | G2 an old ID token of the signed-in person still signs them out without the question: the hint names the `sub`, not the session, and expiry is ignored | low | `fc62b0f`: the hint's `sid` must be this session's |
+| WS-D | G3 in production an instance with an http door drops out of the change report silently | low | `024a0a6`: reported as `insecure_door`, never called |
+| WS-D | G4 a disabled listed client's origin stays trusted for CORS, the write guard, `form-action` and the logout frame | low | `47d90d2`: trust set at boot from the register |
 
 ## 4. The journeys
 
@@ -201,13 +202,13 @@ The journey record's D1 to D15, with where each stands now.
 | D8 | info | The realm's `/login` with a live session runs no silent check, so a suite tab keeps its profile after a switch. | stage 4 |
 | D9 | low | The realm's sign-in page logs a render-phase update from the page-id hook. | open, WS-A round two |
 | D10 | medium | A suite app on a revoked session shows "Network Error" instead of the sign-in. | stage 4; decision 4 for the interim |
-| D11 | low | The "everywhere" report counts an instance where the person has no row as "will ask once"; nothing will ever ask. | open, WS-D round two |
+| D11 | low | The "everywhere" report counts an instance where the person has no row as "will ask once"; nothing will ever ask. | management `cd5c673` reports `no_account`; effective once the realm's doors answer 404 `USER_UNKNOWN` for a missing row (WS-B, in progress) |
 | D12 | high | Between consumer `1622d80c` (12:25) and management `50d064a` (12:44) a sign-out left every realm tab signed in. | closed: re-walked at 13:36, the frames carry `sid`, the realm's frame answers 200 and clears the tab |
 | D13 | info | On the dev estate the interactive sign-in is the provider's development form, not the front door. | decision 5 |
 | D14 | medium | The last profile lives on sessions only; after signing out everywhere a fresh sign-in pins nothing. | decision 3 |
 | D15 | high | The estate's build directories removed under the running apps. | cause found (section 5); rebuilt; a memory note for the lead |
 | D16 | medium | I9's "same password, never asked" rests on a race: the sign-in fan-out is fired and forgotten after the sign-in answers, and the realm's code exchange does not wait for it; C was spared the prompt by 0.4 s. A slow or dropped fan-out shows a same-password person the prompt for the password just typed. | decision 23; the realm-side wait is being built by WS-B |
-| D17 | info | An instance where the person has no row is asked again at every password sign-in and never remembered; each ask spends one of the W1 door's ten verifies per address per fifteen minutes. | open, WS-D round two, with D11 |
+| D17 | info | An instance where the person has no row is asked again at every password sign-in and never remembered; each ask spends one of the W1 door's ten verifies per address per fifteen minutes. | management `cd5c673` skips it for an hour, on the same door answer as D11 |
 
 ## 7. Decisions for the owner
 
@@ -320,7 +321,8 @@ below need none either. The rest waits on section 7.
   sign-in); the realm's `/login` runs the check on a live session too (D8);
   a 401 on a revoked session goes to the sign-in (D10, decision 4 assumed
   yes); the Sign landing's silent try (D4, decision 6 assumed yes); D9.
-- **Stage 5, retirement** (WS-D with WS-A, after WS-A's relay lands): the
+- **Stage 5, retirement**: the management half landed (`5209896`, addendum
+  5); the realm's half is with WS-B. As briefed: the
   hub's workspace links become I4 (a signed pin like the console route, then
   the realm's normal path); `tenant=` and `?db=` retired from `/authorize`
   and the launcher (D7); the C5 open purpose retired, the operator's purpose
@@ -452,3 +454,26 @@ reviewer is reading the commits. Seen in passing: `GET /api/setup/state`
 answers 503 on the break-glass page. Decisions 24 to 28 are WS-B's five
 questions. For production, `NEXT_PUBLIC_AUTH_ALLOWED_REDIRECT_HOSTS` must
 list every suite app host, as `/authorize` already requires.
+
+## Addendum 5: WS-D follow-up 4 and stage 5's management half
+
+Nine commits on management `dev` and `main`, `5109ec8` to `a3eaabc`; the
+record's section is in [one-sign-in-ws-d.md](one-sign-in-ws-d.md) (records
+`2f11e67`). Tests at `a3eaabc`: unit 357 → 370, integration 275 → 293,
+perf 5, estate-map 10, nothing skipped.
+
+| What | Commit |
+|---|---|
+| G1 to G4 (section 3) | `5109ec8` `fc62b0f` `024a0a6` `47d90d2` |
+| The info items: the end-session step gives another account's provider session a new id, with its own test; an organisation unreadable even after the retry now fails the request with 503 instead of a token with no organisation | `3d078f2` |
+| D11 and D17: `USER_UNKNOWN` reported as `no_account` ("No account there"), and skipped for an hour at sign-in, counted as skipped. **Effective only once the realm's doors answer 404 `USER_UNKNOWN` for a missing row**; today verify answers `{ bound: false }` and set 409 `NOT_BOUND`, so WS-B has that change | `cd5c673` |
+| `@rutba/estate-map`: the `org` option gone from `consoleSignInHref`; nothing passed it | `0ba1b8f` |
+| Stage 5, management: every workspace link, and a sign-in's single workspace destination, is auth's signed route `/hub/open/:orgId/:workspace`: it pins the organisation and sends the person to the realm's `/login` (with `redirect_uri` the app's callback when the app is on another origin); no tenant, db, code or `login_hint` on the link. The hub no longer calls the C5 `open` purpose; its code stays (`auth/src/domain/hub/bridge.js` `open`, `hub.js` `workspaceHref` / `bridgedHref`), used by the operator path only, for a later cut | `5209896` |
+| WS-B's asks: `require_auth_time` on the listed first-party clients, so ID tokens carry `auth_time` (the realm should read it, in seconds; a later silent sign-in keeps the value with a later `iat`); `current: true` on the pinned entry of `GET /v1/auth/orgs` | `a3eaabc` |
+
+Live at 15:07: auth reloaded on these commits; the two-segment workspace
+route answers 303 to `/login` without a session; the realm's origin passes
+the credentialed CORS preflight and another origin does not; discovery lists
+`auth_time`; a sign-out with no session gets the question. Not seen behind
+a sign-in: a hub tile landing in the app as the pinned organisation (the
+tester has it), `auth_time` on a real ID token, `current` on the real list.
