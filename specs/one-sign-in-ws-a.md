@@ -733,3 +733,11 @@ as the verifier's child-process test. The CLI path is untouched: without
   the reviewer's operator note.
 
 **Consumer checkout:** `git status --porcelain` at `cff42cb2`: empty.
+
+### Round three, the re-check's lows (2026-09-25)
+
+- **L2** (consumer `0b1d8e06`): when rows of one kind share an address or a username, the core's address and identifier finders (`findAppUserByEmail`, `findCustomerByEmail`, `byIdentifier`) take the live row. A row that is not blocked comes first, then a confirmed one (NULL counts as confirmed), then the oldest. So an older blocked or unconfirmed row no longer hides the live one from the two sign-ins, the callback, the exists door or `bind_only`. It matters for old data only. The new tests cover both sign-ins and the exists door.
+- **L3** (consumer `6df9e315`): the realm's reset page is `NEXT_PUBLIC_AUTH_URL`. `PUBLIC_URL` stands in only on a directory core, where it is the realm. Otherwise the answer is empty and nothing is sent: on a solo host `PUBLIC_URL` may be the storefront's login page, and there is no development fallback either. The choice is a pure function, `realmResetPageFrom`, tested case by case.
+- **L4** (consumer `aee646a8`): both re-bind lines in the invite door name the address as a digest, as the doors log it: `bind_only`'s and the ordinary decision-32 path's.
+
+**Tests** (21:56 UTC): `console/api/tenants/tests` 23 of 23 (invites 15, owner 1, people-exists 7); `console/api/auth/tests` 98 of 98 (callback 62, credential doors 22, break-glass 14); `console/apps/auth/src` 55 of 55. The consumer checkout at `aee646a8` holds nothing of WS-A's uncommitted. Another session's operator-path edits were in the tree while this ran; they were left alone.
