@@ -17,7 +17,8 @@ Round two so far: management `cace52f` (follow-ups 4 to 9, stage 5's
 management half, D1, D2 and the members list), consumer `c0d4a05b` (stage 4, stage 5's realm half, both
 reviews' fixes, the invite door under retries, the walk's defects, their
 review and its re-check, D29). Round three so far: consumer `64b946cc`
-(decision 35's consumer half, addendum 26); management's reset in progress. Both pushed; nothing on GitHub but `dev` and
+(decision 35's consumer half, addendum 26) and management `54e422b` (the
+reset that creates the account, addendum 27); both under review. Both pushed; nothing on GitHub but `dev` and
 `main`. The dev estate runs these checkouts.
 
 **Still to come in this record**, appended as addenda when they report: the
@@ -1352,3 +1353,32 @@ subject keeps it, so the invite door answers `SUBJECT_TAKEN` for that
 person's back-office row; clearing such a binding is an administrator's
 job. Management's half (the reset that creates the account, WS-D) is in
 progress.
+
+## Addendum 27: round three, decision 35's management half (WS-D)
+
+Four commits on management `dev` and `main`, `128ed06`, `d63e240`,
+`7c92eeb` (a merge of another session's office-site commit that reached
+origin meanwhile), `54e422b`; the section is in
+[one-sign-in-ws-d.md](one-sign-in-ws-d.md) (records `19e1484`). Suites
+against the fakes, the estate being stopped: Strapi 127, auth unit 376,
+integration 326, perf 5, nothing skipped.
+
+| What | Commit |
+|---|---|
+| Every password request logs one line with its route and outcome and a digest of the address (the first 16 hex of the SHA-256 of the lower-cased address), never the address; requests stopped by the rate limiter keep their own audit event | `128ed06` |
+| A reset for an address with no Rutba account answers `reset_sent` as fast as a miss; afterwards, in the background, Strapi asks every active instance (the realm and the individual instance skipped) through the exists door whether the address is a back-office user there, under the forgot brake of five per hour per address. No instance: nothing stored, nothing mailed. Any instance: a one-hour code stored as its hash and a "Set your Rutba password" mail opening auth's reset page with `new=1`; the code works once and is refused if the address gained an account meanwhile; on a valid code the confirmed account is created with the chosen password, the person is made a viewer of each matching instance's organisation, those instances are told at once (binding the row, or `taken` if another row is in the way), and auth pushes the new password to the bound rows as after any reset. Anyone with an account gets today's mail unchanged | `d63e240` |
+| Adjusted to the exists door as landed: a 429 counts as no for that instance and nothing is mailed for it; `SUBJECT_TAKEN` from the invite door recorded as `taken` like `BOUND_ELSEWHERE`, with the hub's wording covering both | `54e422b` |
+
+Tests: Strapi's reset flow in nine cases (no account and no instance; no
+account and one instance, with the mail, the account, the viewer
+membership, the bind and the link working once; an existing account
+unchanged; the brake; a row held elsewhere; the realm and individual
+instance never asked; an account created in between; a 429; a
+`SUBJECT_TAKEN`); auth's whole path with the fake Strapi doing Strapi's
+half (the mail, the page, the push, the sign-in, the membership); the log
+lines on the API and the pages, success and refusal, no address ever
+logged. Assumptions (a) and (b) built as stated with `viewer` as the
+lowest role; the first real check is a reset for a rutba.pk staff address
+once the estate is back (Strapi's log then says "a reset for an address
+with no account: N instance(s) know it", auth's log a `password request`
+line for `forgot` with the digest). A reviewer is reading both halves.
