@@ -14,13 +14,15 @@ the detailed sources. Times are UTC.
 
 **Where the code is.** Round one: management `50367fd`, consumer `5d3c36f4`.
 Round two so far: management `a3eaabc` (follow-up 4, stage 5's management
-half), consumer `e4a728d5` (stage 4), with stage 5's realm half in progress. Both pushed; nothing on GitHub but `dev` and
+half), consumer `cfdbb998` (stage 4, stage 5's realm half, the stage 4
+review's fixes). Both pushed; nothing on GitHub but `dev` and
 `main`. The dev estate runs these checkouts.
 
 **Still to come in this record**, appended as addenda when they report: the
 release gate (addendum 3: it cannot run here); WS-B's stage 4 is addendum 4
-and WS-D's follow-up 4 addendum 5; the stage 4 review is addendum 6; its
-walk and the realm's half of stage 5 to follow.
+and WS-D's follow-up 4 addendum 5; the stage 4 review is addendum 6 and
+its fixes with stage 5's realm half addendum 7; the walks of stages 4 and
+5 and the second consumer review to follow.
 The journey walk's end is addendum 1; the review of WS-D's follow-ups 2 and
 3 is addendum 2.
 
@@ -86,7 +88,7 @@ console 13 → 17, management console 64 → 74, partners 10 → 13, Relay 161 �
 | I1 the pinned profile | landed, strict: a named organisation that is not the pin is refused, `/v1/auth/session/org` retired | WS-D suites; journey 1 (the hub's console link pins), journey 4 (a fresh sign-in takes the last choice on another live session) |
 | I2 silent authorization | landed for first-party clients: a code with a session, `login_required` by redirect without one | WS-A's smoke part C; journeys 2, 3, 5 |
 | I3 one client per front end | landed: five clients registered at boot, public, code + PKCE, first party; removing an entry from the list stops it being served (F6) | auth's boot log; the console and realm sign-ins |
-| I4 the realm as relying party | landed on the normal path; the C5 handoff (the hub's workspace links) still names the database on `/authorize` and `?db=` (D7, stage 5) | journeys 1, 2, 3, 7 |
+| I4 the realm as relying party | landed on the normal path; since stage 5 the hub's workspace links pin and send to the realm's `/login`, and the realm reads `tenant=` only beside the operator's handoff code (D7 closed in code, walk pending) | journeys 1, 2, 3, 7 |
 | I5 the switcher | landed in the four consoles; not in the suite (stage 4) | journeys 2, 4 |
 | I6 stickiness | landed in the consoles (silent check, confirm, resync); not in the suite: a suite tab keeps its profile until its session ends (D8), a revoked session reads as a network fault (D10) | journey 2 (the console half), journey 5 |
 | I7 sign-out | landed both sides: end-session with the hint, frames on five origins, the hub's own sign-out; the realm's frame requires `iss` and `sid`, management's frames carry both, and a console sign-out cleared a realm tab at 13:36 (D12 closed) | journey 5, walked twice |
@@ -135,11 +137,11 @@ WS-D as follow-up 4:
 | WS-D | G2 an old ID token of the signed-in person still signs them out without the question: the hint names the `sub`, not the session, and expiry is ignored | low | `fc62b0f`: the hint's `sid` must be this session's |
 | WS-D | G3 in production an instance with an http door drops out of the change report silently | low | `024a0a6`: reported as `insecure_door`, never called |
 | WS-D | G4 a disabled listed client's origin stays trusted for CORS, the write guard, `form-action` and the logout frame | low | `47d90d2`: trust set at boot from the register |
-| WS-B | H1 the realm's frame pages and its token relay trust the redirect allowlist, whose production suffixes (`.shop.rutba.io`, `.rutba.pk` and the like) match the storefront hosts, where merchants paste unchecked HTML: a merchant's script can take a signed-in visitor's realm token, list their organisations and switch their pinned one | **high** | WS-B follow-up (in progress) |
-| WS-B | M2 D16's slow path still marks the password as the row's own when the fan-out binds after the wait | medium | WS-B follow-up |
-| WS-B | M3 the cross-site test ignores the app's own site, so an app on another site than management clears every managed session on every check | medium | WS-B follow-up |
-| WS-B | M4 a stale tab revokes the session a sibling tab just received | medium | WS-B follow-up |
-| WS-B | L5 `/authorize` hands over a stored session without D8's check; L6 three OIDC errors read as `login_required`; L7 the return address after sign-in is unchecked (pre-existing open redirect); L8 the check door's limit keys on the proxy's address; L9 the D10 relay message has no state; L10 the organisation list outlives sign-out | low | WS-B follow-up |
+| WS-B | H1 the realm's frame pages and its token relay trust the redirect allowlist, whose production suffixes (`.shop.rutba.io`, `.rutba.pk` and the like) match the storefront hosts, where merchants paste unchecked HTML: a merchant's script can take a signed-in visitor's realm token, list their organisations and switch their pinned one | **high** | `2e69326a`: an exact-origin list `NEXT_PUBLIC_AUTH_FRAME_ORIGINS` for the frames and the relay; the fleet's 21 back-office hosts named one by one for both lists |
+| WS-B | M2 D16's slow path still marks the password as the row's own when the fan-out binds after the wait | medium | `90fb27fe` |
+| WS-B | M3 the cross-site test ignores the app's own site, so an app on another site than management clears every managed session on every check | medium | `15df55a3` |
+| WS-B | M4 a stale tab revokes the session a sibling tab just received | medium | `7076109d` |
+| WS-B | L5 `/authorize` hands over a stored session without D8's check; L6 three OIDC errors read as `login_required`; L7 the return address after sign-in is unchecked (pre-existing open redirect); L8 the check door's limit keys on the proxy's address; L9 the D10 relay message has no state; L10 the organisation list outlives sign-out | low | `2671c10a` (L5, L10), `58103b07` (L6, L8 moot: no `prompt=none` and no check door), `b7402d6c` (L7, L9) |
 
 ## 4. The journeys
 
@@ -203,11 +205,11 @@ The journey record's D1 to D15, with where each stands now.
 | D4 | low | The Sign app shows its landing with a "Sign in" button on a live realm session; Workspace signs in by itself. | open, decision 6 |
 | D5 | low | The dead licence-service line in the estate `.env`. | removed (section 5); the Strapi reader is round two |
 | D6 | low | Workspace's Drive browse logs duplicate-key errors. Not sign-in. | open, consumer backlog |
-| D7 | info | The hub's workspace links are still the C5 handoff with `tenant=` and `?db=`. | stage 5 |
+| D7 | info | The hub's workspace links are still the C5 handoff with `tenant=` and `?db=`. | closed in code: management `5209896`, consumer `1848f790`; the walk is pending |
 | D8 | info | The realm's `/login` with a live session runs no silent check, so a suite tab keeps its profile after a switch. | stage 4 |
 | D9 | low | The realm's sign-in page logs a render-phase update from the page-id hook. | open, WS-A round two |
 | D10 | medium | A suite app on a revoked session shows "Network Error" instead of the sign-in. | stage 4; decision 4 for the interim |
-| D11 | low | The "everywhere" report counts an instance where the person has no row as "will ask once"; nothing will ever ask. | management `cd5c673` reports `no_account`; effective once the realm's doors answer 404 `USER_UNKNOWN` for a missing row (WS-B, in progress) |
+| D11 | low | The "everywhere" report counts an instance where the person has no row as "will ask once"; nothing will ever ask. | management `cd5c673` reports `no_account`; the doors answer 404 `USER_UNKNOWN` since consumer `9f5d0c57` |
 | D12 | high | Between consumer `1622d80c` (12:25) and management `50d064a` (12:44) a sign-out left every realm tab signed in. | closed: re-walked at 13:36, the frames carry `sid`, the realm's frame answers 200 and clears the tab |
 | D13 | info | On the dev estate the interactive sign-in is the provider's development form, not the front door. | decision 5 |
 | D14 | medium | The last profile lives on sessions only; after signing out everywhere a fresh sign-in pins nothing. | decision 3 |
@@ -326,8 +328,10 @@ below need none either. The rest waits on section 7.
   sign-in); the realm's `/login` runs the check on a live session too (D8);
   a 401 on a revoked session goes to the sign-in (D10, decision 4 assumed
   yes); the Sign landing's silent try (D4, decision 6 assumed yes); D9.
-- **Stage 5, retirement**: the management half landed (`5209896`, addendum
-  5); the realm's half is with WS-B. As briefed: the
+- **Stage 5, retirement**: both halves landed (management `5209896`,
+  consumer `1848f790`; addenda 5 and 7). Left: the core's C5 `open` purpose
+  is still accepted though nothing calls it (a later cut of `handoff.js`).
+  As briefed: the
   hub's workspace links become I4 (a signed pin like the console route, then
   the realm's normal path); `tenant=` and `?db=` retired from `/authorize`
   and the launcher (D7); the C5 open purpose retired, the operator's purpose
@@ -506,3 +510,36 @@ the parent for an organisation just listed, never on a page load or a URL;
 the profile door answers only for the caller's own verified session; `"*"`
 is gone from the realm and `packages/ui`; the timer's limits hold; D4 waits
 up to 8 s without a flash; D8 has no loop; D9 keeps the server-rendered id.
+
+## Addendum 7: stage 5's realm half and the stage 4 review's fixes (WS-B)
+
+Thirteen commits on consumer `dev` and `main`, `1848f790` to `cfdbb998`;
+the record's two sections are in [one-sign-in-ws-b.md](one-sign-in-ws-b.md)
+(records `9035a29`). Suites green before each; the callback suite 44 → 43
+(the retired check door's tests), credential doors 12 → 13, frame documents
+18 → 20, `packages/ui` 296 → 300, the unsigned smoke 23 → 27.
+
+| What | Commit |
+|---|---|
+| Stage 5: the realm reads `tenant=` only beside a handoff `code` (the operator's path unchanged); `db`, `tenant`, `org`, `org_id` stripped from `state`; the launcher removes `?db=` from its URL; the chooser stays on `?local=1` | `1848f790` |
+| Both W1 doors answer 404 `USER_UNKNOWN` for a missing row (D11, D17 now effective) | `9f5d0c57` |
+| D16 waits only when `auth_time` is within 10 s of now | `6d67400d` |
+| The switcher ticks W4's `current`; the refusal page shows it | `dd322d81` |
+| Decision 27: the check frame is one `GET /v1/auth/session` with the cookie (the realm's origin passes the credentialed preflight, Sign's does not); the core's check door retired; L6 and L8 moot | `58103b07` |
+| H1 to L10 (section 3) | `2e69326a` `90fb27fe` `15df55a3` `7076109d` `2671c10a` `b7402d6c` |
+| A D16 verify answer removed once used | `cfdbb998` |
+
+Seen live, unsigned: the check frame answered `login_required` from a single
+session read with no `/oidc/auth` call; a hub-shaped `/login` kept a
+transaction with Sign's callback and its return path and no `db`; the smoke's
+parts A to C and E to G pass. Files outside the stream: the fleet's
+`run-fleet.sh` (granted) and `infra/docker-build/Dockerfile` (the new build
+argument). **For the lead and the owner:** production builds need
+`NEXT_PUBLIC_AUTH_FRAME_ORIGINS` at build time, which the fleet's build now
+derives from its host list; `infra/deploy/rutba-io/fleet/redeploy.sh` line
+428 still carries a `.rutba.pk` suffix for the redirect allowlist (outside
+the grant), and if tenant 1's back office signs in at the fleet's realm its
+hosts must be named one by one. The core still accepts the C5 `open`
+purpose that nothing calls. WS-D is asked to stop answering the raw session
+id on `GET /v1/auth/session`, which the check frame now reads. A second
+consumer reviewer is reading these commits.
