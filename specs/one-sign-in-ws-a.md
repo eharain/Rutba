@@ -485,10 +485,42 @@ it.
 `exists`, as asked. Behind that answer, `recordSub` still rebinds the row to
 the new subject, unchanged from before. Whether a membership repair from
 management may move an address's row to another subject is a decision this
-change did not make.
+change did not make. (Settled as decision 32 below.)
 
 **Consumer checkout:** `git status --porcelain` right after the commit at
 `40579cd8`: empty. Minutes later it showed `M console/api/auth/oidc.js` and
 `M console/api/auth/tests/oidc-callback.test.js`. That is another session's
 D19 work in progress (the realm confirming an invited row at sign-in), not
 WS-A's: it was left untouched and uncommitted.
+
+### Decision 32 at the invite door (2026-09-24, on top of `40579cd8`)
+
+Decision 32 of the review record is built as recommended, pending the owner.
+**When the address's row is confirmed and carries a different `rutba_sub`,
+the door refuses:** 409, with `BOUND_ELSEWHERE` as both the error name and
+`details.code`. Nothing changes and nothing is sent: the row keeps its
+subject and its outstanding link. Management's tell records the code as a
+final state for its operator. The row's own subject is still let in, as
+`exists`.
+
+**An unconfirmed row bound to another subject** has not been proven by
+anybody, so it is still re-bound and re-invited as before. The core now logs
+a line naming the address, the database, the old subject and the new one.
+
+Consumer `a9d0129c` (`console/api/tenants/domain/people.js`, its test and
+its README), on `dev` and `main`, pushed.
+
+**Tests** (17:47 UTC):
+
+- `console/api/tenants/tests/invites.test.js` 8 of 8. The old "keeps today's
+  answer" case became the refusal: 409 `BOUND_ELSEWHERE`, the row identical
+  before and after, no mail, and the row's own subject still `exists`. A new
+  case covers the unconfirmed re-bind and its log line.
+- `console/api/auth/tests` 64 of 64 (callback 46, credential doors 13,
+  break-glass 5).
+- `console/apps/auth/src` 51 of 51 (sign-in helpers 17, frame documents 20,
+  redirect allowlist 14).
+- The bridge suites under the test-only preload are unchanged.
+
+The core reloaded on the commit and answered `ready`. `git status
+--porcelain` in `D:/Rutba2.0/consumer` at `a9d0129c`: empty.
