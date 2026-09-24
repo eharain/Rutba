@@ -18,8 +18,8 @@ the detailed sources. Times are UTC.
 `main`. The dev estate runs these checkouts.
 
 **Still to come in this record**, appended as addenda when they report: the
-release gate (addendum 3: it cannot run here); WS-D's follow-up 4 and WS-B's
-stage 4 as they land.
+release gate (addendum 3: it cannot run here); WS-D's follow-up 4 as it
+lands; WS-B's stage 4 is addendum 4, its review and its walk to follow.
 The journey walk's end is addendum 1; the review of WS-D's follow-ups 2 and
 3 is addendum 2.
 
@@ -283,6 +283,21 @@ under are decisions 20 to 22.
 21. **Five minutes** for the silent check (plan question 2). Confirm.
 22. **A demo instance shows to every member** with its mark (plan question
     3). Confirm, or admins only.
+24. **Break-glass sessions are never cleared by the suite's check** (WS-B
+    question 1): they are not management sessions. Recommend: keep.
+25. **A hub-opened personal-instance session does not move on a switch**
+    until stage 5 retires that path (WS-B question 2). Recommend: accept.
+26. **The five-minute timer skips hidden tabs and catches up on return**
+    (WS-B question 3), as the consoles do. Recommend: accept.
+27. **The check's cost** (WS-B question 4): every check is a `prompt=none`
+    round trip and a code exchange at the core, in every suite tab, every
+    five minutes. Recommend: the realm page reads `GET /v1/auth/session`
+    with the cookie for the periodic check (one request, subject and pin),
+    and `prompt=none` only when the session must be replaced, which goes
+    through `/login` anyway. A follow-up for WS-B.
+28. **The dialog's silent restore works only in production builds** (WS-B
+    question 5): a dev build's hidden frames never hydrate. Recommend:
+    accept; dev walks cannot see it, the README's hydration rule says why.
 23. **The same-password promise (D16).** Either management finishes the
     fan-out before it hands a first-party app its code (a second or two on a
     first sign-in), or the realm waits for it. Recommend the realm side: at
@@ -296,7 +311,8 @@ under are decisions 20 to 22.
 Stages 4 and 5 of the plan are approved work and need no decision; the fixes
 below need none either. The rest waits on section 7.
 
-- **Stage 4, the suite** (one builder in consumer): I5 the switcher in
+- **Stage 4, the suite**: landed, consumer `1643cba0` to `e4a728d5`
+  (addendum 4); its review and its walk are running. As briefed: I5 the switcher in
   `packages/ui`, reusing W4's shape as landed (`GET /v1/auth/orgs`,
   `POST /v1/auth/org/switch { org_id }`, the demo mark); I6 the silent check
   in `AuthContext` (on load, on focus, every five minutes; a changed `sub` or
@@ -404,3 +420,35 @@ syntax-checked and reviewed (addendum 2), not run. Before the gate can gate
 a release again it needs its preflight and harness pointed at Strapi's gates
 and the portal profile, then the operator's password. A round-two item for
 WS-C's owner of `portal/tests/e2e`, or the lead.
+
+## Addendum 4: stage 4 in the suite (WS-B)
+
+Eight commits on consumer `dev` and `main`, `1643cba0` to `e4a728d5`,
+each carrying its own tests; the record is [one-sign-in-ws-b.md](one-sign-in-ws-b.md)
+(records `162d154`). No new dependency, no environment line, no restart.
+
+| What | Commit |
+|---|---|
+| I6 and D8: apps ask management through a hidden frame on the realm's new page `/auth/check` (`prompt=none`; a core door exchanges the code without opening a session; a second door tells an app which person and organisation its own session belongs to). Another person or organisation: the session is replaced through the realm's `/login` and the page reloads; `login_required`: cleared, the sign-in shown; uncertain: nothing; one act per tab per minute. The realm's `/login` re-checks a live session against the pin before handing it on | `1643cba0` |
+| D10: a dead session goes to the realm's sign-in with a return, not "Network Error". **Found on the way:** `/auth/iframe-callback` posted the session token to `"*"`, so any site framing the realm could read it; it now posts only to the allowed app origin named on it | `aefdf3bd` |
+| I5: the switcher in the account chip and the top-bar menu, the launcher included: the current organisation, a persistent demo mark, the list and the choice, all through the realm's new page `/auth/profiles`; the realm's "no account here" and "nothing to open" pages list the person's other organisations | `a175e049` |
+| D4: Sign's landing checks silently before "Sign in" | `7590bd2a` |
+| D9: fixed in the `useSetPageId` hook, so every page that calls it | `534a8dd1` |
+| Smoke parts E to G (unsigned) and a signed-in part D; docs; `packages/ui/README.md` | `6b5e4f8f` |
+| D16: the callback waits up to 3 s (`OIDC_VERIFY_WAIT_MS`) for the fan-out to bind the row, then re-reads; a second-factor sign-in is asked at once; the ID token carries no `auth_time`, so WS-D is asked for `require_auth_time` | `5f15f5cf` |
+| A realm on another site than management: the frames answer `unsupported` and the suite changes nothing there, until decision 10 | `e4a728d5` |
+
+Tests: the callback suite 30 → 44, a new frame-documents suite 18,
+`packages/ui` 272 → 296, `packages/api-client` 37 → 42, the unsigned smoke
+6 → 23 checks; all green. Live, unsigned (14:42 to 14:53): the realm's
+pages framed from a throwaway page answered `login_required` and
+`signed-out` and delivered only to the named origin; the Sign landing
+checked then showed; D9's warning gone; a planted dead session in Sign went
+to the realm and then to management's sign-in with its keys cleared. Not
+walked (a session is needed): a real check keeping or replacing a session,
+a switch and the reload, the switcher in the chrome, journeys 2 and 5, the
+stage 4 gate, D16 with an account. The tester is walking those now; a
+reviewer is reading the commits. Seen in passing: `GET /api/setup/state`
+answers 503 on the break-glass page. Decisions 24 to 28 are WS-B's five
+questions. For production, `NEXT_PUBLIC_AUTH_ALLOWED_REDIRECT_HOSTS` must
+list every suite app host, as `/authorize` already requires.
