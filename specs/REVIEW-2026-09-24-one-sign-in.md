@@ -14,9 +14,9 @@ the detailed sources. Times are UTC.
 
 **Where the code is.** Round one: management `50367fd`, consumer `5d3c36f4`.
 Round two so far: management `cace52f` (follow-ups 4 to 9, stage 5's
-management half, D1, D2 and the members list), consumer `62af024b` (stage 4, stage 5's realm half, both
+management half, D1, D2 and the members list), consumer `c0d4a05b` (stage 4, stage 5's realm half, both
 reviews' fixes, the invite door under retries, the walk's defects, their
-review and its re-check). Both pushed; nothing on GitHub but `dev` and
+review and its re-check, D29). Both pushed; nothing on GitHub but `dev` and
 `main`. The dev estate runs these checkouts.
 
 **Still to come in this record**, appended as addenda when they report: the
@@ -243,7 +243,7 @@ The journey record's D1 to D15, with where each stands now.
 | D26 | medium | A newly invited member arrives in the organisation's instance with no apps (the invite door gives a member none by design), so their first open stops at "You cannot open the suite" until the owner grants an app in the instance's own console; nothing in management tells the owner. | decision 34 |
 | D27 | low | Members told before the tell record existed show no told state, so "told" and "never told" look the same for them. | management `cace52f`: one line under the roster when a non-owner active or invited member has no workspace state |
 | D28 | low | "You are member in …" on the member's view of the organisation page. | management `cace52f` |
-| D29 | low | A periodic check that gets no answer during a restart waits five minutes for the next one; three of four switch-follows in the walk took eight to nine minutes. | WS-B, a sooner retry |
+| D29 | low | A periodic check that gets no answer during a restart waits five minutes for the next one; three of four switch-follows in the walk took eight to nine minutes. | consumer `c0d4a05b`: an automatic check with no answer is asked again after 30 s, at most twice, then the timer; a real answer ends the retries, so an idle tab still costs one request per five minutes; a check that throws counts as no answer; the refusal pages' own check does not retry yet |
 
 ## 7. Decisions for the owner
 
@@ -1221,4 +1221,5 @@ about an instance in any URL, an invitation that reaches the instance and
 a first sign-in that lands in the app once an app is granted. Open for
 round three: decision 34 (what an invitation hands out), decisions 10, 11,
 29, 30 to 33 to confirm, D5, D13, D14, F2, F7's access-token half, the
-release gate brought up to date, the two lows in flight.
+release gate brought up to date. The walk's three lows (D27 to D29) landed
+after the walk (management `cace52f`, consumer `c0d4a05b`), not re-walked.
