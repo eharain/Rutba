@@ -639,4 +639,303 @@ would have made, named where it was so); none was made to a database by hand.
 Auth, management Strapi, the realm and the core all answering; nothing of
 this walk left running.
 
+## Round two walked (2026-09-24, 16:42 to 17:33 UTC)
+
+Stage 4 in the suite ([WS-B's status](one-sign-in-ws-b.md): the switcher in
+every app's chrome, the five-minute check through a hidden realm frame, a dead
+session going to the sign-in, the Sign landing checking silently, D16's wait)
+and stage 5's two halves (the hub's signed `/hub/open/:orgId/:workspace`, no
+`tenant=` and no `?db=`, the W1 doors' 404 `USER_UNKNOWN`, one
+`GET /v1/auth/session` per check, the switcher's tick), walked as round one
+was: headless Edge over its DevTools protocol, one profile per person, a
+screenshot and the hydration check before every verdict (`r3-*.png` in the
+scratchpad's `osi-journeys/`), and a recorder per window logging every
+navigation, frame load and sign-in request with its time (`rec-r3*.log`).
+Each suite app got **its own window**. In one window only the front tab is
+visible: a background tab reported `visibilityState: hidden` (checked at
+15:04), and the check skips hidden tabs by design (WS-B's question 3). The
+console, launcher and Sign each in its own window is the case a person
+looking at all three would be in.
+
+### The estate
+
+| | Start (16:42:45, all four doors answering) | End (17:33) |
+|---|---|---|
+| records | `09fedfc` | `847eed8` (before this commit), porcelain empty |
+| consumer | `cfdbb998` | `2a0dd377`, porcelain empty |
+| management | `7e32e89` | `98d954a`, porcelain **16 files**: another session's work in progress, not this walk's |
+
+Landed during the walk: consumer `43298bad` (16:51, a deploy script),
+`44ec719c` (16:54, the return path), `2a0dd377` (16:57, D16's clock);
+management `e5686a1` (16:57, the session view during an outage), `31f664b`
+(17:11, follow-up 6: D2, instances told until they acknowledge), `24ec0b7`
+(17:15, the organisation page reads auth: D1), `74ec02f` (17:16), `98d954a`
+(17:20). Auth reloaded at 16:58:58, 17:02:31 and 17:08:22. The core
+restarted under nodemon on the consumer commits between 16:51 and 16:58.
+Management Strapi went down again at about 17:29 (auth: `Strapi is
+unavailable`, then `waiting to boot`) and answered again at 17:31:52.
+
+**Which step ran on which build:**
+
+| Step | When (UTC) | Consumer | Management |
+|---|---|---|---|
+| 1 (journey 2) | 16:43 to 17:14 | `cfdbb998` to 16:51, `2a0dd377` from 16:58 | `7e32e89`, then `e5686a1`, then `31f664b` (the 17:13 retest) |
+| 2 (the gate) | 16:46:15 to 16:49:52 | `cfdbb998` | `7e32e89` |
+| 3 (journey 5) | 17:06:54 to 17:16:10 | `2a0dd377` | `e5686a1`; `31f664b` for the reverse at 17:15 |
+| 4 (hub tile, operator) | 17:17:58 | `2a0dd377` | `74ec02f` (auth as at `31f664b`) |
+| 5 (no account there) | fan-out lines 16:43:41, 17:12:08, 17:17:12 | as above | `7e32e89`, `31f664b`, `31f664b` |
+| 6 (D16) | 17:19:26 | `2a0dd377` | `74ec02f` |
+| 7 (idle tab) | 17:20:10 to 17:30:10 | `2a0dd377` | `74ec02f`, `98d954a` from 17:20 |
+
+### Verdicts
+
+| # | Step | Verdict |
+|---|---|---|
+| 1 | Journey 2: the suite follows a switch, and back; the launcher's own switcher | **PARTIAL.** Following to the team: PASS (3 min 20 s and 3 min 37 s, the refusal page listing both with the team "(current)"). Following back: FAIL, a tab left on the refusal page does not check (D25). The launcher's tick: PASS. The console following a switch made in the launcher: PASS (2 min 4 s). The launcher following its own switch: first try waited five minutes during an auth reload (D18); the clean retest moved at once but met D19 |
+| 2 | The stage 4 gate | **PASS.** A switch in the portal console at 16:46:15; Sign followed at 16:49:52, 3 min 37 s, with no action |
+| 3 | Journey 5 both ways | **PASS.** Console sign-out: launcher at the sign-in in 3 min 57 s, Sign on its landing in 4 min 27 s, no "Network Error" (D10 closed). Launcher's "Log out": the console at its sign-in in 50 s |
+| 4 | Hub tile; operator's path | **PASS**, with D21 (the database still rides in the hub's redirect, stripped by the realm). Operator's path unchanged, nothing minted |
+| 5 | "No account there" and the skip | **Fan-out half PASS** (`noRow: 1` first, `skipped` later). **Report SKIPPED:** from 17:12:08 A has a row in the team's instance (follow-up 6) and no other test account lacks a row anywhere, so no "everywhere" change was made and A's password is untouched this round |
+| 6 | D16 with `auth_time` | **Fresh half SKIPPED** (no product door makes a same-password unbound row, as in round one). **Older session:** callback 1,050 ms, no wait, `auth_time` on the token, but no row of the waiting kind existed, so the branch is not proven. D23 |
+| 7 | An idle tab over ten minutes | **PASS.** Two checks, each one frame, one config read and one `GET /v1/auth/session`; no `/oidc/auth`, no reload, the session kept, including through a 503 during a Strapi outage |
+
+### 1. Journey 2 as the acceptance journey words it
+
+- 16:43:38 A's password sign-in at management. Auth, 16:43:41.979:
+  `instances: 2, bound: 1, matched: 0, unmatched: 0, noRow: 1, failed: 0,
+  skipped: 0`. `GET /v1/auth/session` answered `last_org_id:
+  org_abcb44f1c3cf2198` at once and no longer answers the session's id
+  (`session` keys: `amr, created_at, expires_at, last_org_id`). The pin came
+  from A's session of 15:58, which my earlier, interrupted walk left alive when
+  the machine restarted (see "Accounts" below).
+- The portal console "Working in E2E individual A". The launcher in its own
+  window: `individual_dev` (`r3-03-launcher-personal.png`). Sign in its own
+  window: signed in by its silent landing, `individual_dev`, the chip "E2E
+  individual A · Sign Individual · E2E individual A"
+  (`r3-02-sign-personal.png`, hydrated).
+- **16:46:15.033** the switch to "E2E Org2 1543 Ltd" in the portal console
+  (`r3-04-console-switched-140.png`). Hands off. Each window's recorder:
+  - The launcher, **16:49:35**: `/auth/check` framed,
+    `GET http://localhost:4101/v1/auth/session` 200, `[auth] silent check:
+    another organisation is pinned at management`, `/login`, `prompt=none`,
+    the callback 404.
+  - Sign, **16:49:52**: the same.
+
+  Both landed on the realm's page (`r3-05-launcher-after-switch-140.png`,
+  `r3-05-sign-after-switch-140.png`, hydrated): "Your account is not set up
+  here yet … Or work in another of your organisations: E2E individual A,
+  Personal; E2E Org2 1543 Ltd (current), Team". The current row is `disabled`
+  and `aria-current="true"`. Its "(current) Team" is grey on the active blue,
+  hard to read (D22). No hang, no network error.
+- **16:50:58** the switch back to the personal organisation in the console.
+  Neither refusal page moved: the realm's other pages run no periodic check
+  (WS-B's choice), and nothing loaded in either window for 2 min 40 s. At
+  16:53:38 both reloaded, but from a development hot reload (the builder's
+  edits, `[HMR] … isrManifest`), not a check. Their `/login` then met the
+  core restarting: "Rutba sign-in is not answering"
+  (`r3-06-*-after-switch-back.png`). At 16:58:00 "Try again" on each: both
+  back on `individual_dev` (`r3-07-*-after-try-again.png`). A tab left on the
+  refusal page does not follow a later switch (D25).
+- **The launcher's switcher.** The chip's menu lists "E2E individual A,
+  Personal" with `aria-checked="true"` and "E2E Org2 1543 Ltd, Team" with
+  `false`. The tick is on the pinned organisation, read from the menu's
+  markup: the screenshot `r3-08-launcher-switcher-tick.png` is covered by
+  Next's development error overlay (D24).
+  - **16:58:55.322** the team chosen there: `POST /v1/auth/org/switch` 200 at
+    16:58:56.258. The **console followed at 17:00:59** (its check: silent
+    frame, `/auth/profile`, reload), "Working in E2E Org2 1543 Ltd" in its
+    text at 17:01. No screenshot was taken of that landing; the evidence is the
+    recorder and the page text.
+  - The launcher itself reloaded at 16:58:56.639, 47 ms after its check had
+    asked management and before the answer. The load check after the reload
+    asked again at 16:58:57.796 and got no answer: auth was restarting (listening
+    again at 16:58:58.692). The launcher stayed in the personal organisation
+    until its next interval check at **17:03:57**, when it went to the refusal
+    page (`r3-10-launcher-next-check.png`). D18.
+  - **Retest at 17:13:16**, auth steady: the switch 200 at 17:13:17.374, the
+    check at 17:13:17.603 ("another organisation is pinned"), `/login` at once.
+    The callback now answered **200**: `[oidc] signed in through management
+    in sign_e2eorg0145owner12d3 (management usr_2764bbc37cdb69a7)`. Then
+    `GET /api/users/me` 401, `/api/auth/refresh` 200, `/api/users/me` 401,
+    `[login] the session could not be stored Invalid token`, and the page
+    "That sign-in did not finish. The sign-in could not be completed. Please
+    try again." (`r3-13-launcher-chip-switch-retest.png`, behind D24's
+    overlay). D19.
+- **A's row in the team's instance.** A's sign-in at 17:12:06 was after
+  follow-up 6 reached Strapi (17:07). At 17:12:08 the core logged
+  `POST /api/tenants/sign_e2eorg0145owner12d3/invites 201` and the mail "You
+  have been invited to Rutba Suite" to A. Strapi logged `[identity] sign-in
+  re-told 1 membership(s)' instances: {"memberships":1,"told":1,"pending":0,"failed":0}`.
+  So: before 17:12 I saw the "no account here" page, and from 17:12 A has a
+  row. That row is unconfirmed until A accepts the instance's invitation. The
+  core logs only the mail's recipient and subject, not its link, so it cannot
+  be accepted on the dev estate, and a switch to the team cannot land A in
+  Sign as the team (D19). At A's next sign-in (17:17:10) the hub shows
+  "Rutba Sign Live · E2E Org2 1543 Ltd" with no "Not yet told you are a
+  member" (`r3-16-A-hub-after-retell.png`).
+
+### 3. Journey 5 again
+
+- **17:06:54.092** "Sign out" in the portal console: `/oidc/session/end`,
+  confirmed by itself; `session revoked` `ses_9c79…` at 17:06:55.152; frames
+  at 4111, 4118 and 4003 with `iss` and `sid`. Hands off.
+  - The launcher, **17:10:51**: `GET /v1/auth/session` 401, `[auth] silent
+    check: nobody is signed in at management`, `POST /api/auth/logout` 200,
+    `/authorize`, then management's sign-in.
+  - Sign, **17:11:21**: the same, then its landing, "Rutba Sign … Sign in"
+    (`r3-12-*-after-console-signout.png`).
+
+  **No "Network Error" anywhere** (D10 closed). The launcher's own window was
+  not cleared by the realm's frame, because the frame ran in the console's
+  window and a session in another window's sessionStorage is out of its
+  reach. So the check did the work, as I6 intends.
+- **17:15:20.767** "Log out" in the launcher's menu (A signed in again at
+  17:12:06): `ses_81c4…` revoked at 17:15:22.159. The page: "You are signed
+  out" (`r3-14-launcher-logout.png`). The **console reached its sign-in at
+  17:16:10**, 50 s later: its cookies had been cleared by the front-channel
+  frame, and its next render went to `/auth/signin` and on to auth's
+  `/signin` (`r3-15-console-after-launcher-logout.png`).
+
+### 4. A hub workspace tile, and the operator's path
+
+- 17:17:55 the owner's password sign-in; 17:17:58 "Rutba Sign Live" is
+  `/hub/open/org_c2791c709b12b1fb/zdg5mmxff0t3adg44ptjatww?t=…`. The chain:
+  1. 303 to `http://localhost:4003/login?redirect_uri=http%3A%2F%2Flocalhost%3A4003%2Fauth%2Fcallback&state=%2F%3Fdb%3Dsign_e2eorg0145owner12d3`.
+  2. The hidden frame's `prompt=none` at `/oidc/auth` (client
+     `consumer-realm`), 303 to `/auth/callback?code=…`.
+  3. `POST /api/auth/oidc/callback` 200.
+  4. The relay.
+  5. **`http://localhost:4003/`**, no `?db=`, the session's `db`
+     `sign_e2eorg0145owner12d3`, the chip "E2E Org Owner · Auth Admin · E2E
+     Org2 1543 Ltd" (`r3-18-owner-tile-landing.png`, hydrated).
+
+  No `tenant`, no `code`, no `login_hint` anywhere. **One URL still names the
+  instance's database**: the `state` on the hub's redirect. The instance
+  record's address carries the provisioner's `?db=`, which management's
+  `stateOf` passes on as the page to return to. The realm strips it before
+  landing (D21).
+- The operator's path, read only: no commit in either repository since
+  round one touches it. The core's `purpose === 'operate'` branch
+  (`console/api/auth/handoff.js` lines 511-512, `resolveForOperate` at 367) and
+  `/authorize` reading `tenant` only beside a handoff `code` (lines 150-158)
+  are as recorded then. Management keeps the C5 bridge for it alone
+  (`5209896`). Nothing minted.
+
+### 5. "No account there", and the skip
+
+- A's first sign-in, 16:43:41.979: `noRow: 1`. The team's instance answered
+  the new 404 `USER_UNKNOWN`, now its own kind.
+- 17:12:08: `noRow: 1, skipped: 0` again. Auth had restarted three times since
+  16:43 (16:58:58, 17:02:31, 17:08:22), and its hour-long memory is in the
+  process.
+- 17:17:12, five minutes later: `instances: 2, bound: 0, matched: 0,
+  unmatched: 0, noRow: 0, failed: 0, skipped: 2`. The team's instance was
+  skipped on the no-row memory of 17:12:08, although management had created
+  A's row there in the same second (D20).
+- The report itself ("No account there" on the account page) was **not
+  walked**. From 17:12:08 A has a row in the team's instance, B and C hold only
+  their personal organisation (bound rows on `individual_dev`), and the owner
+  has a row. No test account without a row in some instance remains, so no
+  "everywhere" change was made. A's password is `E2e-ind-a-pass-1`,
+  unchanged this round.
+
+### 6. D16 with `auth_time`
+
+- A fresh sign-in with a same-password unbound row: **skipped**, for the
+  reason round one gave. The individual instance's public registration
+  (`POST /api/auth/local/register`, individual mode) resolves its database
+  only from an edge-verified domain header, which needs the edge key; no page
+  registers into `individual_dev`; and no database was to be written by hand.
+- An older session: the owner signed in at 17:17:55, then the realm's
+  `/login` in a fresh tab at 17:19:26. The core:
+  `POST /api/auth/oidc/callback 200` in **1,050 ms**, no 3 s wait. The realm's
+  kept ID token decodes to `auth_time` 17:17:55.000Z (the management sign-in)
+  and `iat` 17:19:30.000Z. Its claims are `sub, org, sid, auth_time, nonce,
+  aud, exp, iat, iss`, with **no `amr`** (D23). The owner's row is bound, so
+  the wait branch never applied: this shows the callback did not wait, not
+  that `auth_time` stopped a wait.
+
+### 7. A real check keeping a session
+
+The owner's launcher tab, visible, idle from 17:20:10 to 17:30:10
+(`rec-r3idle.log`):
+
+- **0 main navigations and 2 frame loads**, both `/auth/check`, at 17:24:32
+  and 17:29:32.
+- **2 × `GET /api/auth/oidc/config` and 2 × `GET
+  http://localhost:4101/v1/auth/session`**, no `/oidc/auth`, no reload.
+- The first read answered 200 (17:24:33.550). The second answered **503**
+  after 7.5 s (17:29:41.046): management Strapi had gone down (auth, 17:29:25,
+  `Strapi is unavailable`; 17:29:41, `The organisations could not be read
+  just now`).
+- The session was kept (`db` `sign_e2eorg0145owner12d3` at 17:30:25,
+  `r3-19-idle-tab-after-ten-minutes.png`). An uncertain answer changes
+  nothing, as designed.
+
+### Also seen, from the walk the restart interrupted (15:02 to 15:58)
+
+On consumer `e4a728d5` to `cfdbb998` and management `a3eaabc`, the same
+journeys were half walked before the machine restarted and the session that
+started this walk was lost. Nothing below changes a verdict above:
+
+- 15:06:31 a console switch was followed by the launcher at 15:10:01 and Sign
+  at 15:10:25. At that build a check was an `/auth/check` frame running
+  `prompt=none` and `POST /api/auth/oidc/check`, before decision 27. Sign's
+  refusal page, reached at 15:10:27 during an auth reload, showed no list of
+  organisations; the launcher's did.
+- An idle 15:19 to 15:29 window kept both sessions (two checks each).
+- A Sign tab opened in the background of another window stayed on "Checking
+  your session… Taking longer than it should" while hidden. When brought
+  forward at 15:50, after a sign-out elsewhere, it went to management's
+  sign-in.
+- The owner's hub tile at 15:20 carried the same `state=/?db=…` (D21) and
+  landed on `http://localhost:4003/` signed in as the team.
+
+### Defects found in round two
+
+| # | Severity | What | Where |
+|---|---|---|---|
+| D18 | low | After a switch in an app's own switcher, the app reloads whenever its immediate check answers anything but "replace", including "no answer yet" or an error. If the check after the reload is also uncertain, the app stays in the old organisation until the next five-minute check. Seen when auth reloaded mid-switch (16:58:55 to 17:03:57); with auth steady (17:13) the switch moved the app at once. | `consumer/packages/ui/components/ProfileSwitcher.js` lines 60-61; `context/AuthContext.js` line 632 (`shouldCheck` answers nothing while a check is in flight) and 643 (the one-act-per-minute guard on non-manual checks) |
+| D19 | high | The realm signs a person into a row it then cannot use. Management's re-tell (follow-up 6) creates the member's row through the C7 invite door with `rutba_sub` set and `confirmed` false. The callback finds it by subject and checks only `blocked`, so it mints a session. The core refuses every token of an unconfirmed row ("User blocked or unconfirmed"). The person sees "That sign-in did not finish … Please try again" and never learns to accept the instance's invitation, whose link the dev estate's mail log does not show. | `consumer/console/api/auth/oidc.js` lines 538-542 (`findPerson`, the `rutba_sub` branch); `consumer/api/core/src/http/auth.js` line 118 |
+| D20 | low | The fan-out's hour-long "no row" memory outlives the row management creates at the same sign-in. At 17:12:08 the verify answered 404 while the re-tell made A's row in that same second; A's next sign-in (17:17:12) skipped the instance, and will for an hour. | `management/auth/src/domain/identity/instance-credentials.js` (the no-row memory, `NO_ROW_TTL_MS`); the re-tell in `management/api/legacy/strapi/src/api/account/services/identity.js` |
+| D21 | low | The instance's database name still travels in a URL: the hub's 303 to the realm's `/login` carries `state=/?db=sign_e2eorg0145owner12d3`, from the instance record's address. The realm strips it before landing, so the launcher's URL is clean. | `management/auth/src/domain/hub/doors.js` lines 55-58 (`stateOf` passes the address's query on); the provisioner's record `url` |
+| D22 | low | On the realm's refusal page the current organisation's row reads "(current) Team" in grey on the active blue background, hard to read. | `consumer/console/apps/auth/components/SignInOutcome.js` line 199 |
+| D23 | low | The realm's ID token carries no `amr`, so D16's rule "a sign-in with a second factor is asked at once" never fires. A second-factor person whose row asks would wait the full `OIDC_VERIFY_WAIT_MS` first. | `consumer/console/api/auth/oidc.js` lines 601-603 (reads `idClaims.amr`); management's ID token claims for first-party clients |
+| D24 | low | The realm's `/login` does not hydrate cleanly: the server renders `SignInShell` as `auth-gate` with `--app-accent`, the client as `si-shell`. In development Next's overlay ("Hydration failed …", 1 issue) covers the page, which hid the switcher and the refusal page in two of this walk's screenshots. | `consumer/console/apps/auth/components/SignInShell.js` line 40 |
+| D25 | medium | A tab left on the realm's refusal page ("no account here" or "nothing to open") does not follow a later switch. The realm's other pages run no periodic check, so the tab stays refused until the person presses "Try again" or picks an organisation there. Seen 16:50:58 to 16:53:38 (then a development reload) and at 15:12 in the interrupted walk. | the realm's `/login` refusal (`consumer/console/apps/auth/components/SignInOutcome.js`); WS-B's choice "the realm's other pages run no periodic check (launcher only)" |
+
+Known and not re-counted: the portal console's organisation page (D1) was
+fixed by management `24ec0b7` during the walk and was not re-walked. B and C
+did not sign in this round, so the "reinvited" finding (the review record's
+addendum 14, M2) did not arise here.
+
+### Accounts, rows and sessions in round two
+
+- **A**: a row in `sign_e2eorg0145owner12d3` now exists, **made by the
+  product** at A's 17:12:06 sign-in (management's re-tell through the C7
+  invite door; the instance's invitation mail to A in the core's log), bound
+  by `rutba_sub`, unconfirmed. Nothing else about A changed; A's password was
+  not changed this round.
+- **Sessions:** at 17:32:31 `POST /v1/auth/logout-all` as A revoked 2
+  sessions (the walk's and the 15:58 one the restart had left alive). At
+  17:32:34 the same as the owner revoked **4**: the walk's, the one the restart
+  had left from 15:19, and two this record cannot place, possibly another
+  session's use of the shared owner account, which that call will have signed
+  out. Both then answered 401 `SESSION_REQUIRED`. B
+  and C held no session this round. Realm sessions in `individual_dev` and
+  `sign_e2eorg0145owner12d3` from this walk were ended by the checks and
+  logouts above or left to expire.
+- **Processes:** the portal console on 4118, two headless browsers
+  (debugging ports 9331 and 9332) and the recorders: all stopped at 17:33;
+  nothing listening on those ports.
+
+### Questions for the owner (round two)
+
+8. **An invited, unconfirmed row** (D19): when management vouches for the
+   address, should the realm's first sign-in confirm the row (the invitation
+   accepted by signing in through Rutba), or refuse with a code that says
+   "accept the invitation from <organisation> first"?
+9. **The refusal page** (D25): should it run the same check as the launcher,
+   so a tab parked there follows the person's next switch?
+
 STATUS DONE
