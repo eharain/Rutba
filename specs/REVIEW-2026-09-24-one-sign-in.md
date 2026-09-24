@@ -24,8 +24,8 @@ and WS-D's follow-up 4 addendum 5; the stage 4 review is addendum 6 and
 its fixes with stage 5's realm half addendum 7; WS-D's follow-up 5 is
 addendum 8, the second consumer review addendum 9 and the session route's
 outage fix addendum 10, WS-B's last lows addendum 11, D2 addendum 12, D1
-addendum 13, the review of D2 addendum 14; the round-two walk and the
-review of D1 to follow.
+addendum 13, the reviews of D2 and D1 addenda 14 and 15; the round-two
+walk and the fix passes to follow.
 The journey walk's end is addendum 1; the review of WS-D's follow-ups 2 and
 3 is addendum 2.
 
@@ -149,6 +149,8 @@ WS-D as follow-up 4:
 | WS-D | during an outage `GET /v1/auth/session` could answer 401 (a coded refusal from the gate), 400, or 200 with no organisation, which the check frame reads as signed out or as a change of organisation | medium | `e5686a1`: every failed read is 503; 401 only when the store answered |
 | WS-D | D2's M1 tells for one membership are not serialised across the schedule, the sign-in repair and a re-invite; M3 a pass has no time budget; L4 retry or final by status alone; L5 instance names and raw errors reach the administrator's page; L6 the hub's wording | medium | WS-D follow-up 8 (in progress) |
 | WS-A | D2's M2 the core's invite door re-mails a row bound but never confirmed, so the first sign-in after deploy mails every such row; and it is idempotent only one call at a time (no unique address index) | medium | WS-A (in progress) |
+| WS-C | D1's M1 a re-invite's `retold` outcome is shown as "we have emailed an invitation"; L2 checkout's confirm button drawn with nothing pinned; L3 the invite form promises role changes and removal no door supports; L5 stale `roles.ts` | medium | WS-C (in progress) |
+| WS-D | the staff person page prints full raw session ids from auth's internal sessions route | low | WS-D, with follow-up 8 |
 
 ## 4. The journeys
 
@@ -780,3 +782,36 @@ never-confirmed or missing rows; the tile stays a link; the schedule adds
 no lookup door and calls with the same service token the first invite
 always used. Files outside the named code: the membership schema, the
 membership events, the registry, auth's README and its fake Strapi.
+
+## Addendum 15: the review of D1
+
+Read-only at management `98d954a`; `@rutba/portal-session` 50, the portal
+console 29, none skipped; `tsc` clean for the portal console, the
+management console and the package; nothing walked signed in (the dev
+server on 4118 refused connections during the review).
+
+**Sound:** the role comes from a token auth mints per request from the
+console's cookie, decoded server-side with nothing from the browser, and
+the page decides on the server; Strapi's own rule (portal owner or admin)
+matches the page's, so a member posting the action directly gets 403; the
+organisation id comes from the token, the form carries only address and
+role, owner is impossible on both ends, auth down shows a fixed sentence,
+the only redirect is fixed; nothing imports the removed clients; checkout
+bills the pinned profile, reads its price from the catalogue and refuses
+to show one it cannot read; nothing reads `sid` from the session view;
+`tokenRoles` fails closed on every malformed input; no lookups beyond the
+invite by address; one row of `console/README.md` outside the stream.
+
+**Found:** M1 a re-invite's `retold` outcome (management `31f664b`,
+landed before this build) falls to the default case and tells the
+administrator a mail was sent that never was; the page also says everyone
+invited is mailed at once. L2 checkout draws the confirm button with no
+organisation pinned (the action refuses, nothing is billed). L3 the invite
+form promises role changes and removal, which no door supports now. L5
+stale code and header in `roles.ts`. Info: the action relies on Strapi's
+role check (enough), with `portal:platform-admin` counted by the page and
+not by Strapi; invite outcomes tell a team admin whether an address holds
+an account, limited to 30 an hour per inviter (pre-existing). All with
+WS-C. Info, for WS-D: the management console's staff person page prints
+full raw session ids from auth's internal sessions route, which by F7's
+reasoning are credentials; auth should answer a display prefix or digest.
