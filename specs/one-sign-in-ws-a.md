@@ -415,3 +415,76 @@ test-only preload as recorded in follow-up 2 (handoff 24 of 24).
 
 **Consumer checkout:** `git status --porcelain` at `5d3c36f4`: empty. `dev`
 and `main` are both at `5d3c36f4` on `origin`.
+
+## The invite door under management's retries (2026-09-24)
+
+Management now tells an organisation's instance about a member on a
+scheduled retry until it acknowledges, and repairs untold memberships at the
+person's next sign-in (management `31f664b`, D2). So `POST
+/api/tenants/:db/invites` (`console/api/tenants/domain/people.js`) is called
+again and again, and sometimes concurrently, for one address. Both items are
+in consumer `40579cd8`, on `dev` and `main`, pushed; one commit, because
+the two fixes share the new creation path.
+
+1. **A row bound to the same subject is `exists`, and gets no mail.**
+   Before, a row bound by `rutba_sub` but never confirmed answered
+   `reinvited`, which mailed a new set-password link and overwrote any
+   outstanding one. A person who only ever signs in through management keeps
+   such a row, so every one of them would have got a spurious "You have been
+   invited" mail at the first sign-in after the deploy. Now a row already
+   bound to the same `rutba_sub` answers `exists` and nothing is mailed,
+   confirmed or not, and the outstanding link is left as it was. A confirmed
+   row bound to another subject keeps its answer, `exists`, with no mail.
+   Both are tested, and so is a third case: an unconfirmed row with no subject
+   is still `reinvited`.
+2. **A new person is created once.** The door no longer creates the row
+   through `userService.add` and then records the subject. It inserts the row
+   with its `rutba_sub`, under the column's existing unique index
+   (`ON CONFLICT (rutba_sub) DO NOTHING` on Postgres and SQLite, `INSERT
+   IGNORE` on MySQL, through knex's `onConflict().ignore()`). Of two creations
+   racing in two processes, one inserts. The other inserts nothing, finds the
+   row by its subject and answers `exists`: no mail, no second row, no
+   `SUBJECT_TAKEN` and no 500. Within one core, invitations for one address in
+   one database also run one at a time, and that also covers an invitation
+   that names no subject.
+
+   **Why not a unique index on the address, with a migration?**
+   users-permissions allows one address under several providers. A live
+   instance that already holds two rows for an address could only take such an
+   index after those rows were rewritten, which the lead ruled out. The
+   subject's index already exists in every tenant (migrations 112 and 114), so
+   no ordinal was taken.
+
+   **The limit that remains:** an invitation that names no subject, racing
+   another in a second core process against the same database, is kept to one
+   row by nothing but that process's own queue. Management's calls always name
+   the subject.
+
+**Tests:** `console/api/tenants/tests/invites.test.js`, 7 of 7 (new). It
+includes two invitations for one new address at once, which leave one row,
+one `invited` and one `exists`, and one mail. It also runs three at once
+with the in-process queue switched off, as two processes would: the index
+alone leaves one row, one `invited`, two `exists` and one mail.
+
+The other suites, run at 17:39 UTC, now include what other sessions added
+since:
+
+- `console/api/auth/tests`: 62 of 62 (callback 44, credential doors 13,
+  break-glass 5);
+- `console/apps/auth/src`: 49 of 49 (sign-in helpers 15, frame documents 20,
+  redirect allowlist 14);
+- the bridge suites under the test-only preload, unchanged.
+
+The core reloaded under nodemon on the commit and answered `ready`, with its
+config door at 200. `console/api/tenants/scripts/smoke-tenants-door.js` was
+not run: it creates and drops databases on the dev MySQL server. Its own
+re-invitation check invites without a subject, so the change does not touch
+it.
+
+**For the lead:** a confirmed row bound to another subject still answers
+`exists`, as asked. Behind that answer, `recordSub` still rebinds the row to
+the new subject, unchanged from before. Whether a membership repair from
+management may move an address's row to another subject is a decision this
+change did not make.
+
+**Consumer checkout:** `git status --porcelain` at `40579cd8`: empty.
