@@ -1104,3 +1104,26 @@ unchanged at unit 378, integration 328, perf 5.
   'reset'` mark, so the organisation's later instances reach them as they
   reach anybody. Test: after the re-invite the mark is null, the instance
   held back is `told`, and an instance recorded later is told to them.
+
+**Round three walk, D30, D34, D35 (`426899b`, pushed; `origin` `dev` and
+`main` at it).** One commit with tests. Strapi 143 of 143; auth unit 378,
+integration 328, perf 5. Nothing skipped.
+
+- **D30:** a reset that no instance knows about now leaves one line in
+  Strapi's log: "a reset for an address with no account (address
+  `<digest>`): no instance knows it; nothing was mailed". The "mailed" and
+  "asked no instance" lines carry the same digest (sixteen hex characters of
+  the SHA-256, the same as auth's `password request` line). None of them
+  carries the address.
+- **D34:** the set-password page (`new=1`) no longer shows the authenticator
+  field or the "Everywhere / Only here" choice. An ordinary reset page keeps
+  both.
+- **D35:** the ordinary registration path asks the name on the signup form.
+  It gives a personal organisation only at onboarding, and only to somebody
+  who belongs to no organisation. A reset-made account already belongs to the
+  instance's organisation, so registration would not have given it a personal
+  organisation either. The smaller fix was taken: **the set-password page
+  asks "Your name"** (optional). It is carried as `name` through the page, or
+  `POST /v1/auth/password/reset`, to Strapi's `resetPassword`, which sets it
+  on the account it makes. No personal organisation is made. The hub then
+  greets the person by that name.
