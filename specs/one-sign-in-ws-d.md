@@ -542,3 +542,52 @@ production.
 
 `git status --porcelain` in `D:/Rutba2.0/management` on `dev` at `a3eaabc`,
 15:10 UTC: empty.
+
+## Round one, follow-up 5 (2026-09-24, 16:40 UTC)
+
+From the lead, passing on a request from the suite's builder. The realm's
+check frame reads `GET /v1/auth/session` with the cookie every five minutes
+(consumer `58103b07`, decision 27). That answer carried management's raw
+session id, `session.sid`, which is the credential `X-Rutba-Session`
+accepts, into a page script on every check. This is F7's front-channel
+half. The access-token half stays open (decision 11). One commit on
+management `dev`, fast-forwarded to `main` and pushed. `origin` holds both
+at `7e32e89`.
+
+| What | Commit |
+|---|---|
+| `GET /v1/auth/session` no longer answers the session id, raw or derived. It answers `user`, `session` (`amr`, `created_at`, `expires_at`, `last_org_id` with the fallback applied), `org` and `organizations`. The answers to a caller that has just authenticated still carry it: sign-in, the second factor's verify and step-up, and the handoff exchange for a site's server. The README says so. | `7e32e89` |
+
+### Who reads what
+
+- **The consoles** send the id as the cookie, so they already hold it, and
+  none read it back from this route. `@rutba/portal-session` (`lookupSession`,
+  and `profileHandler` for the watch) reads `user.user_id`, `org`,
+  `session.last_org_id` and `organizations`. The portal console's checkout
+  reads `organizations`. Three response types still declare `sid: string`
+  on this route: `packages/session/src/index.ts:61`,
+  `console/portal-console/src/lib/auth-api.ts:193` and
+  `console/management-console/src/lib/auth-api.ts:172`. Nothing reads the
+  field. They are not this stream's files, so they were left as they are.
+- **The hub** never calls the route. It resolves the session from the
+  cookie through the session store.
+- **The provisioning walkthrough** takes its id from `POST /v1/auth/login`,
+  which still answers it.
+- **The auth tests** that read the id from this route now take it from the
+  cookie they hold. A new case in `identity-flow` checks that the id appears
+  nowhere in the answer.
+
+### Tests (16:40 to 16:42 UTC, at `7e32e89`, against the suites' own fakes, not the estate)
+
+| Suite | After follow-up 4 | After follow-up 5 |
+|---|---|---|
+| `npm run test:unit` | 370 | 370 of 370 |
+| `npm run test:integration` | 293 | 294 of 294 |
+| `npm run test:perf` | 5 | 5 of 5 |
+
+Nothing skipped.
+
+### Requests
+
+- **WS-C:** drop `sid` from those three response types, or make it
+  optional.
