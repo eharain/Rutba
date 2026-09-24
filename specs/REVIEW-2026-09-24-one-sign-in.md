@@ -18,8 +18,8 @@ the detailed sources. Times are UTC.
 `main`. The dev estate runs these checkouts.
 
 **Still to come in this record**, appended as addenda when they report: the
-review of WS-D's follow-ups 2 and 3 (running); the journey tester's last walk (journey 7's C half, journey 5 with both halves
-of D12 on the estate, and W2's skip after auth's restart); the release gate.
+review of WS-D's follow-ups 2 and 3 (running); the release gate (running).
+The journey walk's end is addendum 1.
 
 ## 1. What landed
 
@@ -86,9 +86,9 @@ console 13 → 17, management console 64 → 74, partners 10 → 13, Relay 161 �
 | I4 the realm as relying party | landed on the normal path; the C5 handoff (the hub's workspace links) still names the database on `/authorize` and `?db=` (D7, stage 5) | journeys 1, 2, 3, 7 |
 | I5 the switcher | landed in the four consoles; not in the suite (stage 4) | journeys 2, 4 |
 | I6 stickiness | landed in the consoles (silent check, confirm, resync); not in the suite: a suite tab keeps its profile until its session ends (D8), a revoked session reads as a network fault (D10) | journey 2 (the console half), journey 5 |
-| I7 sign-out | landed both sides: end-session with the hint, frames on five origins, the hub's own sign-out; the realm's frame requires `iss` and `sid` and management's frames now carry both, not yet seen together on the estate (D12) | journey 5 (as walked before `sid`) |
+| I7 sign-out | landed both sides: end-session with the hint, frames on five origins, the hub's own sign-out; the realm's frame requires `iss` and `sid`, management's frames carry both, and a console sign-out cleared a realm tab at 13:36 (D12 closed) | journey 5, walked twice |
 | I8 break-glass | landed: `?local=1` only, `amr ['instance-password']`, logged; the operator's handoff unchanged | journey 6 |
-| I9 context passwords | landed: the fan-out binds a same password silently; a different one is asked once at the realm, five tries, then bound | journey 7 B (asked once, bound, silent after); C not yet walked |
+| I9 context passwords | landed: the fan-out binds a same password silently; a different one is asked once at the realm, five tries, then bound | journey 7: B asked once, bound, never again, silently or after a full sign-out; C, same password, not asked, but on a 0.4 s race between the fan-out and the callback (D16) |
 | I10 password change | landed: everywhere (bound instances changed in one act, reported) or only here (warned); a change at the instance's own form marks and mails; "everywhere" now needs a recent sign-in and the second factor (F3) | journey 8 |
 
 ## 3. The reviews and the fixes
@@ -139,10 +139,10 @@ test accounts' passwords only. Full detail, evidence names and log lines in
 | 2 | Two organisations; switch in the console, the realm's apps follow | **FAIL as worded**, expected: the console half works; the suite does not follow a switch until stage 4 (D8); the setup found D1 and D2 |
 | 3 | Stale `tenant=` ignored | **PASS** |
 | 4 | Fresh sign-in lands in the last profile; switcher lists both | **PASS**, caveat: the memory lives on another live session (D14) |
-| 5 | Sign-out reaches every app | **PASS** for the consoles and the realm as walked; other suite apps are not reached (D10); the realm's frame and management's `sid` had not both landed (D12) |
+| 5 | Sign-out reaches every app | **PASS** for the consoles and the realm, walked at 12:21 and again at 13:36 on the current build (D12 closed); other suite apps are not reached (D10) |
 | 6 | Break-glass and the operator's path | **PASS** |
-| 7 | Context password asked once; same password never asked | B **PASS**; C **blocked** by the estate (section 5), to be walked |
-| 8 | Password change everywhere, then only here | **PASS** at management and at the instance's own door |
+| 7 | Context password asked once; same password never asked | **PASS**: B asked once, bound, never again; C not asked, on a race (D16) |
+| 8 | Password change everywhere, then only here | **PASS** at management, at the instance's own door and on the `?local=1` page (13:36) |
 
 ## 5. The estate during the round
 
@@ -193,10 +193,12 @@ The journey record's D1 to D15, with where each stands now.
 | D9 | low | The realm's sign-in page logs a render-phase update from the page-id hook. | open, WS-A round two |
 | D10 | medium | A suite app on a revoked session shows "Network Error" instead of the sign-in. | stage 4; decision 4 for the interim |
 | D11 | low | The "everywhere" report counts an instance where the person has no row as "will ask once"; nothing will ever ask. | open, WS-D round two |
-| D12 | high | Between consumer `1622d80c` (12:25) and management `50d064a` (12:44) a sign-out left every realm tab signed in. | both halves landed; the live re-walk is the tester's last item |
+| D12 | high | Between consumer `1622d80c` (12:25) and management `50d064a` (12:44) a sign-out left every realm tab signed in. | closed: re-walked at 13:36, the frames carry `sid`, the realm's frame answers 200 and clears the tab |
 | D13 | info | On the dev estate the interactive sign-in is the provider's development form, not the front door. | decision 5 |
 | D14 | medium | The last profile lives on sessions only; after signing out everywhere a fresh sign-in pins nothing. | decision 3 |
 | D15 | high | The estate's build directories removed under the running apps. | cause found (section 5); rebuilt; a memory note for the lead |
+| D16 | medium | I9's "same password, never asked" rests on a race: the sign-in fan-out is fired and forgotten after the sign-in answers, and the realm's code exchange does not wait for it; C was spared the prompt by 0.4 s. A slow or dropped fan-out shows a same-password person the prompt for the password just typed. | decision 23; the realm-side wait is being built by WS-B |
+| D17 | info | An instance where the person has no row is asked again at every password sign-in and never remembered; each ask spends one of the W1 door's ten verifies per address per fifteen minutes. | open, WS-D round two, with D11 |
 
 ## 7. Decisions for the owner
 
@@ -272,6 +274,13 @@ under are decisions 20 to 22.
 21. **Five minutes** for the silent check (plan question 2). Confirm.
 22. **A demo instance shows to every member** with its mark (plan question
     3). Confirm, or admins only.
+23. **The same-password promise (D16).** Either management finishes the
+    fan-out before it hands a first-party app its code (a second or two on a
+    first sign-in), or the realm waits for it. Recommend the realm side: at
+    the callback, a bounded wait of about three seconds for the fan-out's
+    verify to arrive at the same core, then one re-read of the row before
+    the prompt; management's sign-in keeps not waiting. WS-B is building that
+    under this assumption.
 
 ## 8. Round two
 
@@ -291,8 +300,9 @@ below need none either. The rest waits on section 7.
   the realm's normal path); `tenant=` and `?db=` retired from `/authorize`
   and the launcher (D7); the C5 open purpose retired, the operator's purpose
   kept; the chooser reachable from `?local=1` only, as now.
-- **Fixes without a decision:** D11 (`USER_UNKNOWN` is not "unbound");
-  `@rutba/estate-map`'s
+- **Fixes without a decision:** D16 (the realm's bounded wait, WS-B, in
+  progress); D11 (`USER_UNKNOWN` is not "unbound") and D17 (remember "no
+  row" beside "bound"), WS-D; `@rutba/estate-map`'s
   `consoleSignInHref(..., { org })` still builds `org=` and nothing asks for
   it any more; D5.
 - **After the decisions:** D1, D2, D14, D13, F2's choice, F7, the brakes'
@@ -303,3 +313,28 @@ below need none either. The rest waits on section 7.
   (WS-C's request 3); the first-party list and the client ids in the
   production environments; auth's `OIDC_COOKIE_KEYS`; tenant 1's realm on
   its own domain needs decision 10 first.
+
+## Addendum 1: the journey walk's end (13:30 to 13:40)
+
+The tester finished what had waited on the estate, against management
+`50367fd` and consumer `5d3c36f4`; the record is at records `d5597f7`.
+
+- **Journey 7, C** (13:31): C's password typed at management; the core's
+  W1 verify bound C's row at 13:31:04.93, the realm's callback came at
+  13:31:05.33, no context-password page. Right answer, by a 0.4 s margin
+  (D16). **Journey 7, B** (13:35): a full sign-out, then a sign-in through
+  the realm: no prompt. Asked once, never again.
+- **Journey 5 re-walked** (13:36): B's hub sign-out framed five origins with
+  `iss` and `sid`; C's console sign-out revoked the session and the realm's
+  frame answered 200 and cleared the tab; the launcher then went to
+  management's sign-in. D12 closed.
+- **Journey 8** (13:36): the `?local=1` page itself took A's restored
+  password.
+- **The fan-out's memory (F4, seen live).** Auth restarted at 13:30 with an
+  empty memory. Two password sign-ins as A a minute apart: the first asked
+  both instances (`bound: 1, unmatched: 1, skipped: 0`); the second skipped
+  `individual_dev` as known bound and asked only the team's instance, where
+  A has no row (`unmatched: 1, skipped: 1`). D17 is that second ask.
+- **Accounts left:** A a member of the team organisation with no row in its
+  instance (D2), restored to its original password; B and C new management
+  accounts, each `individual_dev` row bound; every test session signed out.
