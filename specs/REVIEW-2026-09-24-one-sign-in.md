@@ -19,8 +19,8 @@ half), consumer `e4a728d5` (stage 4), with stage 5's realm half in progress. Bot
 
 **Still to come in this record**, appended as addenda when they report: the
 release gate (addendum 3: it cannot run here); WS-B's stage 4 is addendum 4
-and WS-D's follow-up 4 addendum 5; the stage 4 review, its walk and the
-realm's half of stage 5 to follow.
+and WS-D's follow-up 4 addendum 5; the stage 4 review is addendum 6; its
+walk and the realm's half of stage 5 to follow.
 The journey walk's end is addendum 1; the review of WS-D's follow-ups 2 and
 3 is addendum 2.
 
@@ -135,6 +135,11 @@ WS-D as follow-up 4:
 | WS-D | G2 an old ID token of the signed-in person still signs them out without the question: the hint names the `sub`, not the session, and expiry is ignored | low | `fc62b0f`: the hint's `sid` must be this session's |
 | WS-D | G3 in production an instance with an http door drops out of the change report silently | low | `024a0a6`: reported as `insecure_door`, never called |
 | WS-D | G4 a disabled listed client's origin stays trusted for CORS, the write guard, `form-action` and the logout frame | low | `47d90d2`: trust set at boot from the register |
+| WS-B | H1 the realm's frame pages and its token relay trust the redirect allowlist, whose production suffixes (`.shop.rutba.io`, `.rutba.pk` and the like) match the storefront hosts, where merchants paste unchecked HTML: a merchant's script can take a signed-in visitor's realm token, list their organisations and switch their pinned one | **high** | WS-B follow-up (in progress) |
+| WS-B | M2 D16's slow path still marks the password as the row's own when the fan-out binds after the wait | medium | WS-B follow-up |
+| WS-B | M3 the cross-site test ignores the app's own site, so an app on another site than management clears every managed session on every check | medium | WS-B follow-up |
+| WS-B | M4 a stale tab revokes the session a sibling tab just received | medium | WS-B follow-up |
+| WS-B | L5 `/authorize` hands over a stored session without D8's check; L6 three OIDC errors read as `login_required`; L7 the return address after sign-in is unchecked (pre-existing open redirect); L8 the check door's limit keys on the proxy's address; L9 the D10 relay message has no state; L10 the organisation list outlives sign-out | low | WS-B follow-up |
 
 ## 4. The journeys
 
@@ -477,3 +482,27 @@ the credentialed CORS preflight and another origin does not; discovery lists
 `auth_time`; a sign-out with no session gets the question. Not seen behind
 a sign-in: a hub tile landing in the app as the pinned organisation (the
 tester has it), `auth_time` on a real ID token, `current` on the real list.
+
+## Addendum 6: the review of stage 4
+
+Read-only at consumer `e4a728d5`; the eight suites run by the reviewer match
+the builder's counts, nothing skipped; nothing signed in was walked.
+
+**Found:** H1, M2, M3, M4 and L5 to L10 (section 3), all sent to WS-B as a
+follow-up, the high first. H1 is the one to weigh: the top-level
+`/authorize` already trusted the suffix allowlist, so a storefront script
+could already obtain a visitor's realm token; stage 4's frames added
+management-level acts (the list and the switch) to what such a script can
+do. The fix is an exact list of suite-app origins for the frames and the
+relay, and exact back-office hosts in place of the production suffixes
+(`infra/deploy/rutba-io/fleet/run-fleet.sh`), which the lead then sets in
+each environment. Until it lands, the stage 4 build should not be deployed.
+
+**Sound:** the check door requires PKCE, a nonce, a redirect on the caller's
+own origin, audience and `azp`, mints nothing, enters no tenant and returns
+no token; codes are single-use; both directions of the frame messaging check
+origin, source and a fresh state; the switch acts only on a message from
+the parent for an organisation just listed, never on a page load or a URL;
+the profile door answers only for the caller's own verified session; `"*"`
+is gone from the realm and `packages/ui`; the timer's limits hold; D4 waits
+up to 8 s without a flash; D8 has no loop; D9 keeps the server-rendered id.
