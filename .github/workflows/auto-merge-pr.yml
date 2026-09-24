@@ -14,6 +14,7 @@ jobs:
       github.event.pull_request.state == 'open' &&
       github.event.pull_request.head.repo.full_name == github.repository &&
       (
+        github.event.action == 'converted_to_draft' ||
         (vars.AUTO_MERGE_ALLOWED_USER || 'eharain') == github.actor ||
         (vars.AUTO_MERGE_ALLOWED_USER || 'eharain') == format('@{0}', github.actor)
       )
@@ -26,7 +27,12 @@ jobs:
         run: gh pr merge "${{ github.event.pull_request.number }}" --disable-auto --repo "${{ github.repository }}" || true
 
       - name: Enable auto-merge (squash)
-        if: github.event.pull_request.draft == false
+        if: >-
+          github.event.pull_request.draft == false &&
+          (
+            (vars.AUTO_MERGE_ALLOWED_USER || 'eharain') == github.actor ||
+            (vars.AUTO_MERGE_ALLOWED_USER || 'eharain') == format('@{0}', github.actor)
+          )
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh pr merge "${{ github.event.pull_request.number }}" --auto --squash --repo "${{ github.repository }}"

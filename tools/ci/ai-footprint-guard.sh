@@ -16,7 +16,7 @@ if [[ "${GITHUB_ACTIONS:-}" == "true" && -n "${BASE_REF}" && "${TRUSTED_GUARD_EX
   trusted_script="$(mktemp)"
   trap 'rm -f "${trusted_script}"' EXIT
 
-  git show "origin/${BASE_REF}:tools/ci/ai-footprint-guard.sh" > "${trusted_script}" 2>/dev/null || \
+  git show "FETCH_HEAD:tools/ci/ai-footprint-guard.sh" > "${trusted_script}" 2>/dev/null || \
     fail "Trusted guard script not available on base branch; failing closed"
 
   [[ -s "${trusted_script}" ]] || fail "Trusted guard script is empty; failing closed"
