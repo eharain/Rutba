@@ -561,3 +561,49 @@ customers at the storefront, never across. Consumer `06e94995`, on
 `git status --porcelain` in `D:/Rutba2.0/consumer` after `06e94995` shows
 only the core doors' builder's work in progress (`console/api/tenants/`),
 none of this stream's.
+
+## Round three review: the operator's operate path (2026-09-25)
+
+Consumer `b9cfcb0d`, on `dev`, `main` fast-forwarded, both pushed.
+
+- **Takeover by address.** `resolveForOperate` (`console/api/auth/handoff.js`)
+  took over any row with the staff member's address (an unconfirmed
+  self-registration included: confirmed, bound, granted `platform_operator`,
+  its registrant's password kept). By address it now reuses a row only when it
+  already holds `platform_operator` (an operator row whose subject was
+  cleared); any other row is 409 `OPERATOR_ADDRESS_IN_USE` and nothing about it
+  changes. The row bound to the staff subject stays theirs.
+- **Decided: operator rows carry the back-office role.** Operators are staff:
+  the login shell admits only `rutba_app_user`, and on it the realm's callback
+  finds them (the `USER_UNKNOWN` that `06e94995` caused is gone) while the
+  storefront's reset (`64b946cc`, `findCustomerUserRow`) never mails them and
+  the realm's reset does. The operate path creates operator rows on
+  `rutba_app_user`; an instance without that role answers 409
+  `APP_ROLE_MISSING` and writes nothing. The other way (keeping operators on
+  `authenticated` and teaching the storefront reset about `platform_operator`)
+  would have left them looking like customers to every other door.
+- **What an existing operator row needs:** nothing by hand. At the next
+  `operate` by that staff member the row is found by its subject and its role
+  link moves from `authenticated` to `rutba_app_user` (a log line says so).
+  Until then it is still on `authenticated`: the storefront's reset could mail
+  it and the realm's callback answers `USER_UNKNOWN`. To move them all at once,
+  the lead can run in each individual-mode database:
+  `UPDATE up_users_role_lnk SET role_id = (SELECT id FROM up_roles WHERE type = 'rutba_app_user') WHERE user_id IN (SELECT l.user_id FROM up_users_app_roles_lnk l JOIN api_pro_app_roles r ON r.id = l.app_role_id WHERE r.key = 'platform_operator');`
+  A row taken over by address before this fix keeps its registrant's password
+  and cannot be told apart from an operator row here; giving every
+  `platform_operator` row a fresh random password (operators never use one)
+  would close that, and is the lead's call.
+- **Own regression fixed with it:** the handoff smoke's fixture row sat on no
+  role, so its C checks had failed since `06e94995` (not run then). The row is
+  now on the back-office role: 38 of 39 again, check A (the child process the
+  preload does not reach) as before.
+- **Noted, not changed:** `operator.js` admits any session carrying
+  `metadata.sub`, which the realm's callback writes too, so a staff member's
+  ordinary sign-in to the individual instance carries operator powers now that
+  the callback finds operator rows, as it did before `06e94995`. If operator
+  acts should need `purpose: operate`, that is a one-line check there.
+- **Counts:** handoff suite 30 (under the test-only preload), handoff smoke 38
+  of 39; callback 62, credential doors 17, break-glass 7 (with `64b946cc`'s).
+  The individual-mode suites (`api/core/tests/individual-mode/*`) fail at
+  their harness boot on this machine (`NoTenantContextError`), before any
+  code of this change runs; none of them uses the operate path.
