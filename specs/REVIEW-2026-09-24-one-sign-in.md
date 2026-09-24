@@ -16,9 +16,11 @@ the detailed sources. Times are UTC.
 Round two so far: management `cace52f` (follow-ups 4 to 9, stage 5's
 management half, D1, D2 and the members list), consumer `c0d4a05b` (stage 4, stage 5's realm half, both
 reviews' fixes, the invite door under retries, the walk's defects, their
-review and its re-check, D29). Round three so far: consumer `64b946cc`
-(decision 35's consumer half, addendum 26) and management `54e422b` (the
-reset that creates the account, addendum 27); both under review. Both pushed; nothing on GitHub but `dev` and
+review and its re-check, D29). Round three so far: consumer `cff42cb2`
+(decision 35's consumer half and its review's fixes, addenda 26, 28, 30)
+and management `44edf3f` (the reset that creates the account and its
+review's fixes, addenda 27, 29); the second follow-up and the re-checks in
+progress. Both pushed; nothing on GitHub but `dev` and
 `main`. The dev estate runs these checkouts.
 
 **Still to come in this record**, appended as addenda when they report: the
@@ -159,7 +161,7 @@ WS-D as follow-up 4:
 | WS-A | D2's M2 the core's invite door re-mails a row bound but never confirmed, so the first sign-in after deploy mails every such row; and it is idempotent only one call at a time (no unique address index) | medium | consumer `40579cd8`: `exists` with no mail for a row bound to the same subject; an insert-or-select on the subject index for concurrent invites |
 | WS-C | D1's M1 a re-invite's `retold` outcome is shown as "we have emailed an invitation"; L2 checkout's confirm button drawn with nothing pinned; L3 the invite form promises role changes and removal no door supports; L5 stale `roles.ts` | medium | management `5976bf4` (M1 and the role check), `0299832` (L2), `cc2af47` (L3), `1cc2879` (L5) |
 | WS-D | the staff person page prints full raw session ids from auth's internal sessions route | low | management `6aa11a3`: a handle in place of the id on the staff list, revocation by handle; `1bb6826`: the audit feed carries the handle too |
-| WS-A | Round three: M1 a reset started at the realm's break-glass form completes on the storefront's reset page, and a storefront code can be spent at the realm's; M2 both password sign-ins pick either kind of row; M3 W1 verify 500s with the SQL in the message when a customer row holds the subject; M4 address case compared exactly at the invite and forgot doors and lower-cased elsewhere; M5 the owner door can promote a customer row; M8 a second row's username may collide with a unique index | medium | WS-A (in progress) |
+| WS-A | Round three: M1 a reset started at the realm's break-glass form completes on the storefront's reset page, and a storefront code can be spent at the realm's; M2 both password sign-ins pick either kind of row; M3 W1 verify 500s with the SQL in the message when a customer row holds the subject; M4 address case compared exactly at the invite and forgot doors and lower-cased elsewhere; M5 the owner door can promote a customer row; M8 a second row's username may collide with a unique index | medium | consumer `4383f081` (M1), `a4808433` (M2, M4), `fb7073ef` (M3), `f7779a0b` (M5, M8: no unique index on username in three tenant databases, `#staff` anyway), `2e960a16` (bind_only), `cff42cb2` (the role type lower-cased); re-check in progress |
 | WS-B | Round three: the operator path takes over any row by address; operator rows on the authenticated role now count as customers | medium | consumer `b9cfcb0d`: a row is reused by address only when it already holds `platform_operator`, else 409; operator rows are created on, and moved to, the back-office role; operator actions being limited to operate sessions |
 | WS-D | Round three: H1 the set-password link makes the person a viewer at every live instance of the organisation, not only the one that recognised the address, and the asks include non-live instances; M2 a pending invitation at an instance is demoted to viewer by the re-invite; M3 an unbounded fan-out anyone can trigger; M4 the ordinary forgot answer's timing reveals whether an account exists (older) | **high** | management `39aa2e5` (H1: only live instances of active team organisations asked, only those that said yes told, the others in a new state `none`; M2 no roles sent, pending a bind-only shape on the invite door from WS-A; M3 eight asks in flight and 2000 an hour per process; M4 the account holder's mail after the answer; L5 a conditional delete; L6 one transaction with the code put back on failure, a suffixed username when an old account holds the address; L7 the organisation's kind and status), `44edf3f` (L8, L9, the info items). Re-check: H1 not fully closed (the sign-in repair and a later instance still tell an instance with no record, viewer role, since `none` is written only for instances running at link time and not at all when none is left) and the tell after the commit can throw, leaving no record; the in-flight cap can be exceeded in a tick; a second follow-up in progress |
 | WS-B | D19's M1 the callback confirms a row without checking that management holds the address as verified and equal to the row's; M2 the refusal pages have no "Try again" at all; L3 the confirmation is not conditional on still-unconfirmed and not-blocked and not in one transaction with its audit; L4 test gaps; L5 the mailed set-password link survives (decision 33); L8 D25's baseline is the first answer, not the refused profile | medium | consumer `ebf6d41b` (M1, L3, L4, L5, I6), `4d9f2523` (M2), `9aa4d3e5` (L8), `1ed304ff` (the hub's handoff uses the same rule) |
@@ -1480,3 +1482,33 @@ with the hub's wording; the push through the set door only with the
 credential scope; any failure or 429 in an ask is a no that never delays
 the request; the log line as specified, matching the consumer door's
 digest; the mailed link carries only the code and the flag.
+
+## Addendum 30: round three's consumer fixes (WS-A and WS-B)
+
+Eight commits on consumer `dev` and `main`: WS-B's `b9cfcb0d` and
+`c2987080`, WS-A's `4383f081`, `a4808433`, `fb7073ef`, `f7779a0b`,
+`2e960a16`, `cff42cb2`; the sections are in
+[one-sign-in-ws-a.md](one-sign-in-ws-a.md) (records `42228fa`) and
+[one-sign-in-ws-b.md](one-sign-in-ws-b.md) (records `cc90e67`, `42edbe2`).
+Suites only: tenants doors 22, auth doors 96, the realm pages 55, the
+handoff suite 30 with its preload, the operator suite 6, the individual
+smoke 49 of 50 (the one failure an environment override of the smoke's
+public URL, not this code).
+
+| What | Commit |
+|---|---|
+| The operate path reuses a row by address only when it already holds `platform_operator` (an operator row whose subject was cleared), else 409 `OPERATOR_ADDRESS_IN_USE` and nothing changes; operator rows are created on the back-office role, and an existing one is moved there on its next operate use (409 `APP_ROLE_MISSING` when the instance lacks the role); the handoff smoke's fixture row given a role | `b9cfcb0d` |
+| Operator actions require a session the operate handoff minted (purpose operate, amr management-handoff on the session's metadata, copied on refresh); any other session, the realm's callback's or the bridge's open included, gets 403 `OPERATE_HANDOFF_REQUIRED` naming the operate door, with nothing audited or written | `c2987080` |
+| M1: the realm's reset mails the realm's own `/login?code=` (the origin from the core's `NEXT_PUBLIC_AUTH_URL` else `PUBLIC_URL`, which the fleet already sets; with neither the realm's reset sends nothing rather than a storefront link); `/auth/reset-password` accepts customer rows' codes only and `/auth/reset-password/any` back-office rows' only, a wrong-kind code "Incorrect code provided" with no session; the tenancy doc corrected | `4383f081` |
+| M2 and M4: each sign-in finds only its own kind of row (the storefront's `/auth/local` and the confirmation resend among customers, the realm's `/auth/local/any` among back-office rows), addresses compared lower-cased everywhere, the oldest row winning | `a4808433` |
+| M3 and L7's logs: verify answers `{ bound: false }` when a customer row holds the subject, logging that row's id and recording `subject-held-by-customer` in the tenant's audit; a bind that hits the unique index is `{ bound: false }`; anything else a plain 500 with no SQL; the credential doors log the address as a digest | `fb7073ef` |
+| M5 and M8: the owner door makes a new back-office row beside a customer's instead of taking it (one option each in the grant script and the setup bootstrap, on only for the owner door); a new back-office row beside a customer whose username is the address gets `<address>#staff`; no unique index on username, email or display name in three tenant databases, read with SHOW INDEX, the only unique one being `rutba_sub` | `f7779a0b` |
+| `bind_only: true` on the invite door: 200 `exists` with `bindOnly` when the address's back-office row carries the subject now or already did, roles ignored, no mail, no link, confirmation untouched, an unconfirmed row bound to another subject re-bound with a log line; 404 `USER_UNKNOWN` with nothing created when no back-office row has the address; 409 `BOUND_ELSEWHERE`, `IDENTITY_BLOCKED`, `SUBJECT_TAKEN`; 400 `SUBJECT_REQUIRED` | `2e960a16` |
+| The role type compared lower-cased on every engine | `cff42cb2` |
+
+**For deployment** (in WS-B's status): the statement that moves existing
+operator rows onto the back-office role, with a check first that the role
+exists in each individual-mode database, not run here; and a warning that
+operators working in an instance through a realm sign-in lose operator
+actions until they reopen it from the operate door. Decision 36 (fresh
+passwords for operator rows) is the owner's. A re-check is running.
