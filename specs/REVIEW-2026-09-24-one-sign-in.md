@@ -27,8 +27,9 @@ outage fix addendum 10, WS-B's last lows addendum 11, D2 addendum 12, D1
 addendum 13, the reviews of D2 and D1 addenda 14 and 15, the round-two
 walk addendum 16, the invite door addendum 17, the consoles' fixes
 addendum 18, the members route addendum 19, the realm's walk fixes
-addendum 20, the members list addendum 21; the auth stream's follow-up 8,
-the D19 review and the last walk to follow.
+addendum 20, the members list addendum 21, the review of the realm's walk
+fixes addendum 22; the auth stream's follow-up 8, the realm's last fix pass
+and the last walk to follow.
 The journey walk's end is addendum 1; the review of WS-D's follow-ups 2 and
 3 is addendum 2.
 
@@ -153,7 +154,8 @@ WS-D as follow-up 4:
 | WS-D | D2's M1 tells for one membership are not serialised across the schedule, the sign-in repair and a re-invite; M3 a pass has no time budget; L4 retry or final by status alone; L5 instance names and raw errors reach the administrator's page; L6 the hub's wording | medium | WS-D follow-up 8 (in progress) |
 | WS-A | D2's M2 the core's invite door re-mails a row bound but never confirmed, so the first sign-in after deploy mails every such row; and it is idempotent only one call at a time (no unique address index) | medium | consumer `40579cd8`: `exists` with no mail for a row bound to the same subject; an insert-or-select on the subject index for concurrent invites |
 | WS-C | D1's M1 a re-invite's `retold` outcome is shown as "we have emailed an invitation"; L2 checkout's confirm button drawn with nothing pinned; L3 the invite form promises role changes and removal no door supports; L5 stale `roles.ts` | medium | management `5976bf4` (M1 and the role check), `0299832` (L2), `cc2af47` (L3), `1cc2879` (L5) |
-| WS-D | the staff person page prints full raw session ids from auth's internal sessions route | low | WS-D, with follow-up 8 |
+| WS-D | the staff person page prints full raw session ids from auth's internal sessions route | low | management `6aa11a3`: a handle in place of the id; the audit route to check |
+| WS-B | D19's M1 the callback confirms a row without checking that management holds the address as verified and equal to the row's; M2 the refusal pages have no "Try again" at all; L3 the confirmation is not conditional on still-unconfirmed and not-blocked and not in one transaction with its audit; L4 test gaps; L5 the mailed set-password link survives (decision 33); L8 D25's baseline is the first answer, not the refused profile | medium | WS-B (in progress) |
 
 ## 4. The journeys
 
@@ -358,6 +360,11 @@ under are decisions 20 to 22.
     Recommend, and being built: refuse with a distinct code, change
     nothing, and let the operator resolve it; an unconfirmed row may still
     be re-bound, since nobody has proven it. Built: consumer `a9d0129c`.
+33. **After D19 confirms a row, the invitation's mailed set-password link
+    still works** and sets an instance password marked as the row's own.
+    Recommend, and being built: leave it valid, since setting an instance
+    password later is harmless and expected; the audit records what changed.
+    The alternative is to void the link at confirmation.
 ## 8. Round two
 
 Stages 4 and 5 of the plan are approved work and need no decision; the fixes
@@ -1003,3 +1010,44 @@ the unit tests reach the 403 sentence, since a removed member is refused
 at the token before the page asks. For WS-D: the console's audit type
 still expects a session id on auth events, so `/internal/audit` may still
 carry raw ids to the console server; asked to answer the handle there.
+
+## Addendum 22: the review of the realm's walk fixes
+
+Read-only at consumer `0070ae5c`; every suite matches the builder's counts
+(callback 46, doors 13, break-glass 5, management-signin 18,
+allowed-redirect 14, frame documents 20, `packages/ui` 303, `api-client`
+42), nothing skipped; nothing walked signed in.
+
+**No high.** Found: M1 D19 confirms a row on the subject alone, without
+checking that management holds the address as verified (an explicit
+`email_verified: false` still confirms) or that it equals the row's, while
+decision 30 rests on the address having been verified. M2 the two refusal
+pages have had no "Try again" button in any version, though the commit,
+the status, the realm's doc and decision 31 all say it stays; after "ask
+your administrator" the profile does not change, so the watch never fires
+and the only way out is a reload, which on the callback resends a spent
+code. L3 the confirmation is conditional only on id and subject, not on
+still-unconfirmed and not-blocked, and not in one transaction with its
+audit (two racing callbacks both confirm; a failed audit insert leaves a
+confirmed row with no audit). L4 the "bound elsewhere" test is refused by
+the unconfirmed rule first, so it would pass with the check deleted; no
+test for an unverified address or for the absence of the own-password
+mark. L5 the mailed set-password link survives (decision 33). L8 D25's
+baseline is the first answer, not the refused profile, so a switch made
+before it arrives is missed. Info: the audit summary says "made by
+management's invitation", not always true; the hub handoff's `open` path,
+which nothing calls since stage 5, still opens an unusable session on a
+bound unconfirmed row, and WS-B is asked to cut it. All with WS-B.
+
+**Sound:** the row is found by subject only (unique index) with `blocked`
+checked first; the tenant comes only from management's claims, the
+directory or the request's own domain; a row with no subject is refused;
+`markOwnPassword` is not on the path and the `amr` value lives in the
+session only; the audit carries no password or token; nothing is confirmed
+inside D16's wait; D25 shares the launcher's frame, code and decisions,
+acts only in a top-level window, goes to `/login` with nothing about the
+instance, and stays put when management keeps answering the same
+organisation; D18's retries are serial, bounded and cannot interleave
+with the timer; D24's first render is the same on server and client with
+a reload line after ten seconds if the script never runs; D22's test reads
+the real stylesheets.
