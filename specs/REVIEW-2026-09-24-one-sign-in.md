@@ -1527,4 +1527,12 @@ storefront-style page that now refuses back-office codes; "oldest row
 wins" lets an older blocked or unconfirmed row hide a live one of the same
 kind from every lookup (old data only); the realm's reset link falls back
 to `PUBLIC_URL`, a storefront page on a solo host; and the bind_only
-re-bind log line carries the plain address.
+re-bind log line carries the plain address. The operator's link is fixed
+in consumer `53d374d4` (records `7af2580`): it is the realm's own
+`/login?code=` built as the tenants door builds its link, from
+`NEXT_PUBLIC_AUTH_URL` else `PUBLIC_URL` else the dev realm outside
+production, 503 `REALM_URL_MISSING` and no code when neither is set in
+production; the operator suite (7) checks where the link lands and that
+the storefront's reset refuses the code while the realm's accepts it; the
+individual smoke 49 of 50 as before. The fleet already passes the realm's
+address to the core.
