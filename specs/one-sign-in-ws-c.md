@@ -450,7 +450,16 @@ drew the field, and the audit table's meta holds handles only. The members answe
 by instance id since `71eefd3`, as the roster test already assumed. Portal console tests
 went from 55 to 56, the management console stays at 74, and `tsc` is clean in both.
 
+**The last walk's D27 and D28 (19:00 UTC, management `cace52f`).**
+
+- **D28:** a member's view now reads "You are a member of X". `yourStanding` in `roles.ts` adds the article ("an admin", "an owner"). It says "You hold no portal role in X" or "You are platform staff in X" for the other two cases.
+- **D27:** a member other than an owner may show no workspace state because they joined before workspaces kept a record. When any active or invited member does, one line under the roster reads "People who joined before workspaces kept a record of them show no workspace state." The walk suggested "before today's records", which stops being true tomorrow, so the wording changed. An owner is never told, by design: their row shows nothing, and they do not trigger the line. Neither does a removed member.
+- **Checks:** portal console tests went from 56 to 58, and `tsc` is clean. The estate's 4118 was down, so the page was not compiled live this time. The change is two JSX expressions, and the type-check covers them.
+
+**Decision 34, not built.** The form would carry one checkbox per product the organisation holds a licence for, all ticked by default. It would read that list from `portalApi.licences` (Strapi's `/api/portal/licences`, already read by `/licenses`) and post `apps: [product keys]` beside the role.
+That needs work outside WS-C's files. Auth's invitation route would have to accept and pass on `apps`. Strapi's `invite` would have to check each product against the organisation's active licences, map it to its app (the licence `social` is the app `relay`), and tell each instance the user-level role for it. Today `tellRoles` tells the portal role only.
+
 ### Management checkout
 
 `git status --porcelain -- console packages/session packages/design-system package-lock.json`
-in `D:\Rutba2.0\management` at 18:34 UTC, after `08e264d`: empty.
+in `D:\Rutba2.0\management` at 19:04 UTC, after `cace52f`: empty.
