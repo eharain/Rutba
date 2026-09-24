@@ -159,6 +159,9 @@ WS-D as follow-up 4:
 | WS-A | D2's M2 the core's invite door re-mails a row bound but never confirmed, so the first sign-in after deploy mails every such row; and it is idempotent only one call at a time (no unique address index) | medium | consumer `40579cd8`: `exists` with no mail for a row bound to the same subject; an insert-or-select on the subject index for concurrent invites |
 | WS-C | D1's M1 a re-invite's `retold` outcome is shown as "we have emailed an invitation"; L2 checkout's confirm button drawn with nothing pinned; L3 the invite form promises role changes and removal no door supports; L5 stale `roles.ts` | medium | management `5976bf4` (M1 and the role check), `0299832` (L2), `cc2af47` (L3), `1cc2879` (L5) |
 | WS-D | the staff person page prints full raw session ids from auth's internal sessions route | low | management `6aa11a3`: a handle in place of the id on the staff list, revocation by handle; `1bb6826`: the audit feed carries the handle too |
+| WS-A | Round three: M1 a reset started at the realm's break-glass form completes on the storefront's reset page, and a storefront code can be spent at the realm's; M2 both password sign-ins pick either kind of row; M3 W1 verify 500s with the SQL in the message when a customer row holds the subject; M4 address case compared exactly at the invite and forgot doors and lower-cased elsewhere; M5 the owner door can promote a customer row; M8 a second row's username may collide with a unique index | medium | WS-A (in progress) |
+| WS-B | Round three: the operator path takes over any row by address; operator rows on the authenticated role now count as customers | medium | WS-B (in progress) |
+| WS-D | Round three: H1 the set-password link makes the person a viewer at every live instance of the organisation, not only the one that recognised the address, and the asks include non-live instances; M2 a pending invitation at an instance is demoted to viewer by the re-invite; M3 an unbounded fan-out anyone can trigger; M4 the ordinary forgot answer's timing reveals whether an account exists (older) | **high** | WS-D (in progress) |
 | WS-B | D19's M1 the callback confirms a row without checking that management holds the address as verified and equal to the row's; M2 the refusal pages have no "Try again" at all; L3 the confirmation is not conditional on still-unconfirmed and not-blocked and not in one transaction with its audit; L4 test gaps; L5 the mailed set-password link survives (decision 33); L8 D25's baseline is the first answer, not the refused profile | medium | consumer `ebf6d41b` (M1, L3, L4, L5, I6), `4d9f2523` (M2), `9aa4d3e5` (L8), `1ed304ff` (the hub's handoff uses the same rule) |
 
 ## 4. The journeys
@@ -1382,3 +1385,87 @@ lowest role; the first real check is a reset for a rutba.pk staff address
 once the estate is back (Strapi's log then says "a reset for an address
 with no account: N instance(s) know it", auth's log a `password request`
 line for `forgot` with the digest). A reviewer is reading both halves.
+
+## Addendum 28: the review of round three's consumer half
+
+Read-only at consumer `64b946cc`; tenants doors 15, auth doors 86, the
+realm pages 55, nothing skipped; the handoff suite not run; the suites run
+on SQLite only.
+
+**Found, no high.** M1 a reset started at the realm's break-glass form
+mails the tenant's reset link, which the fleet points at the shop's
+reset page, whose door accepts a code on any row and opens a storefront
+session, so a back-office person resets and is signed in at the storefront;
+the other way, a storefront code can be spent at the realm's reset door.
+No privilege is gained (the person holds the mailbox), and it is the
+crossing decision 35 forbids. M2 the storefront's and the realm's password
+sign-ins share a lookup with no role test that takes the first match in no
+fixed order, so with a back-office row beside a customer row the storefront
+may reject the customer and the realm may open a session on the customer
+row. M3 W1 verify 500s, with the SQL and the subject in the message, when a
+customer row holds the subject and a back-office row shares the address.
+M4 address case: lower-cased at the exists door, verify, set, the callback
+and the hub, exact at the invite door and both forgot doors, so a row
+stored with capitals is found by one and missed by the others. M5 the
+owner door, older code, finds any row by address and can move a customer
+row onto the back-office role with full access. M6 the operator path takes
+over any row with the staff member's address, and operator rows on the
+`authenticated` role now count as customers, so the storefront's reset
+would mail them and the realm refuses them. M8 a second back-office row
+beside a customer row carries the address as its username, which a unique
+index on that column would refuse. L7 a customer row holding a subject is
+a dead end an administrator can only undo with a database operator's
+update. Info: the role-type comparison is case-sensitive on Postgres and
+SQLite and not under MySQL's default collation; the exists door's brake is
+per process; the verify door still logs plain addresses. M1 to M5, M8 and
+the lows are with WS-A, M6 with WS-B.
+
+**Sound:** the role predicate is one statement tied to the outer row, a
+row with no role link counts as a customer, several links count as
+back-office if any is the app role; the D19 confirmation's role check runs
+inside its transaction; the exists door's scope is the invite door's, a
+database the core does not serve answers false, a malformed address false
+before the brake, the digest as specified, true and false costing the same,
+the 429 with `Retry-After`; both reset refusals return before any write
+with the same body and cost, each mailing only its own kind of row; the
+callback refuses a customer row holding the subject before any address
+match; the W2 carry writes a management password only through the set
+door on a back-office row found by subject.
+
+## Addendum 29: the review of round three's management half
+
+Read-only at management `54e422b`; Strapi 127, auth unit 376, integration
+326, perf 5, nothing skipped; nothing on the estate.
+
+**Found.** H1 (high): the asks go to every active instance in any
+environment, but the completion tells every live instance of the
+organisation rather than the ones that said yes, and the invite door then
+makes a viewer row where there was none; so a user of one branch becomes
+a viewer at another, someone known only at a demo instance gets into the
+live business, and a non-live instance that said yes is never bound. Access
+the tenant's administrator never granted. M2 the exists door says yes for
+unconfirmed rows too, and the re-invite overwrites a pending invitation's
+roles with viewer and mails a second invitation. M3 each anonymous forgot
+for a fresh address asks up to 500 instances four at a time, each ask
+writing an audit row in that tenant, with no cap across concurrent
+requests. M4, older: the ordinary forgot path answers after a write and
+an SMTP send where the no-account path answers after one read. Lows: the
+single-use check is read-then-delete; a failure after the code is spent
+leaves the person stuck; personal and platform organisations are not
+excluded from the asks; a forwarded forgot writes no log line; `new=1` is
+lost on the retry. Info: the plain password still goes to a row that
+answered taken (refused there); the address in the URL after a reset and
+in the forgot audit event, both older; five missing tests named. All with
+WS-D.
+
+**Sound:** the answer is the same body, status and time whether or not an
+instance knows the address, the asks after it, the brake before any ask;
+32 random bytes with only the hash kept, one hour, deleted on first use,
+refused once the address has an account, never in a log line; the account
+confirmed with the chosen password under registration's policy, the
+address trimmed and lower-cased, no second factor; viewer only, one
+membership per organisation, told at once under the claim, taken recorded
+with the hub's wording; the push through the set door only with the
+credential scope; any failure or 429 in an ask is a no that never delays
+the request; the log line as specified, matching the consumer door's
+digest; the mailed link carries only the code and the flag.
