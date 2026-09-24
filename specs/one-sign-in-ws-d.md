@@ -877,3 +877,108 @@ it. One commit on management `dev`, fast-forwarded to `main` and pushed.
   carry `true`, and the session kept Strapi's answer (`emailVerified: true`),
   not an assumption.
 - **Counts:** auth unit 376, integration 318, perf 5. Nothing skipped.
+
+## Round three (2026-09-25, 19:30 to 20:55 UTC)
+
+From the lead, under the owner's rule (decision 35: a reset belongs where
+the sign-in is) and the lead's two assumptions, which are stated in the
+review record for the owner:
+
+- **(a)** at a reset request for an address with no account, management may
+  ask every running instance whether the address is a back-office user there;
+- **(b)** a person found that way becomes a member, with the lowest role, of
+  each such instance's organisation.
+
+The production symptom was tenant 1's owner: a reset asked at auth.rutba.io
+for their rutba.pk address sent no mail. The dev estate was stopped, so
+everything below ran against the suites' fakes. Four commits of mine on
+management `dev`, plus a merge of another session's office-site commit that
+had reached `origin/dev` first (`7c92eeb`), all fast-forwarded to `main` and
+pushed. `origin` holds both at `54e422b`.
+
+| Commit | What |
+|---|---|
+| `128ed06` | **Item 2, the log line.** `forgot`, `reset`, `change` and `carry` each write one line, `password request`, from the API and the pages alike. It carries `route`, `outcome` (`reset_sent`, `changed:everywhere`, `changed:here`, `carried`, or the refusal's code) and `address` as a digest, never the address. The digest is the first 16 hex characters of the SHA-256 of the lower-cased address, so an operator can compute it: `printf %s "<address>" \| sha256sum \| cut -c1-16`. A request the rate limiter stops never reaches the service; its `security.rate_limited` audit event covers it. |
+| `d63e240` | **Item 1, the reset for a back-office user with no account.** See the flow below. It was built against the door's contract as the lead stated it and tested on the fakes. |
+| `7c92eeb` | Merge of `origin/dev` (another session's office-site 1.26.0, `14cd70b`), which had been pushed while my `main` push went through. |
+| `54e422b` | **Built against the door as it landed** (consumer `1440e692`). The exists door's 429 `TOO_MANY_ATTEMPTS` counts as a no for that instance, and nothing is mailed for it. `SUBJECT_TAKEN` at the invite door (the person's subject is already on another row there, such as a customer row an older door bound) is recorded `taken`, as `BOUND_ELSEWHERE` is. The hub's words for `taken` now read "This workspace has another account in the way of yours. Ask its administrator to sort it out." |
+
+### The flow (Strapi, `api/legacy/strapi/src/estate/instance-reset.js`)
+
+1. **`forgotPassword`** for an address with no account answers `reset_sent`
+   as for any address, in the time a miss takes. Afterwards, in the
+   background, it asks every active instance in the register. It skips the
+   realm's own instance and the individual instance, and asks four at a time.
+   - The question is the new tenants-door method `peopleExists` (`POST
+     /api/tenants/:db/people/exists { email }`, the invite door's token and
+     scope).
+   - A failure, a 429 or a `false` is a no.
+   - The forgot brake (five an hour per address) bounds how often this
+     happens. That keeps well under the door's ten per database and address
+     per fifteen minutes.
+2. **Nobody says yes:** nothing is kept and nothing is mailed.
+3. **Any says yes:** a one-hour code is kept in Strapi's core store (only its
+   digest, with the address and the instances). A new mail, "Set your Rutba
+   password" (`mailer.setPassword`), links to `/reset?code=…&new=1`. That is
+   auth's reset page, headed "Set your Rutba password" when `new=1`.
+4. **`resetPassword`** with that code does the following:
+   - it checks the password before the code is spent;
+   - it spends the code once, and refuses it if the address has an account by
+     now;
+   - it creates the confirmed account with the chosen password;
+   - it makes the person a `viewer` of each instance's organisation;
+   - it tells those instances at once through the invite door
+     (`tellOnInvite`), which binds the row, and records `taken` for
+     `BOUND_ELSEWHERE` or `SUBJECT_TAKEN`;
+   - it signs the person in.
+5. **Auth then carries the chosen password** to every bound instance through
+   the W1 set door, as after any reset with "everywhere". The new account has
+   no second factor, so G1 does not hold it back.
+6. **An address with an account** keeps today's path, byte for byte.
+
+### Tests (20:35 to 20:55 UTC, on the fakes)
+
+- **Strapi, `src/estate/instance-reset.test.js`** (9 cases, through Strapi's
+  own identity service on an in-memory Strapi):
+  - no account and no instance that knows the address: nothing;
+  - no account and one instance: the same answer, asked only after it, the
+    mail, then the account (confirmed, with the password), the `viewer`
+    membership, the invite door's bind, `told`, and the code refused a second
+    time;
+  - an existing account: today's mail, no instance asked;
+  - the brake: the sixth request in an hour asks nobody;
+  - a row held elsewhere: `taken`, with the account and membership still
+    made;
+  - the individual instance and the realm are not asked;
+  - an address that got an account in between: refused;
+  - a 429 from the door: nothing mailed;
+  - `SUBJECT_TAKEN`: `taken`.
+- **Auth `integration/instance-reset.test.js`** (4 cases, the fake Strapi
+  doing Strapi's half):
+  - the forgot answers 202 `reset_sent` and a set-password mail goes out;
+  - the page is headed "Set your Rutba password";
+  - the reset carries the chosen password to the instance through the real W1
+    set door of the fake core, with the row bound to the new account;
+  - the person then signs in and is a member of the instance's organisation
+    with `viewer`;
+  - an account holder gets today's mail;
+  - every request left a log line with a digest and no address.
+- **Auth `integration/password-log-lines.test.js`** (4 cases):
+  - forgot from the API and the page, known and unknown addresses;
+  - a refused and a done reset;
+  - a refused and a done change;
+  - no line carries an address.
+- **Counts at `54e422b`:** Strapi 127 of 127; auth unit 376, integration
+  326, perf 5. Nothing skipped.
+
+### Not done, or for others
+
+- **Nothing was walked on the estate**, which was stopped. The first real
+  exercise is tenant 1's owner asking for a reset with the rutba.pk address.
+  - Strapi's log then says "a reset for an address with no account: N
+    instance(s) know it".
+  - Auth's log says `password request` with `route: forgot` and the address's
+    digest.
+- **For the owner:** assumptions (a) and (b) are built as the lead stated
+  them. The role given is portal `viewer`.
+- **For WS-A:** nothing new. The exists door is used as `1440e692` answers it.
