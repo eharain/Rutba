@@ -519,3 +519,45 @@ and Sign (4029) compile with the change. Nothing walked live: the rule is a
 timing one, shown by the timeline test. `git status --porcelain` in
 `D:/Rutba2.0/consumer` at `c0d4a05b`: empty; `dev` and `main` both at
 `c0d4a05b` on `origin`.
+
+## Round three: decision 35, back-office rows only (2026-09-25)
+
+The owner's rule: back-office people sign in at auth.rutba.io, storefront
+customers at the storefront, never across. Consumer `06e94995`, on
+`dev`, `main` fast-forwarded, both pushed.
+
+- **The predicate is shared, not written twice.** The core doors' builder
+  had the finders in their tree as this began: `findAppUserRow`,
+  `findAppUserByEmail` and `findCustomerUserRow` in `api/core/src/auth/up.js`
+  (an EXISTS on `up_users_role_lnk` joined to `up_roles` by `type`
+  `rutba_app_user`, the value of `APP_ROLE_TYPE` in
+  `console/api/setup/domain/instance-state.js`), committed in `b70b0ec2`.
+  A second predicate this stream had begun beside `APP_ROLE_TYPE` was taken
+  back out before any commit, and this change was committed only after
+  `b70b0ec2`, whose harness (`addUser` with `role: 'app' | 'customer' |
+  'none'`) its tests use.
+- **The callback** (`oidc.js` `findPerson`) and **the hub's open path**
+  (`handoff.js` `resolveForOpen`) find a person by subject and by address
+  among back-office rows only. A storefront customer's row is never found,
+  confirmed, bound or marked. One that wrongly carries the subject
+  (`subjectHeldByCustomer`, over `findCustomerUserRow`) makes the sign-in
+  404 `USER_UNKNOWN`: no back-office row can be bound to the subject while
+  it holds it (unique per database), so it is left for an administrator.
+  The D19 confirmation checks the row is the back office's inside its
+  transaction. The `operate` path is unchanged: its operator rows are made
+  on the `authenticated` role, so narrowing it would stop it finding them.
+- **Tests:** a customer row alone with the address is unknown and left
+  unbound; a customer row and an app row sharing an address (the customer's
+  first) bind and sign in the app row, and a context password is asked of
+  the app row; a customer row wrongly carrying the subject is unknown, never
+  confirmed, marked or given a session, no app row is bound in its place,
+  and the rule's own write refuses it; the same three through the hub.
+- **Counts:** callback 62, credential doors 17 (with `b70b0ec2`'s),
+  break-glass 5, the handoff suite under the test-only preload 27. The dev
+  estate is stopped: suites only, nothing walked.
+- **Docs:** `docs/one-sign-in-realm.md` (the callback's "Who" section) and
+  `docs/identity-bridge.md` (`open`).
+
+`git status --porcelain` in `D:/Rutba2.0/consumer` after `06e94995` shows
+only the core doors' builder's work in progress (`console/api/tenants/`),
+none of this stream's.
