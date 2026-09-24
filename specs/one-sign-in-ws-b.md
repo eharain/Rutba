@@ -705,3 +705,103 @@ Consumer `53d374d4`, on `dev` and `main`, pushed.
 - **For deployment:** nothing new. The fleet already gives the core
   `NEXT_PUBLIC_AUTH_URL` (`run-fleet.sh`), which the realm's reset and the
   tenants door use.
+
+## Decision 37, the lead's assumption: New User and the login shells (2026-09-25)
+
+Consumer `16f7711a` (D37) and `cc96d697` (the operator link's realm rule),
+on `dev` and `main`, pushed. The decision itself is the owner's, pending;
+this is built as the lead assumed it.
+
+- **Login shells.** The realm's login page, its sign-in outcome
+  (`SignInOutcome.js`) and the suite's `AuthCallback.js` read the role
+  through `packages/ui/lib/back-office-role.js` (`roleRefusal`).
+  `rutba_app_user` signs in as before. A storefront account, or one with no
+  role, keeps "does not have the required role". An account on any other
+  role is still signed out, and told: "Your account is on the Staff role,
+  which Rutba's apps do not sign in. An administrator needs to set your
+  account's role to Rutba App User; then sign in again." The message gives
+  the role's name, and its type when the two differ.
+- **New User** (`console/apps/console/pages/users/new.js`,
+  `newUserRoleChoices`) starts on Rutba App User. It shows `authenticated`,
+  `rutba_web_user` and `rutba_portal` as storefront customers. It offers
+  `admin` (legacy super-admin) and `rutba_rider_user` (a rider's order
+  messages) as what they mean, under "Rutba's apps do not sign these in". It
+  hides `public`, `staff` and any type nothing reads. The server does the
+  same when no role is sent: legacy `user-admin` `createUser` and
+  `createInvite` put the person on `rutba_app_user` (`roleForNewPerson`),
+  and answer 400 without making anyone on an instance with no such role. A
+  role the administrator picks is kept.
+- **Found on the way:** under the core, the compat query knows no attributes
+  for `plugin::users-permissions.role` and drops a `where` on `type`, so
+  `strapi.query(role).findOne({ where: { type } })` answers the first role
+  (`authenticated`) whatever is asked. `roleForNewPerson` reads the roles
+  whole for that reason; the test caught it. Legacy code with the same shape:
+  `extensions/users-permissions/strapi-server.js`, `seed/core-singletons.js`,
+  `seed/up-permissions-seed.js`. Whether the core runs any of them was not
+  checked; not changed.
+- **Noted, not changed:** an `admin`-type row is `isSuperAdmin` to legacy
+  `require-admin`, and since D33 the doors give it a session. The login
+  shells refuse it, but a session used against the API directly (for example
+  `/api/user-admin/*`, which checks `requireAppRole`) passes every app's
+  admin check.
+- **The operator link (`cc96d697`).** The review's L3 (`6df9e315`) narrowed
+  the realm reset page's rule after `53d374d4` copied it. The operator's
+  set-password link now calls `routes.js` `realmResetPageFrom` itself:
+  `NEXT_PUBLIC_AUTH_URL`, else `PUBLIC_URL` on a directory core only, with
+  no dev fallback. The operator suite pins the realm's address, so the
+  link's origin is checked exactly on any machine.
+- **Tests:**
+
+  | Suite | Result |
+  |---|---|
+  | `packages/ui/lib/back-office-role.test.js` | 6 |
+  | `api/core/tests/individual-mode/new-user-role.test.js` | 4 |
+  | ui `test:session` | 39 |
+  | operator | 7 |
+  | sign | 9 |
+  | callback | 63 |
+  | credential doors | 24 |
+  | break-glass | 15 |
+  | auth app `src` | 55 |
+  | `smoke-individual` | 49 of 50 (the same B) |
+
+  - `back-office-role.test.js` checks that the storefront list equals the
+    core's `CUSTOMER_ROLE_TYPES`, the refusals, the picker's groups, its
+    default and hidden roles, and that the three shells and New User read
+    this module.
+  - `new-user-role.test.js` runs an organisation instance on the harness's
+    real tables, through the mounted routes as the owner.
+  - The four changed pages parse (esbuild), and New User's imports resolve.
+    Not built with Next, not seen in a browser.
+
+### For deployment (the Infra session): rows on another back-office role
+
+Not run here. The production count per role type (waiting on the owner)
+decides whether the move does anything. In **each tenant database**, first
+the count:
+
+```sql
+SELECT r.type, r.name, COUNT(l.user_id) AS people
+  FROM up_roles r LEFT JOIN up_users_role_lnk l ON l.role_id = r.id
+ GROUP BY r.type, r.name ORDER BY r.type;
+```
+
+Then the move. It does nothing where `rutba_app_user` does not exist. It
+fails, and changes nothing, where two roles carry that type.
+
+```sql
+UPDATE up_users_role_lnk
+   SET role_id = (SELECT id FROM up_roles WHERE type = 'rutba_app_user')
+ WHERE EXISTS (SELECT 1 FROM up_roles WHERE type = 'rutba_app_user')
+   AND role_id IN (SELECT id FROM up_roles
+                    WHERE type IS NOT NULL
+                      AND lower(type) NOT IN ('authenticated', 'public', 'rutba_web_user',
+                                              'rutba_portal', 'rutba_app_user'));
+```
+
+It moves `admin` and `rutba_rider_user` rows too. They lose legacy
+super-admin and the rider marking on their order messages. If the count
+shows rows there that must keep either, add that type to the `NOT IN`
+list. Rows with no role, or on a role with no type, stay: they are
+customers' to every door. No new variables; the apps pick up the new
+module at their next build.
