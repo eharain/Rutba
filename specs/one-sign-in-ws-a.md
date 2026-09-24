@@ -741,3 +741,109 @@ as the verifier's child-process test. The CLI path is untouched: without
 - **L4** (consumer `aee646a8`): both re-bind lines in the invite door name the address as a digest, as the doors log it: `bind_only`'s and the ordinary decision-32 path's.
 
 **Tests** (21:56 UTC): `console/api/tenants/tests` 23 of 23 (invites 15, owner 1, people-exists 7); `console/api/auth/tests` 98 of 98 (callback 62, credential doors 22, break-glass 14); `console/apps/auth/src` 55 of 55. The consumer checkout at `aee646a8` holds nothing of WS-A's uncommitted. Another session's operator-path edits were in the tree while this ran; they were left alone.
+
+### D33 and D32, before the deploy (2026-09-25)
+
+**D33** (consumer `fd84caf0`): the back office is every users-permissions role
+except the storefront's. The one constant is `CUSTOMER_ROLE_TYPES` in
+`api/core/src/auth/up.js`, with a comment naming each role. `onBackOfficeRole`
+is the EXISTS that every finder shares, and it reads that constant, compared
+lower-cased. The owner door's grant (`grant-full-access.js`, `backOfficeOnly`)
+now uses the same EXISTS instead of its own. These all follow through the
+shared finders:
+
+- the two sign-ins;
+- the realm's callback;
+- the hub's `open` and `operate`;
+- the W1 verify and set doors;
+- the invite door and `bind_only`;
+- the exists door;
+- both resets and the storefront's resend.
+
+`APP_ROLE_TYPE` stays `rutba_app_user`. It is the role new back-office rows
+are made on, and the existing test still holds it equal to the console's.
+
+These are the roles read from the dev tenants' `up_roles` (pos_db, rutba_pos,
+tpl_sign, individual_dev and a sign tenant; read-only, 22:25 UTC) and from the
+code:
+
+| Type | Where | Kind |
+|---|---|---|
+| `authenticated` | every tenant; the register door's `default_role`, which the seed holds there | customer |
+| `public` | every tenant | customer |
+| `rutba_web_user` | pos_db, rutba_pos, tpl_sign: "Role for Rutba web storefront users" (0 accounts) | customer |
+| `rutba_portal` | code only: the legacy sale-order controller's name for the storefront role | customer |
+| `rutba_app_user` | every tenant | back office |
+| `staff` | pos_db, tpl_sign and the others: "POS Staff User", 0 accounts. No code creates or reads it | **back office, pending the owner**: its purpose is known from its name alone |
+| `admin` | pos_db: "Probe Super", made by `devkit/scripts/js/issue-test-jwts.js`; legacy `require-admin` reads it as a super-admin | back office |
+| `rutba_rider_user` | code only: sale-order marks a rider's messages | back office |
+| anything else | | back office |
+
+A row with no role link, or on a role with no type, stays on the customer
+side, as before. No dev tenant holds such a row.
+
+Tests: a finder-level test across every type, including mixed case and an
+untyped role. Staff and web-storefront rows through:
+
+- verify and set;
+- both sign-ins and both resets;
+- the callback;
+- the exists door;
+- the invite door and `bind_only`;
+- the owner door's grant. A Staff row is taken as the person's and moved onto
+  `rutba_app_user`. A web-storefront row is left alone, and a new row is made
+  beside it.
+
+Both test harnesses now accept any role type.
+
+**Open, for the lead and the owner.** D33 makes a Staff person *found*. It
+does not yet make them *usable*, because these still require
+`rutba_app_user` alone:
+
+1. **The login shell's role check.** `console/apps/auth/components/SignInOutcome.js`
+   and `pages/login.js` (the realm's builder), and
+   `packages/ui/components/AuthCallback.js` (every suite app), log out any
+   `roleType !== 'rutba_app_user'`. A Staff person gets through the callback
+   and is bound and given a session, then sees "Your account does not have
+   the required role". They are not treated as a customer any more, but the
+   back office still refuses them.
+2. **The route grants.** The users-permissions route grants
+   (`up-permissions-seed.js`) are on `rutba_app_user` only. Legacy `me.js`,
+   `hr-team` and `sale-order` also compare against that type.
+3. **New User** starts its role select empty. With nothing picked, the person
+   is made with no role, which these doors treat as a customer.
+
+Choosing either of these would settle it:
+
+- **(a)** The console's New User and edit pages offer only `rutba_app_user`
+  for back-office people, or default to it.
+- **(b)** The three login checks use the same customer set.
+
+Option (a) is the smaller change and keeps the route grants right.
+
+**D32** (consumer `a995f399`): in log mode the core's mail line now carries
+the whole text on the lines after the recipient and subject, as management's
+log transport (`src/gates/mailer.js`) writes it. It does this only when
+`NODE_ENV` is not `production`. The fleet runs the core with
+`NODE_ENV=production`, so a production log line still names only the
+recipient and subject. There is a new test, `api/core/tests/email-log-mode.test.js`
+(4 of 4).
+
+**Tests** (22:49 UTC):
+
+- `console/api/tenants/tests`: 27 of 27 (invites 17, owner 2, people-exists 8).
+- `console/api/auth/tests`: 102 of 102 (callback 63, credential doors 24,
+  break-glass 15).
+- `console/apps/auth/src`: 55 of 55.
+- The core's `handoff` suite: 30 of 30 under the test-only preload. The
+  individual-mode `operator` suite: 7 of 7.
+
+The remaining failures in `api/core/tests` are the known machine traps:
+
+- the verifier's child-process test;
+- the first-run CLI;
+- `guest-ticket` and `drive`, which read the env file's URLs;
+- `tenant-mode`'s solo child process.
+
+None of them touches these files. The consumer checkout is empty at
+`fd84caf0`, and no new dependency was added.
