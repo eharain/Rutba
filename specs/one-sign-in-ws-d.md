@@ -831,3 +831,49 @@ Nothing behind a sign-in was walked.
 - **The realm (WS-A):** read `amr` from the ID token for D16.
 - **The deploy:** restart the control-plane worker where it hosts the
   schedules.
+
+## Round one, follow-up 9 (2026-09-24, 18:35 to 18:50 UTC)
+
+From the lead: the provider always sent `email_verified: true`. So the realm's
+rule for confirming a row it was told about (decision 30; the consumer's
+`confirm-bound-row.js` checks the claim is not false) learned nothing from
+it. One commit on management `dev`, fast-forwarded to `main` and pushed.
+`origin` holds both at `cb61de1`.
+
+| What | Where |
+|---|---|
+| `email_verified` is Strapi's `confirmed` for the address. It is kept on the session's sealed profile from Strapi's sign-in answer (`profile.emailVerified`) and carried on the ID token (it now rides with the `openid` scope; the address itself stays with `email`) and at userinfo. A session sealed before the flag was kept reads `true`, since it could only have been signed in with a confirmed address (below). `/v1/auth/session`'s `user.email_verified` reads the same flag. | `src/strapi/upstream-token.js`, `src/oidc/provider.js` (`findAccount` claims, `openid` claims), `src/domain/identity/session-identity.js`, `src/strapi/strapi-authentication.service.js` |
+
+### Where management refuses an unconfirmed address at sign-in, for the realm's reviewer
+
+- **The one gate is Strapi's.** In
+  `api/legacy/strapi/src/api/account/services/identity.js`, `signIn` (line
+  314): after the password is checked, `if (!user.confirmed)` it answers 403
+  `EMAIL_NOT_VERIFIED`. The check is unconditional, and **no setting governs
+  it**: it is not Strapi users-permissions' "email confirmation" advanced
+  setting, which this gate does not read. Auth maps the refusal to 403
+  `EMAIL_NOT_VERIFIED` (`src/strapi/strapi-authentication.service.js` line
+  40), and the sign-in page offers a fresh link.
+- **Every other way into a session is behind it or proves the mailbox.**
+  - The second factor (`signInSecondFactor`) is reached only through a
+    challenge that `signIn` issues after the check.
+  - Confirming an address (`confirm`, line 426) sets `confirmed: true` before
+    it signs the person in.
+  - A password reset (`resetPassword`, line 456) sets `confirmed: true`,
+    because opening the link proves the mailbox.
+  - The OIDC development login (`OIDC_DEV_LOGIN`, refused in production) goes
+    through the same `signIn`.
+- So today every session carries `true`. The claim now says `false` for any
+  session whose sign-in answer said `confirmed: false`, and would keep saying
+  it if that gate ever changed.
+
+### Tests (18:45 UTC, at `cb61de1`)
+
+- **Unit, `oidc-provider`:**
+  - a confirmed profile carries `true`;
+  - an unconfirmed one carries `false`, on the ID token and at userinfo;
+  - a profile sealed without the flag carries `true`.
+- **Integration, `oidc-first-party`:** a real sign-in's ID token and userinfo
+  carry `true`, and the session kept Strapi's answer (`emailVerified: true`),
+  not an assumption.
+- **Counts:** auth unit 376, integration 318, perf 5. Nothing skipped.
