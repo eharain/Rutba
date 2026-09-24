@@ -14,8 +14,9 @@ the detailed sources. Times are UTC.
 
 **Where the code is.** Round one: management `50367fd`, consumer `5d3c36f4`.
 Round two so far: management `08e264d` (follow-ups 4 to 8, stage 5's
-management half, D1, D2 and the members list), consumer `0070ae5c` (stage 4, stage 5's realm half, both
-reviews' fixes, the invite door under retries, the walk's defects). Both pushed; nothing on GitHub but `dev` and
+management half, D1, D2 and the members list), consumer `1ed304ff` (stage 4, stage 5's realm half, both
+reviews' fixes, the invite door under retries, the walk's defects and
+their review). Both pushed; nothing on GitHub but `dev` and
 `main`. The dev estate runs these checkouts.
 
 **Still to come in this record**, appended as addenda when they report: the
@@ -28,8 +29,8 @@ addendum 13, the reviews of D2 and D1 addenda 14 and 15, the round-two
 walk addendum 16, the invite door addendum 17, the consoles' fixes
 addendum 18, the members route addendum 19, the realm's walk fixes
 addendum 20, the members list addendum 21, the review of the realm's walk
-fixes addendum 22, the auth stream's follow-up 8 addendum 23; the realm's
-last fix pass and the last walk to follow.
+fixes addendum 22, the auth stream's follow-up 8 addendum 23, the realm's
+last fix pass addendum 24; the last walk to follow.
 The journey walk's end is addendum 1; the review of WS-D's follow-ups 2 and
 3 is addendum 2.
 
@@ -155,7 +156,7 @@ WS-D as follow-up 4:
 | WS-A | D2's M2 the core's invite door re-mails a row bound but never confirmed, so the first sign-in after deploy mails every such row; and it is idempotent only one call at a time (no unique address index) | medium | consumer `40579cd8`: `exists` with no mail for a row bound to the same subject; an insert-or-select on the subject index for concurrent invites |
 | WS-C | D1's M1 a re-invite's `retold` outcome is shown as "we have emailed an invitation"; L2 checkout's confirm button drawn with nothing pinned; L3 the invite form promises role changes and removal no door supports; L5 stale `roles.ts` | medium | management `5976bf4` (M1 and the role check), `0299832` (L2), `cc2af47` (L3), `1cc2879` (L5) |
 | WS-D | the staff person page prints full raw session ids from auth's internal sessions route | low | management `6aa11a3`: a handle in place of the id on the staff list, revocation by handle; `1bb6826`: the audit feed carries the handle too |
-| WS-B | D19's M1 the callback confirms a row without checking that management holds the address as verified and equal to the row's; M2 the refusal pages have no "Try again" at all; L3 the confirmation is not conditional on still-unconfirmed and not-blocked and not in one transaction with its audit; L4 test gaps; L5 the mailed set-password link survives (decision 33); L8 D25's baseline is the first answer, not the refused profile | medium | WS-B (in progress) |
+| WS-B | D19's M1 the callback confirms a row without checking that management holds the address as verified and equal to the row's; M2 the refusal pages have no "Try again" at all; L3 the confirmation is not conditional on still-unconfirmed and not-blocked and not in one transaction with its audit; L4 test gaps; L5 the mailed set-password link survives (decision 33); L8 D25's baseline is the first answer, not the refused profile | medium | consumer `ebf6d41b` (M1, L3, L4, L5, I6), `4d9f2523` (M2), `9aa4d3e5` (L8), `1ed304ff` (the hub's handoff uses the same rule) |
 
 ## 4. The journeys
 
@@ -364,7 +365,8 @@ under are decisions 20 to 22.
     still works** and sets an instance password marked as the row's own.
     Recommend, and being built: leave it valid, since setting an instance
     password later is harmless and expected; the audit records what changed.
-    The alternative is to void the link at confirmation.
+    The alternative is to void the link at confirmation. Built: consumer
+    `ebf6d41b`.
 ## 8. Round two
 
 Stages 4 and 5 of the plan are approved work and need no decision; the fixes
@@ -1097,3 +1099,23 @@ schedules (`CONTROL_PLANE_IN_STRAPI=false`) it must be restarted to pick
 up `identity.instance-tell`; the README says so, and management keeps no
 deploy-notes file. WS-C has two type changes to follow (the invitation
 view's `workspaces`, the audit's `session_handle`).
+
+## Addendum 24: the realm's last fix pass (WS-B)
+
+Four commits on consumer `dev` and `main`, `ebf6d41b` to `1ed304ff`; the
+note is in [one-sign-in-ws-b.md](one-sign-in-ws-b.md) (records `534520e`).
+Suites: callback 56, doors 13, break-glass 5, management-signin 20,
+allowed-redirect 14, frame documents 20, `packages/ui` 303, `api-client`
+42, the unsigned smoke 27, the handoff suite 25 with its test-only preload
+and its smoke 38 of 39 (the child-process check the preload cannot reach,
+as in WS-A's runs). The realm's doc and the identity-bridge doc updated.
+
+| What | Commit |
+|---|---|
+| The confirmation rule in one file, `console/api/auth/confirm-bound-row.js`, used by the callback and the hub: a bound unconfirmed row is confirmed only when `email_verified` is not false and the address is the row's own, case-folded as the doors do, else 404 `USER_UNKNOWN` with the row untouched; the write and its audit line are one transaction and the write happens only if the row is still bound to the same person with the same address, unconfirmed and not blocked; on no change the row is re-read (confirmed by another sign-in: an ordinary sign-in; blocked: `USER_BLOCKED`; else `USER_UNKNOWN`); only `confirmed` changes and the audit records it, the invitation's link stays valid on purpose (decision 33); the summary says what is known; tests for an unverified address, another address, no address, mixed case, racing callbacks with one audit line, a block or re-bind between read and write, a failed audit insert, no own-password mark | `ebf6d41b` |
+| M2: both refusal pages offer "Try again", through `/login` for the same destination, never the spent code; the status's earlier claim corrected | `4d9f2523` |
+| L8: a refusal carries the person's own subject and organisation, and the page's watch starts from that profile, deciding as the launcher does | `9aa4d3e5` |
+| I7: the hub's `open` path uses the same rule instead of opening an unusable session; cutting `open` was not small (the handoff suite and smoke are built on its codes, and management's internal handoff route still accepts the purpose); the handoff body has no `email_verified`, so the address counts as management's word behind its service token | `1ed304ff` |
+
+The reviewer is re-checking the rule. Nothing walked signed in; the core
+and realm reloaded under the tester's walk on each commit.
