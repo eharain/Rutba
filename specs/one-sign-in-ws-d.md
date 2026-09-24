@@ -69,7 +69,11 @@ moving on.
   not once per five-minute check.
 - **Sign-out asks only when nobody is named**: auto-confirm needs a valid
   first-party `id_token_hint`, so a link on another site cannot sign anybody
-  out.
+  out. *Corrected in follow-up 3 (F1, `c9f8e44`): as first landed this was not
+  true. A browser with no provider session got the library's self-submitting
+  form, and any valid first-party hint confirmed, whoever it named. Now the
+  hint's `sub` must be the person signed in here, a request for nobody gets the
+  question, and only that account's management session ends.*
 - **W1 calls**: `aud` is the instance's `url` origin (what the dev core's
   `INSTANCE_AUDIENCE` names, as for the handoff), not the core's origin as
   W1's text says; the body carries `db` because one core serves several (both
@@ -339,3 +343,91 @@ now binds (auth logs `instances asked about the password just proved`).
 
 WS-C's work in progress. `git status --porcelain -- auth
 devkit/scripts/gate-tokens.mjs` is empty; nothing of WS-D's is staged.
+
+## Round one, follow-up 2 (2026-09-24, 12:25 to 12:58 UTC)
+
+From the lead: D3 of the journey record, the portal release gate under strict
+I1 (a grant for files outside this stream's list, named below), and WS-A's
+F9 request for the logout frame. Four commits on management `dev`, each
+fast-forwarded to `main` and pushed.
+
+| # | What | Management commit |
+|---|---|---|
+| 1 | **D3: a person's Strapi read that times out is asked once more with a longer budget.** The Strapi client marks a timeout apart from an unreachable Strapi. A person's read (memberships, what their organisations run, licences, the price list: what the hub and the W2 fan-out read) that timed out is retried once with `STRAPI_RETRY_TIMEOUT_MS` (default 6000). Writes are never repeated. The fake Strapi can now answer late, and the new suite fails with the retry turned off. | `e087f4e` |
+| 2 | **D3: the hub never takes a failed read for "no organisation".** Organisations unreadable even on the second try: "Your organisations could not be read just now", with a Try again link, never "not a member of any organisation"; a sign-in with nowhere to skip to lands there. What they run unreadable: the organisations are listed with a note to try again. | `b5b737b` |
+| 3 | **F9 for WS-A: the logout frame names the session that ended.** A first-party app's ID token and userinfo carry `sid`, and both sign-out pages load every frame with `iss` and the same `sid`. The value is derived (`fcs_…`, an HMAC under a key derived from `SESSION_TOKEN_KEY`), never the management session id, which is the session credential (the cookie, and `X-Rutba-Session` on `/v1/auth`). The realm only compares it for equality. | `50d064a` |
+| 4 | **The release gate under strict I1.** `portal/tests/e2e/suites/00-preflight.mjs` and `06-console.mjs` (the operator in org-zero), `04-licensing.mjs` and `05-provisioning.mjs` (the customer in their organisation), `portal/tests/e2e/ecosystem.e2e.mjs` (org-zero, then globex) and `api/legacy/strapi/scripts/provisioning-walkthrough.js` each switch the session with `POST /v1/auth/org/switch` first, checked and reported, then mint naming no organisation. These are outside this stream's original list, edited under the lead's grant. Syntax-checked (`node --check`). The gate itself was not run: it needs `E2E_ADMIN_PASSWORD`, and Strapi was down. | `9773272` |
+
+## Round one, follow-up 3 (2026-09-24, 13:00 to 13:24 UTC)
+
+The reviewer's findings, as the lead relayed them. Five commits on management
+`dev`, each fast-forwarded to `main` and pushed; `origin` holds both at
+`50367fd`.
+
+| # | Finding | What changed | Commit |
+|---|---|---|---|
+| F1 | medium: a link on another site could sign somebody out everywhere, two ways | A provider middleware makes the provider's session follow the management session before an end-session request, as on authorize. A first-party hint confirms without the question only when its `sub` is the person signed in here (the library checks a hint's signature, not its expiry or whose it is). A request for nobody gets the question instead of the library's self-submitting form. A confirmation ends the management session only when it belongs to that account, or after the person's own click. Tests: no provider session (asked, only the click ends it), somebody else's hint (asked), a confirmation for another account than the browser's (nothing ended). The README's confirm-step lines and this file's line 71 are corrected. | `c9f8e44` |
+| F3 | low to medium: "everywhere" needed no recent sign-in and no second factor | In the password service, so both paths enforce it: "everywhere" needs a sign-in within `PASSWORD_EVERYWHERE_RECENT_MINUTES` (default 15; 403 `RECENT_SIGN_IN_REQUIRED`), and, when the person holds a factor this session has not used, a code (`mfa_code`; 403 `MFA_REQUIRED`), which steps the session up. "Only here" needs neither. The account page asks for the code or links to sign in again. | `55f02fd` |
+| F4 | low: the plaintext re-sent to bound rows; http doors | A sign-in skips a row known bound: one the hub reports bound (a `bound` flag, which Strapi does not send today) or one this service saw answer bound or matched, kept in memory for a month. A restart costs one more question per instance. In production a door whose `api` or `url` is not https is not called. | `03db6ab` |
+| F5 | low: no database on the credential token | `identity:credential` tokens carry `db` (the instance's `tenantRef`, required) beside `sub` and `email`. The suites' fake core compares it with the body's `db`. **Request for WS-A (relayed by the lead): the W1 doors should refuse a token whose `db` is not the body's.** | `7c6ef0d` |
+| F6 | low: a listed client with an old secret stayed confidential; a boot re-enabled a disabled one | A listed first-party client is public at the provider whatever secret the register holds (the gate cannot clear one). A boot leaves a disabled client disabled. With the list set, a client in the list's shape that is not on it is not served, so removing an entry is the kill switch; the README says so. | `50367fd` |
+
+### Questions added
+
+6. **F2: a realm on another site than auth cannot run the silent check.**
+   The cookies are `SameSite=Lax`, so a hidden frame from a realm on a
+   customer's own domain gets `login_required` every time. Round two, the
+   owner's call. The reviewer's three options, as the lead passed them to me
+   (in my words, since I have not read the review itself):
+   (a) serve auth's session cookie as `SameSite=None; Secure` for the silent
+   frame, which relies on third-party cookies that browsers are withdrawing;
+   (b) give each such realm an auth host on its own site (an
+   `auth.<customer-domain>` name for management auth), so the frame is
+   first-party;
+   (c) drop the frame for those realms: check with a top-level redirect on
+   load and at the realm's own session expiry, or from the realm's server
+   with a refresh token.
+7. **F7: access tokens carry the raw management session id.** `sid` in every
+   access token (the M2 mint and the OIDC resource tokens) is the session id
+   that `X-Rutba-Session` accepts on every `/v1/auth` route, so whoever holds
+   an access token can act as the session at auth. This predates the round
+   and is outside it. The front-channel `sid` added in follow-up 2 is derived
+   for this reason. Options: accept `X-Rutba-Session` only from server
+   callers, or put a derived value in tokens and give the gateway's
+   revocation feed the same derivation.
+
+### Tests (13:15 to 13:22 UTC, at `50367fd`)
+
+| Suite | After follow-up 1 | After follow-up 3 |
+|---|---|---|
+| `npm run test:unit` | 346 | 357 of 357 |
+| `npm run test:integration` | 265 | 275 of 275 |
+| `npm run test:perf` | 5 | 5 of 5 |
+
+Nothing skipped. New suites: `unit/strapi-retry`, `unit/front-channel-sid`,
+`unit/instance-credentials`, `integration/hub-slow-strapi`; cases added to
+`oidc-logout`, `context-passwords`, `first-party-clients`, `service-token`.
+
+### Live
+
+Management Strapi stopped answering at about 12:55 UTC (4116 refuses), and
+auth, reloading under its watcher on these commits, waits for it at boot
+("Strapi is not answering yet"). 4101 and 4116 still refused at 13:24 UTC.
+Nothing was restarted by this stream. None of follow-ups 2 and 3 has been
+seen on the running estate. When Strapi is back, auth's boot log should show
+`oidc provider constructed` with its clients, and one password sign-in shows
+W2 (`instances asked about the password just proved`, now with `skipped`).
+
+### Requests
+
+- **WS-A (through the lead):** compare the credential token's `db` with the
+  body's (F5); the logout frame's `sid` is now on the ID token, at userinfo
+  and on every frame URL (F9).
+- **The lead:** run the release gate (`npm run test:e2e` in management/portal,
+  with `E2E_ADMIN_PASSWORD`) once Strapi is up; bring management Strapi back
+  (auth waits on it); the owner's calls on questions 6 and 7.
+
+### Management checkout
+
+`git status --porcelain` in `D:/Rutba2.0/management` on `dev` at `50367fd`,
+13:24 UTC: empty.
