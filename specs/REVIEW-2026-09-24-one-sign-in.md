@@ -13,7 +13,7 @@ four status files ([WS-A](one-sign-in-ws-a.md), [WS-C](one-sign-in-ws-c.md),
 the detailed sources. Times are UTC.
 
 **Where the code is.** Round one: management `50367fd`, consumer `5d3c36f4`.
-Round two so far: management `cb61de1` (follow-ups 4 to 9, stage 5's
+Round two so far: management `cace52f` (follow-ups 4 to 9, stage 5's
 management half, D1, D2 and the members list), consumer `62af024b` (stage 4, stage 5's realm half, both
 reviews' fixes, the invite door under retries, the walk's defects, their
 review and its re-check). Both pushed; nothing on GitHub but `dev` and
@@ -241,8 +241,8 @@ The journey record's D1 to D15, with where each stands now.
 | D24 | low | The realm's `/login` fails hydration (server and client render different classes); the dev overlay covered two screenshots. | consumer `f5f8b3d4` |
 | D25 | medium | A tab left on the realm's refusal pages never checks, so it does not follow the person's next switch until "Try again". | consumer `c9f31bf7` under decision 31; walked, follows in under four minutes |
 | D26 | medium | A newly invited member arrives in the organisation's instance with no apps (the invite door gives a member none by design), so their first open stops at "You cannot open the suite" until the owner grants an app in the instance's own console; nothing in management tells the owner. | decision 34 |
-| D27 | low | Members told before the tell record existed show no told state, so "told" and "never told" look the same for them. | WS-C, a line under the roster |
-| D28 | low | "You are member in …" on the member's view of the organisation page. | WS-C |
+| D27 | low | Members told before the tell record existed show no told state, so "told" and "never told" look the same for them. | management `cace52f`: one line under the roster when a non-owner active or invited member has no workspace state |
+| D28 | low | "You are member in …" on the member's view of the organisation page. | management `cace52f` |
 | D29 | low | A periodic check that gets no answer during a restart waits five minutes for the next one; three of four switch-follows in the walk took eight to nine minutes. | WS-B, a sooner retry |
 
 ## 7. Decisions for the owner
@@ -379,7 +379,13 @@ under are decisions 20 to 22.
     carries an app choice defaulting to the organisation's licensed
     products at their basic level, sent with the tell, so the journey ends
     inside the app; and until that lands, the members page says "no app
-    yet" for such a member. Not built; round three.
+    yet" for such a member. Not built; round three. Sized by WS-C: the
+    form shows one checkbox per licensed product, ticked by default, read
+    from the licences the console already lists, and sends the product
+    keys with the role; auth's invitation route must accept and pass them,
+    and Strapi's invite must check each against the organisation's active
+    licences, map a licence key to its app (the licence `social` is the app
+    `relay`), and give each instance the user-level role for it.
 ## 8. Round two
 
 Stages 4 and 5 of the plan are approved work and need no decision; the fixes
