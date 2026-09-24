@@ -27,8 +27,8 @@ outage fix addendum 10, WS-B's last lows addendum 11, D2 addendum 12, D1
 addendum 13, the reviews of D2 and D1 addenda 14 and 15, the round-two
 walk addendum 16, the invite door addendum 17, the consoles' fixes
 addendum 18, the members route addendum 19, the realm's walk fixes
-addendum 20; the auth stream's follow-up 8, the members list wiring, the
-D19 review and the last walk to follow.
+addendum 20, the members list addendum 21; the auth stream's follow-up 8,
+the D19 review and the last walk to follow.
 The journey walk's end is addendum 1; the review of WS-D's follow-ups 2 and
 3 is addendum 2.
 
@@ -383,8 +383,8 @@ below need none either. The rest waits on section 7.
 - **Fixes without a decision:** landed: D16 (addenda 4, 7, 11), D11 and
   D17 (addenda 5, 7), the estate map's `org` option (addendum 5). Open: D5.
 - **D1 and D2 landed** (addenda 12 and 13), reviewed (14, 15) and their
-  findings fixed (17, 18). The members route landed (19); WS-C is wiring
-  the page to it.
+  findings fixed (17, 18). The members route landed (19) and the page is
+  wired to it (21).
 - **After the decisions:** D14, D13, F2's choice, F7's access-token half,
   the brakes' proxy trust, L3, L4, the reset path's step-up if asked for.
 - **Before production:** the release gate, first brought up to date with
@@ -980,3 +980,26 @@ offered as it stands), the confirmation link landing on the realm's
 `/login` since an invited row has no password, a refusal page, and the
 dev estate's mail actually delivering; and someone who never opens the
 mail could not sign in although management lists them as a member.
+
+## Addendum 21: the members list on the organisation page (WS-C)
+
+Three commits on management `dev` and `main`, `4c53c84`, `c222e73`,
+`7a393be`; the section is in [one-sign-in-ws-c.md](one-sign-in-ws-c.md)
+(records `710beae`). The portal console's tests 44 → 55, the management
+console 74, type-check clean in both.
+
+| What | Commit |
+|---|---|
+| The told states from the auth stream's follow-up 8 (`blocked`, `refused`, `taken` beside `pending` and `failed`) mapped to words in one place, used by the invite messages and the roster: not yet told, could not be told | `4c53c84` |
+| The member list: `GET /v1/auth/org/:orgId/members` with the console cookie; owners and admins see everybody in auth's order, members and viewers their own row with a line saying the full list is for owners and admins; each row shows the name or address, "you", the role, the status in words, since or invited with a date, and one line per workspace by label with its told state (nothing when null); no instance id, database name or product is ever drawn, a missing label reads "Workspace"; a 403 and auth down each get a fixed sentence and anything else a plain one, never auth's text, falling back to the person's own row; personal accounts do not read the list; the invite form stays for owners and admins whatever the list returns | `c222e73` |
+| The staff person page's sessions shown by auth's new handle (`sh_` plus 16 characters, management `6aa11a3`) in place of the raw id | `7a393be` |
+
+Seen unsigned on a temporary server above port 5000 and then on the
+estate's console once it was back: `/organisation` redirects to sign-in,
+`/checkout?intent=x` answers with the plan panel. For the tester: an owner
+sees everybody with dates, statuses and each workspace's line; a member
+their own row and the line; the staff page's sessions as handles. Only
+the unit tests reach the 403 sentence, since a removed member is refused
+at the token before the page asks. For WS-D: the console's audit type
+still expects a session id on auth events, so `/internal/audit` may still
+carry raw ids to the console server; asked to answer the handle there.
