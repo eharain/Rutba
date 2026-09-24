@@ -101,14 +101,16 @@ whatever issuer and audience the configuration names.
   no switcher, no five-minute silent check in `AuthContext`. (Sign-out through management's end-session and the
   front-channel logout frame were built afterwards, at WS-D's request: see
   "After the lead's message" below.)
-- **Promises with no production caller yet:** W1 verify and set have none
-  until WS-D's W2 ships; the own-password mark has no reader besides W1 set
-  clearing it (management's I10 report is the intended one).
-- **The dev data does not map every profile yet:** `pos_db` has no `orgId` in
-  `.data/tenants.dev.json`, so a team organisation reaches it only through an
-  `instances` claim; `individual_dev` needs `org.kind: 'personal'` on the
-  claims. Until WS-D's claims land, every management sign-in on the dev estate
-  answers `NO_INSTANCE`.
+- **Promises with no production caller yet:** the own-password mark has no
+  reader besides W1 set clearing it (management's I10 report is the intended
+  one). W1 verify and set have had their caller since WS-D's W2 landed
+  (management `12a7542`, the address on the token since `679f217`).
+- **The dev data maps profiles through WS-D's claims** (corrected 2026-09-24,
+  follow-up 2): since management `6baf965`, userinfo answers `org.kind` and,
+  for the `rutba` scope, `instances`, so a personal organisation reaches
+  `individual_dev` and a team organisation the database its instances name.
+  `pos_db` still has no `orgId` in `.data/tenants.dev.json`, which matters
+  only for an organisation whose instances do not name it.
 - **`docs/identity-bridge.md` and `docs/request-lifecycle.md` were not
   amended**; the new doors are recorded in `docs/one-sign-in-realm.md` and the
   auth app's README.
@@ -301,3 +303,63 @@ credential doors 8, break-glass 4); `console/apps/auth/src` 26 of 26
 above. Consumer commits since the status: `80b6b4a4` (sign-out) and
 `8e18ed85` (the live check's fixes), both on `dev` and `main`, pushed.
 `git status --porcelain` in `D:/Rutba2.0/consumer` at `8e18ed85`: empty.
+
+## Round one, follow-up 2 (2026-09-24)
+
+The reviewer's findings, all in WS-A's files, fixed in small commits on
+consumer `dev`, each with its suites green first, `main` fast-forwarded and
+both pushed. Code and docs moved together (`consumer/docs/one-sign-in-realm.md`).
+
+| # | Finding | Fix | Commit |
+|---|---|---|---|
+| F1 | the brake keyed on `ctx.ip` before any validation, one bucket for the callback and the context-password door | a per-subject bucket on the callback, counted once the ID token has verified (20 per five minutes); the ticket's own five tries on the context-password door (F7); a wide backstop per door per peer address (600 per five minutes) the only thing counted before validation. **The core sets no `app.proxy`**: a forwarded address is not believed, and `ctx.ip` is the peer, which behind the dev gateway or an edge proxy is one address for everybody | `c2b6eae7` |
+| F2 | the verify door tested whatever address the body named | the body's `email` must equal the token's `email` claim: none is 400 `EMAIL_CLAIM_REQUIRED`, another is 403 `EMAIL_MISMATCH`. A replay cache on `jti` shared by both doors: a missing jti is 400 `JTI_REQUIRED`, a second use 401 `TOKEN_REPLAYED`. WS-D's `679f217` already names the address as `email` on the credential token, so W2 calls from a management at that commit pass; one from before it is refused with `EMAIL_CLAIM_REQUIRED` | `609ea52e` |
+| F3 | the hub's `open` bound an unbound row holding its own password without asking | `resolveForOpen` no longer binds such a row. Management still gets its code, but the code carries `context_password`, and its redemption answers 409 `CONTEXT_PASSWORD_REQUIRED` with the same ticket W3 issues. `/authorize` shows the same `ContextPassword` page, then continues to the app as the relay always did. The session says `amr ['management-handoff', 'context-password']` with the handoff's entitlements and quotas. The ticket moved to `console/api/auth/context-ticket.js`, shared by both doors. The handoff suite's `sara` row now has no password of its own (it proves the first-match bind), and a new `omar` row proves the ask. `api/core/scripts/smoke-handoff.js` got the same one-line change to its `sara` row: it is the smoke of `handoff.js`, run from `api/core/scripts` | `7579d8b2` |
+| F5 | `bindSub` wrote without `whereNull` | the bind is conditional on `rutba_sub` still being empty. A race lost to the same subject is a win; lost to another it is 409 `USER_BOUND_ELSEWHERE` and nothing is overwritten. W1 verify answers that as `{ bound: false }` | `4e697dbc` |
+| F6 | the nonce was optional at the core | required: a callback without one is 400 `INVALID_REQUEST`, and an ID token is believed only with it | `4e697dbc` |
+| F7 | the five-try counter was read then written | a try is taken before the password is checked, by compare-and-set on the pending row's `device_id` (a string column no reader of pending rows uses; the JSON metadata column comes back as an object on Postgres and cannot be compared). Ten wrong guesses sent at once now get five checks and five `CONTEXT_TICKET_INVALID` answers, and the ticket is gone | `4e697dbc` |
+| F8 | userinfo was skipped when the ID token had the address and the organisation, although `entitlements` and `instances` live only there | userinfo is read whenever the `rutba` scope was granted (a token answer naming no scopes granted those asked for), otherwise only for what the ID token left out. The code, the doc and this file no longer call the `instances` claim signed: it is management's userinfo answer to the access token its token endpoint had just issued | `be53be37` |
+| F9 | the logout frame accepted a plain top-level link | `iss` (the trusted issuer) and `sid` are required, otherwise 400 and nothing is cleared. Even then only a kept session whose management session id (`oidcSid`) is the `sid` named is cleared. The core now answers `management_sid` beside the session when the ID token or userinfo names `sid`, the page keeps it with the ID token, and it rides through a context-password ticket | `1622d80c` |
+| F4 | `POST /api/auth/local` marked no break-glass `amr` and logged nothing | the same `amr ['instance-password']` and the same `instance password sign-in (break-glass)` log line as `/api/auth/local/any` | `64aa5995` |
+
+**What F9 needs from WS-D.** Management names no `sid` today: its frame URL
+is `<origin>/auth/logout-frame?iss=<issuer>` (`auth/src/oidc/logout.js`), and
+neither the ID token nor userinfo carries `sid` for the realm's client (the
+account's claims are `sub`, `email`, `email_verified`, `name`, `org`, and at
+userinfo `entitlements`, `instances`). Until both carry it, every
+front-channel call is refused (400) and a sign-out at management reaches the
+realm only through stage 4's silent check. Two lines for WS-D:
+
+1. `&sid=<the ending session's sid>` on each frame URL;
+2. `sid` on the ID token, or at userinfo, for first-party clients.
+
+**Seen on the dev estate after the fixes** (12:08 to 12:27 UTC; screenshots
+before each verdict, and the pages hydrated):
+
+- `/auth/logout-frame` with no query, with `iss` alone, and with a foreign
+  `iss` answered 400; with the trusted `iss` and a `sid` it answered 200.
+  With a fake session planted under `oidcSid=sess_probe`, a call naming
+  another `sid` left the kept ID token and sid in place, and the page's own
+  script did not run its clearing (no `data-rutba-signed-out`). The fake
+  `jwt` was dropped by AuthContext's own session check, which rejects a fake
+  token. A call naming `sess_probe` cleared everything, and the plain link
+  read "Not a sign-out this app recognises."
+- The smoke's parts A to C passed again at 12:27 UTC.
+- Part D and the signed-in pages are still unwalked, for the reason given in
+  "Live check": they need a password typed into management's sign-in.
+
+**Tests** (12:27 UTC): `console/api/auth/tests` 45 of 45 (callback 29,
+credential doors 11, break-glass 5); `console/apps/auth/src` 27 of 27
+(management-signin 13, allowed-redirect 14); with the env file's bridge and
+edge-key lines hidden by the test-only preload: handoff 24 of 24, the verifier
+21 of 22 (its child-process test, as before), migration 114 4 of 4,
+`smoke:handoff` 38 of 39 (its child-process check A, likewise).
+
+**Files outside `console/api/auth/**` and `console/apps/auth/**`:**
+`api/core/tests/handoff.test.js` and `api/core/scripts/smoke-handoff.js`,
+the suite and the smoke of `handoff.js` (F3), and
+`consumer/docs/one-sign-in-realm.md`.
+
+**Consumer checkout:** `git status --porcelain` in `D:/Rutba2.0/consumer`
+at `64aa5995`, after the last commit and push: empty. `dev` and `main`
+are both at `64aa5995` on `origin`.
