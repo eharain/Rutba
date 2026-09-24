@@ -18,7 +18,8 @@ the detailed sources. Times are UTC.
 `main`. The dev estate runs these checkouts.
 
 **Still to come in this record**, appended as addenda when they report: the
-release gate (running); WS-D's follow-up 4 and WS-B's stage 4 as they land.
+release gate (addendum 3: it cannot run here); WS-D's follow-up 4 and WS-B's
+stage 4 as they land.
 The journey walk's end is addendum 1; the review of WS-D's follow-ups 2 and
 3 is addendum 2.
 
@@ -316,7 +317,9 @@ below need none either. The rest waits on section 7.
 - **After the decisions:** D1, D2, D14, D13, F2's choice, F7, the brakes'
   proxy trust, L3, L4, the reset path's step-up if the reviewer of
   follow-up 3 asks for it.
-- **Before production:** the release gate with the operator's password;
+- **Before production:** the release gate, first brought up to date with
+  the consolidated estate (addendum 3), then run with the operator's
+  password;
   `NEXT_PUBLIC_AUTH_URL` / `AUTH_PUBLIC_URL` on the production consoles
   (WS-C's request 3); the first-party list and the client ids in the
   production environments; auth's `OIDC_COOKIE_KEYS`; tenant 1's realm on
@@ -384,3 +387,20 @@ the answer and mint naming none.
 
 **Not checked:** the gate itself (a password); the realm's door code (its
 doc only).
+
+## Addendum 3: the release gate
+
+Run at 13:36 from `management` (`npm run test:e2e`) against the `erp`
+profile with no operator password, and stopped by the lead after forty
+minutes with no summary. Reading the runner shows why it cannot gate this
+estate as it stands: the harness (`portal/tests/e2e/lib/harness.mjs`) still
+names the organisation, licence, billing, provisioning, support and partners
+services on ports 4102 to 4108, and the preflight lists all six as required
+and stops the run when they are down. Those services moved into management
+Strapi on 2026-09-21 and nothing listens on those ports (probed at 14:15:
+no answer on any, nor on the portal web app's 4110, which is not in the
+`erp` profile). WS-D's `9773272` (switch, then mint naming none) is
+syntax-checked and reviewed (addendum 2), not run. Before the gate can gate
+a release again it needs its preflight and harness pointed at Strapi's gates
+and the portal profile, then the operator's password. A round-two item for
+WS-C's owner of `portal/tests/e2e`, or the lead.
