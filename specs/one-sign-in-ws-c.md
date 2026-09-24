@@ -272,3 +272,116 @@ small commits on management `dev`, fast-forwarded to `main`, both pushed.
 
 `git status --porcelain -- console packages/session packages/design-system package-lock.json`
 in `D:\Rutba2.0\management` at 12:40 UTC, after `d3660ff`: empty.
+
+## Round two (2026-09-24, 17:00 to 17:25 UTC)
+
+Three items from the lead, in order, one commit each on management `dev`,
+fast-forwarded to `main`, both pushed. `dev` and `main` on `origin` at
+`98d954a` (17:21 UTC). Nothing under `management/auth`, `management/api` or
+`consumer/` was touched.
+
+| # | Item | Management commit |
+|---|---|---|
+| 1 | **D1: the portal console's organisation page reads auth, not the retired Organization Service.** The organisation is the one the console's token names, with its name and kind from the pinned profile (`GET /v1/auth/session`, through `currentProfile`); the person's role is the one the token carries for the portal (`tokenRoles`, new in `@rutba/portal-session`, beside `tokenOrg`). The invite form, the only one in the product, is offered to owners and admins of a team and posts to auth's `POST /v1/auth/org/:orgId/invitations`, as it did. Gone from the page's path: the gateway's `/v1/organizations/:id`, `.../members`, `.../convert` and `addMember`, the roster-naming call to auth's `/v1/auth/org/:orgId/identities` (501 while people live in Strapi), and, unused and retired, `portalApi.jobs` and `licensesApi`. Auth's two calls (`invite`, `session`) moved to a pure `src/lib/auth-client.ts` so their wire shape is tested; `auth-api.ts` binds it server-side. The page's decision (personal or team, offer the form or not) is `src/lib/organisation.ts`, tested. | `24ec0b7` |
+| 1+ | **The checkout page billed the pinned profile but named the first organisation of the list** (`identity.data.organizations[0]`): with two organisations it said "Billing to A" while the confirm action's token billed B. Found while checking the pages for item 1. It now names the pinned profile (`profileState` of the session view) and, with several and none chosen, points at the switcher. | `74ec02f` |
+| 2 | **`sid` dropped from the session view's three types**: `PortalSession['session']` in `@rutba/portal-session`, `SessionView` in the portal console, `authApi.session` in the management console. Nothing read it (the only `sid` reads left are the management console's person page, from auth's internal sessions list, and the login and step-up answers, which are other routes). Type-check clean in all five consoles and the package. | `98d954a` |
+
+### Choices
+
+- **No second read for the organisation.** `GET /v1/auth/orgs` answers the same
+  list the session view carries (both are `listOrgOptions`), so the page takes
+  the organisation from the profile the console already resolves for every
+  page, rather than asking auth twice.
+- **The roster shows you only, and says so.** No door lists an organisation's
+  other members to a member: auth's `/v1/auth/org/:orgId/identities` is 501,
+  Strapi's identity gate has `invitations` and `licences` under
+  `users/me/organizations/:org` but no members, and the console gate's
+  `/people` is for staff. The box lists the signed-in person with their role
+  and a line that the full list is not shown here yet; it no longer counts
+  "1 person" for an organisation of five.
+- **Converting a personal account has no door**, anywhere (Strapi's `onboard`
+  only makes a personal organisation). The convert form and its action are
+  removed; the personal view keeps its panel and the "what converting
+  changes" aside and says plainly that it cannot be done from the console yet,
+  with the brand's address (`hello@rutba.io`, `site.ts`) for anybody who needs
+  a team account sooner.
+- **A kind auth did not state is drawn as a team.** Strapi refuses an
+  invitation into a personal organisation with a sentence the form shows
+  (`ORGANIZATION_IS_PERSONAL`), so the invitation decides rather than the page
+  guessing.
+
+### Test counts (17:05 to 17:20 UTC)
+
+| Suite | Round one follow-up | Now |
+|---|---|---|
+| `@rutba/portal-session` | 48 | 50 (`tokenRoles` 2) |
+| portal console | 17 | 29 (auth client 7, organisation view 5) |
+| management console | 74 | 74 |
+| partners console | 13 | 13 |
+| Relay console (vitest) | 163 | 163 |
+
+`tsc --noEmit` clean in all five and the package, nothing skipped. The portal
+console was type-checked with a scratch config that leaves out
+`.next/dev/types`: the running dev server's generated route types there are
+truncated (`routes.d.ts` ends mid-template), and that directory belongs to the
+server on 4118, so it was not deleted. Its own files check clean.
+
+### Seen unsigned
+
+- `http://localhost:4118/organisation` (the estate's portal console dev server,
+  running from this checkout and hot-reloaded) answers 307 to
+  `/auth/signin?next=%2Forganisation` after the change (checked again at 17:24),
+  so the page compiles;
+  `/checkout?intent=x` answers 200 with the "Which plan?" panel.
+- Nothing signed in: no test account was used and no password typed.
+
+### Needs the tester (signed in)
+
+1. As an owner or admin of a team organisation (the journey's
+   "E2E Org2 1543 Ltd" owner): `/organisation` loads with the organisation's
+   name and `<slug>.rutba.io`, a People box with your row and role and the
+   "not shown here yet" line, and the invite form. Invite an address: the
+   notice names the outcome (invited, added, reinstated); inviting a member
+   again answers auth's own sentence.
+2. As a member or viewer of that organisation: the page loads with no form
+   and "this is somebody else's to do".
+3. As a person pinned to a personal account: the "Not in the console yet"
+   notice, no form.
+4. With two organisations: `/checkout?intent=<plan>` names the pinned one
+   under "Billed to"; after a switch, the other.
+
+### Still on retired services (listed, not fixed)
+
+None is small: each needs a Strapi gate route first.
+
+- **Portal console:** `/updates` (`/v1/announcements`), `/feedback` and
+  `/feedback/[ref]` (`/v1/feedback/...`), and the feedback post route
+  `/api/feedback`, all through the API gateway.
+- **Management console:** the overview (organisation count through the
+  gateway, the estate from provisioning's `/internal/estate`, suspensions from
+  the licence service's `/internal`); `/organizations` and
+  `/organizations/[orgId]` (organisation, members, licences, subscriptions,
+  suspensions through the gateway, and the people actions' add and update
+  member); `/staff` (org-zero's members through the gateway); `/feedback`,
+  `/feedback/[ref]`, `/announcements` (gateway); `/suspensions` (licence
+  service, 4103); `/catalog` (provisioning's `/products`); `/estate`,
+  `/estate/[storeKey]`, `/domains` (provisioning, 4105); `/instances` reads
+  its licences from the licence service (`allLicenses`), its instance list
+  from Strapi. The console README already names `/domains` and `/estate`.
+
+### For other streams
+
+- **WS-D, and Strapi's owner (`management/auth`, `management/api`):** a
+  roster door, so the organisation page can list everybody: in Strapi's
+  identity gate `GET /users/me/organizations/:org/members` with the person's
+  own token (members of that organisation only, names and addresses, roles,
+  status), and in auth `GET /v1/auth/org/:orgId/members` over it, the way
+  `invitations` is carried. And a conversion door (personal to team, name and
+  slug) the same way. The page's shape is ready for both.
+- D2 (the instance never told about an invitation) was answered in
+  management `31f664b` while this ran; not this stream's.
+
+### Management checkout
+
+`git status --porcelain -- console packages/session packages/design-system package-lock.json`
+in `D:\Rutba2.0\management` at 17:22 UTC, after `98d954a`: empty.
