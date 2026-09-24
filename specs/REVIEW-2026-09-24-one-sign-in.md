@@ -1237,5 +1237,44 @@ first-party client and worker lines from `gate-tokens.mjs` and the cookie
 keys; a control-plane worker restart where it hosts the schedules; the
 order Strapi, auth, core and realm and apps, consoles; the read-only checks
 after; the accepted gap of decision 34; rollback to the previous images.
-The release gate could not run this round, which the request says. The
-Infra session's answer goes here when it comes.
+The release gate could not run this round, which the request says.
+
+**Deployed** (the Infra session's answer, 2026-09-24 UTC): management
+`cace52f`, consumer `5766c86a` (`c0d4a05b` plus one deploy-settings
+commit), workers `f0f5e8d` unchanged; the estate check green. The Infra
+session did not take the relayed request as the owner's word; it asked the
+owner in its own session, having told them that the one core puts
+rutba.pk's staff on management sign-in too and that the release gate and
+decision 10 are unrun, and the owner chose to ship everything as
+requested. Backups first with `backup-dbs.sh`, both shipped to the peer
+box (the estate's ten databases, the fleet's fourteen, 19:20). Strapi then
+auth restarted about 19:34: Strapi hosting three reactions and ten
+schedules, auth registering all five first-party clients. The core, the
+realm and the eleven suite apps, then the four consoles, about 19:49, all
+seven tenants' schemas ok. The sites on VPS 1 at `cace52f` about 20:20. No
+worker restart needed: the control plane runs inside Strapi in production.
+Changed in `5766c86a`: `gate-tokens.mjs` writes only the dev estate's
+environment, so the same values went into the deploy scripts
+(`OIDC_FIRST_PARTY_CLIENTS` with the five clients and their production
+origins; each console's `OIDC_CLIENT_ID` and `AUTH_PUBLIC_URL`; the core's
+`OIDC_CLIENT_ID=consumer-realm`, its issuer, JWKS and audience already set
+on 09-23); the cookie keys already existed; the two new timing variables
+left at their defaults; the realm's build arguments derived unchanged by
+`run-fleet.sh`, 21 exact back-office hosts on both lists, no storefront and
+no rutba.pk host (tenant 1's back office is on the shared hosts). The
+stream status files carry no "environment" headings, so the Infra session
+derived the variables from the code diff; a gap in the records. Read-only
+checks after, before → after: discovery lists `amr` and `auth_time`; the
+session route 401 with no cookie; the members route 404 → 401 with no
+session; the realm's `/auth/check` unframed 404 → 400; the portal console's
+`/organisation` 307 to sign-in; the realm's break-glass 200; a signed-out
+browser at the realm and at pos.rutba.io landing within ten seconds on
+management's address-first form inside an OIDC interaction, no hang.
+Observed and answered: the hub's workspace route with no session goes to
+management's own sign-in (intended: the route pins on the session); one
+`NoTenantContextError` at the core's boot for a public CMS page read, not
+recurred. Not done, the owner's: a signed-in walk, and in particular a
+rutba.pk staff address at the address-first form, since federated
+discovery forwards a customer address to the realm and the realm now
+forwards to management; the loop question is being answered from the code
+and a read-only discovery check.
