@@ -1187,4 +1187,227 @@ makes a same-password unbound row.
     owner "E can sign in but has no app yet: give one in the instance's
     console"?
 
+## Round three walked (2026-09-24, 21:58 to 22:22 UTC)
+
+Decision 35 (a reset belongs where the sign-in is), as built in the "Round
+three" sections of [WS-A](one-sign-in-ws-a.md), [WS-B](one-sign-in-ws-b.md)
+and [WS-D](one-sign-in-ws-d.md). The method is round two's: headless Edge,
+one profile per person, a screenshot and the hydration check before every
+verdict (`r5-*.png`), a recorder on the launcher (`rec-r5launcher.log`).
+Times are UTC; the estate's local clock (UTC+5) already read 25 September.
+
+### The estate
+
+| | Start (21:58:30, all four doors answering) | End (22:21:46, all four answering) |
+|---|---|---|
+| records | `73e0ce1`, one other session's file uncommitted | `c8e5c33` (before this commit), porcelain empty |
+| consumer | `aee646a8`, porcelain empty | `aee646a8`, porcelain empty |
+| management | `5490684`, porcelain empty | `5490684`, porcelain empty |
+
+No code commit landed during the walk, and nothing restarted under it.
+
+### Verdicts
+
+| # | Step | Verdict |
+|---|---|---|
+| 1 | The reset that creates the account | **PASS.** The same answer as any address; the right log lines with digests only; a "Set your Rutba password" link with a code and `new=1` and no address; the account made confirmed, a viewer of the team, the instance told and the password carried; F in Sign as the team. The unknown address: the same answer, no mail, but no line at management (D30) |
+| 2 | A second reset for F | **PASS.** Today's "Reset your Rutba password" mail, no instance asked |
+| 3 | The separation | **NOT WALKABLE** on the dev estate: the storefront serves no tenant without an edge (D31). The realm's break-glass reset for A was walked: accepted, a mail sent, the link's origin the realm's `/login` by code and configuration, not seen in the mail (D32) |
+| 4 | The operator path | **PASS as far as walkable.** The operate path's code is as the round's status files say; nothing minted. B's ordinary realm session on the operator people search: 403 `NOT_IN_THIS_MODE`, the answer for a row that holds no `platform_operator`. `OPERATE_HANDOFF_REQUIRED` needs an operator row, and no test account is one |
+| 5 | Journey 2, briefly | **PASS.** The launcher followed a console switch in 4 min 23 s |
+
+### 1. The reset that creates the account
+
+- **F, a back-office row with no management account, made through a product
+  door.** The owner signed in at management (21:59:58), then at the realm (the
+  team's instance), then opened the instance's own console,
+  `http://localhost:4022/users/new`. The form offers a role select ("—
+  Select —, Authenticated, Public, Staff, Rutba App User, Rutba Web User,
+  Probe Super"). F was made on **Rutba App User**, the back-office role
+  (`rutba_app_user`): the role decision 35's finders count. The entries:
+  email `e2e-osi-2201-f@rutba.test`, display name "E2E OSI F", Sign "user
+  access" (`r5-02-owner-new-user-filled.png`). The choice of role matters
+  (D33).
+  - **22:02:15** "Create & Send Invite": `POST /api/user-admin/invites` 200.
+  - The users list: "E2E OSI F · Rutba App User · Sign · **Invited**".
+  - The instance's mail, in the core's log: `to=e2e-osi-2201-f@rutba.test
+    subject="You have been invited to Rutba Suite"`. The core's log shows no
+    body (D32).
+- **Management's reset for F**, `http://localhost:4101/forgot`, 22:02:53.
+  - The page: "Check your email. If that address belongs to a Rutba account,
+    a link to set a new password is on its way." It came back 620 ms after
+    the post.
+  - Auth: `{"route":"forgot","outcome":"reset_sent","address":"0f528e661c979963","msg":"password request"}`.
+    That is the digest, and `printf %s e2e-osi-2201-f@rutba.test | sha256sum`
+    begins `0f528e661c979963`. The address is in no auth line.
+  - Strapi: `POST /api/identity/password/forgot (60 ms) 202`. Then the mail
+    "Set your Rutba password" to F. Then **`[identity] a reset for an
+    address with no account: 1 instance(s) know it; a set-password link was
+    mailed`**.
+  - The core: `[tenants] people:exists in sign_e2eorg0145owner12d3 for
+    sha256:0f528e661c979963: yes`, `POST /api/tenants/…/people/exists 200`.
+  - The mail's body, in Strapi's log: "You asked to reset your password.
+    Rutba Sign signs in with Rutba, and this address has no Rutba password
+    yet. Choose one here: `http://localhost:4101/reset?code=<code>&new=1`.
+    The link works once and expires in 60 minutes." **A code and `new=1`, no
+    address.**
+- **The link**, opened 22:03: the page is headed "Set your Rutba password",
+  "Your workspace signs in with Rutba. This makes your Rutba account with
+  this address, and the password works there too."
+  (`r5-06-set-password-page.png`). It also shows an authenticator-code field
+  and the "Everywhere / Only here" choice, which do not fit an account being
+  made (D34).
+- **22:04:01** `E2e-osi-f-pass-1`, "Everywhere". The page: "Password
+  changed. Every other session has been signed out. Sign in with your new
+  password. Changed: Rutba Sign" (`r5-07`). The logs, in order:
+  - Strapi: `[identity] an account was made from a set-password link for
+    usr_e523f32ac5a9ef53, a member of 1 organisation(s)`;
+    `POST /api/identity/password/reset 200`; `membership.created`.
+  - The core: `POST /api/tenants/sign_e2eorg0145owner12d3/invites 200` (the
+    bind-only tell); `[credential] set for sha256:0f528e661c979963: the
+    bound row's password changed (management usr_e523f32ac5a9ef53)`.
+  - Auth: `password carried to the instances`, `changed: 1, unbound: 0,
+    noAccount: 0, failed: []`; `password reset`, `scope: everywhere`; and
+    `{"route":"reset","outcome":"changed:everywhere","address":"0f528e661c979963","msg":"password request"}`.
+- **F at management**, 22:04:33.
+  - The hub: "E2E Org2 1543 Ltd · **Viewer** · Rutba Sign Live · Sign
+    workspace · Account and billing", with no "not yet told" and no "not
+    enabled" note (`r5-08-F-hub.png`).
+  - The session: `email_verified: true`; organisations: the team only.
+  - A reset-made account gets no personal organisation, and it greets F as
+    "e2e-osi-2201-f": the instance's display name is not carried (D35).
+- **F opens the team's tile**, 22:04:59.
+  - The chain: `/hub/open/…` 303 to a bare `http://localhost:4003/login`;
+    the silent `prompt=none`; `/auth/callback?code=…`.
+  - The core: `[core] [confirm] confirmed user 5 by a management sign-in
+    (management-oidc, management usr_e523f32ac5a9ef53); the instance's own
+    confirmation had not happened`, then `signed in through management in
+    sign_e2eorg0145owner12d3`.
+  - The launcher: "Welcome back, E2E OSI F. You have access to 1 app" on the
+    team's database, with no URL naming the instance.
+  - `http://localhost:4029/envelopes`: the chip "E2E OSI F · Sign Manager ·
+    E2E Org2 1543 Ltd", `GET /api/sign/envelopes` 200
+    (`r5-10-F-sign-envelopes.png`, hydrated). F had an app from the instance,
+    so no grant was needed.
+- **The owner's members page**, 22:20: "5 PEOPLE … e2e-osi-2201-f@rutba.test
+  active **viewer** · since 24 Sep 2026 · **Rutba Sign: told**", and a new
+  footnote, "People who joined before workspaces kept a record of them show
+  no workspace state" (the answer to D27).
+- **An address nobody knows**, `e2e-osi-2206-nobody@rutba.test`, 22:06:40.
+  - The same page and words, 394 ms after the post.
+  - Strapi: `forgot (49 ms) 202`.
+  - Auth: `password request`, `reset_sent`, `9358cc74cf5b32bd`.
+  - The core: `people:exists … for sha256:9358cc74cf5b32bd: no`.
+  - **No mail** (0 lines to that address). **Strapi wrote no line** saying
+    no instance knows it (D30).
+
+### 2. A second reset for F
+
+22:07:47, the same forgot page. Strapi mailed "Reset your Rutba password":
+"Choose a new password here: `http://localhost:4101/reset?code=<code>`", with
+no `new=1`. No instance was asked (no new `people:exists` line). Auth:
+`reset_sent`, the same digest. The link was not used; F's password is
+`E2e-osi-f-pass-1`.
+
+### 3. The separation
+
+- **The storefront** (4000) woke on first request (22.6 s) and serves its
+  pages. Its register page ("Create your account"), with A's address, name "E2E
+  individual A (shop)" and `E2e-ind-a-shop-1`, "Register" at 22:09:41: the
+  core answered `POST /api/auth/local/register` **400
+  `NoTenantContextError`**.
+  - The storefront names its tenant from the edge's `X-Rutba-Domain` and
+    `X-Rutba-Edge-Key`, which it forwards (`instrumentation.ts`). The dev
+    estate has no edge in front of 4000, so no customer row can be made
+    there. Using the edge key by hand would be using a secret.
+  - The page showed the visitor nothing (`r5-14`) (D31).
+  - So the customer-row half of step 3 (A's sign-in still landing on A's
+    back-office row, the storefront's reset sending only the customer's
+    mail, the storefront refusing the realm's code) **could not be walked**.
+- **The realm's break-glass reset for A**, in a browser with no session:
+  `http://localhost:4003/login?local=1`, "Forgot password?", "Email me a
+  reset link", A's address, "Send reset link" at 22:11:24. The page said "If
+  that email exists, a reset link has been sent" and showed the code form.
+  The core took `POST /api/auth/forgot-password/any` 200 and mailed
+  `to=e2e-ind-0146-a@rutba.test subject="Reset password"`. **The link itself
+  is not in the log** (D32). By the code, `realmResetPageFrom`
+  (`console/api/auth/routes.js` line 214) builds it from the core's
+  `NEXT_PUBLIC_AUTH_URL`, which the estate's consumer env names
+  `http://localhost:4003`. So the link is `http://localhost:4003/login?code=…`,
+  the realm's page, not the shop's. Nobody used the code; A's password is
+  unchanged.
+
+### 4. The operator path
+
+- Read only. The operate path is `purpose === 'operate'` →
+  `resolveForOperate` in `console/api/auth/handoff.js` (lines 461-475 and
+  613-614). It reuses a row by address only when it holds
+  `platform_operator`, otherwise answering 409 `OPERATOR_ADDRESS_IN_USE`. It
+  makes operator rows on `rutba_app_user` (409 `APP_ROLE_MISSING` without
+  it). The last change to it was consumer `53d374d4` (the realm's set-password
+  link). No operate code was minted.
+- B's ordinary sign-in: management at 22:13:10, then the realm's `/login`,
+  a session on `individual_dev`. At 22:13:27 the console's people search,
+  `GET http://localhost:4020/api/user-admin/users?search=e2e` with that
+  session:
+
+  **403** `{"status":403,"name":"ForbiddenError","code":"NOT_IN_THIS_MODE","message":"This instance serves individuals; there is no organisation to administer here."}`
+
+  B holds no `platform_operator`, and such a row gets this answer before the
+  operate check (`operator.js` line 79). The `OPERATE_HANDOFF_REQUIRED`
+  answer (line 157) is reached only by an operator row on a session the
+  operate door did not mint. No test account holds `platform_operator`, and
+  making one needs the operate door, which this walk does not use.
+
+### 5. Journey 2, briefly
+
+A in a fresh browser. The sign-in (22:14:13) pinned nothing ("Choose one"),
+so I chose A's personal organisation. The launcher in its own window, on
+`individual_dev`.
+
+- **22:15:55.886**: the switch to the team in the portal console.
+- **22:20:18**: the launcher's check. `GET /v1/auth/session` 200, "another
+  organisation is pinned at management", `/authorize`, `/login`, the
+  callback. Then the launcher on the team's database, "E2E individual A · E2E
+  Org2 1543 Ltd" (`r5-17-A-launcher-followed-team.png`, hydrated).
+
+**4 min 23 s**, with no action.
+
+### Defects found in round three
+
+| # | Severity | What | Where |
+|---|---|---|---|
+| D30 | low | A reset for an address no instance knows leaves no line at management: Strapi logs only when a link is mailed or when no instance was asked, so an operator reading management's log cannot tell "asked, nobody knows it" from "never asked". Only the core's `people:exists … no` shows it. | `management/api/legacy/strapi/src/api/account/services/identity.js` lines 484-485 |
+| D31 | low (storefront) | On the dev estate the storefront serves no tenant (no edge sends `X-Rutba-Domain`), so its register answers 400 `NoTenantContextError`, and the page tells the visitor nothing. Decision 35's customer half cannot be walked on the dev estate until it has an edge or a dev tenant for the shop. | `content/apps/storefront/src/instrumentation.ts` (the forwarded headers); the register page's error handling |
+| D32 | low | The core's log mail transport prints only the recipient and subject, never the body, so no mail the core sends (an instance's invitation, the break-glass reset) can have its link checked on the dev estate. Strapi's log transport prints the body. | the core's mail transport in log mode (`mail=log`) |
+| D33 | low, from the code, not walked | The instance console's "New User" offers "Staff", "Authenticated" and others beside "Rutba App User". Decision 35's finders count a row as back-office only on `rutba_app_user`, so a person an administrator makes on "Staff" is, to every door management uses, a storefront customer: management's reset will not find them, and the storefront's will. | `consumer/api/core/src/auth/up.js` (the finders); the console's new-user form (`console/apps/console/pages/users/new.js`) |
+| D34 | low (copy) | The "Set your Rutba password" page for an account being made shows "Authenticator code, if you use one" and the "Everywhere / Only here" choice, neither of which applies to an account with no factor and no old password. | `management/auth/src/http/routes/discovery.routes.js` line 1435 (the reset form, also used with `new=1`) |
+| D35 | info | A reset-made account has no personal organisation and no name: the hub greets "e2e-osi-2201-f", though the instance knows the person as "E2E OSI F". | `management/api/legacy/strapi/src/estate/instance-reset.js` (the account made on the link) |
+
+### Accounts, rows and sessions in round three
+
+- **F, left in place:** `e2e-osi-2201-f@rutba.test`, password
+  `E2e-osi-f-pass-1` (the others' pattern).
+  - At management: an account made from the set-password link at 22:04:01
+    (`usr_e523f32ac5a9ef53`), confirmed, a **viewer** of the team
+    (`org_c2791c709b12b1fb`), with no personal organisation.
+  - In `sign_e2eorg0145owner12d3`: user 5, made by the owner in the
+    instance's console on Rutba App User with Sign user access, bound by the
+    bind-only tell, its password carried, and confirmed by the realm at F's
+    first sign-in.
+- **The unknown address** `e2e-osi-2206-nobody@rutba.test`: nothing made
+  anywhere.
+- **A:** a break-glass reset code was issued for A in one of A's back-office
+  rows at 22:11:24 and left unused (it expires). The storefront register
+  made nothing (400). A's password is unchanged.
+- **B:** signed in and out; nothing changed.
+- **Sessions:** at 22:21:17 to 22:21:23 `POST /v1/auth/logout-all` for the
+  owner, F, B and A revoked one session each; each then answered 401
+  `SESSION_REQUIRED`.
+- **Processes:** the portal console on 4118, four headless browsers (ports
+  9351 to 9354) and the recorder: all stopped at 22:21. The instance console
+  (4022) and the storefront (4000) were woken by this walk and stay under
+  the dev gateway. No clean or build script run, no `.next` deleted, no
+  database written by hand.
+
 STATUS DONE
