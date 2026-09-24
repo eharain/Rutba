@@ -1294,3 +1294,15 @@ same password then carries them in; a different one is asked for once at
 the realm), or use the realm's break-glass form at
 `auth.consumers.rutba.io/login?local=1`. **For the owner:** tenant 1's
 staff need to be told this, since their sign-in changed with this deploy.
+
+**First production symptom (2026-09-24 20:05 UTC):** the owner asked for
+a password reset for a rutba.pk staff address at management and no mail
+came. The Infra session's log reads: one reset request at Strapi answered
+202 in 30 ms with no mail handed to the transport, nothing at the relay,
+and nothing in auth's log for the password routes at all. That is the
+no-account path by design (a reset sends only for an existing unblocked
+address and answers the same either way), so the address has no
+management account and the two ways in above apply. Noted for round
+three: auth's password routes write no log or audit line of their own, so
+an operator reading auth alone cannot see a reset request happened; a
+line without the address (the outcome and a digest) would do.
