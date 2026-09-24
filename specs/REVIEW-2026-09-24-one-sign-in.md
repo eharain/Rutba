@@ -14,8 +14,8 @@ the detailed sources. Times are UTC.
 
 **Where the code is.** Round one: management `50367fd`, consumer `5d3c36f4`.
 Round two so far: management `98d954a` (follow-ups 4 to 6, stage 5's
-management half, D1 and D2), consumer `a9d0129c` (stage 4, stage 5's realm half, both
-reviews' fixes, the invite door under retries). Both pushed; nothing on GitHub but `dev` and
+management half, D1 and D2), consumer `0070ae5c` (stage 4, stage 5's realm half, both
+reviews' fixes, the invite door under retries, the walk's defects). Both pushed; nothing on GitHub but `dev` and
 `main`. The dev estate runs these checkouts.
 
 **Still to come in this record**, appended as addenda when they report: the
@@ -26,8 +26,9 @@ addendum 8, the second consumer review addendum 9 and the session route's
 outage fix addendum 10, WS-B's last lows addendum 11, D2 addendum 12, D1
 addendum 13, the reviews of D2 and D1 addenda 14 and 15, the round-two
 walk addendum 16, the invite door addendum 17, the consoles' fixes
-addendum 18, the members route addendum 19; the realm's fix pass, the auth
-stream's follow-up 8 and the members list wiring to follow.
+addendum 18, the members route addendum 19, the realm's walk fixes
+addendum 20; the auth stream's follow-up 8, the members list wiring, the
+D19 review and the last walk to follow.
 The journey walk's end is addendum 1; the review of WS-D's follow-ups 2 and
 3 is addendum 2.
 
@@ -227,14 +228,14 @@ The journey record's D1 to D15, with where each stands now.
 | D15 | high | The estate's build directories removed under the running apps. | cause found (section 5); rebuilt; a memory note for the lead |
 | D16 | medium | I9's "same password, never asked" rests on a race: the sign-in fan-out is fired and forgotten after the sign-in answers, and the realm's code exchange does not wait for it; C was spared the prompt by 0.4 s. A slow or dropped fan-out shows a same-password person the prompt for the password just typed. | decision 23; the realm-side wait is being built by WS-B |
 | D17 | info | An instance where the person has no row is asked again at every password sign-in and never remembered; each ask spends one of the W1 door's ten verifies per address per fifteen minutes. | management `cd5c673` skips it for an hour, on the same door answer as D11 |
-| D18 | low | After a switch in an app's own switcher, the app reloads only when its immediate check says "replace"; an uncertain check leaves it in the old organisation for five minutes. | WS-B (in progress) |
-| D19 | **high** | The realm's callback signs a person into a row bound to their subject but never confirmed (the row management's tell just created); the core refuses every token of an unconfirmed row, so the new member sees "That sign-in did not finish"; no invitation link to accept on the estate. | WS-B under decision 30 (in progress) |
+| D18 | low | After a switch in an app's own switcher, the app reloads only when its immediate check says "replace"; an uncertain check leaves it in the old organisation for five minutes. | consumer `b3e76e23` |
+| D19 | **high** | The realm's callback signs a person into a row bound to their subject but never confirmed (the row management's tell just created); the core refuses every token of an unconfirmed row, so the new member sees "That sign-in did not finish"; no invitation link to accept on the estate. | consumer `a3232684` under decision 30: confirmed at the callback, audited, `amr` management-confirmed; review and walk pending |
 | D20 | low | The one-hour "no row" memory outlived the row management's own tell created in the same second, so the next sign-in skipped that instance. | WS-D follow-up 8 |
 | D21 | low | The database name still rides in the hub's 303 `state`; the realm strips it. | WS-D follow-up 8 |
-| D22 | low | "(current) Team" on the refusal page is hard to read on its background. | WS-B |
+| D22 | low | "(current) Team" on the refusal page is hard to read on its background. | consumer `0070ae5c` |
 | D23 | low | The ID token management issues carries no `amr`, so the realm's D16 rule for second-factor people never fires. | WS-D follow-up 8 |
-| D24 | low | The realm's `/login` fails hydration (server and client render different classes); the dev overlay covered two screenshots. | WS-B |
-| D25 | medium | A tab left on the realm's refusal pages never checks, so it does not follow the person's next switch until "Try again". | WS-B under decision 31 (in progress) |
+| D24 | low | The realm's `/login` fails hydration (server and client render different classes); the dev overlay covered two screenshots. | consumer `f5f8b3d4` |
+| D25 | medium | A tab left on the realm's refusal pages never checks, so it does not follow the person's next switch until "Try again". | consumer `c9f31bf7` under decision 31; walk pending |
 
 ## 7. Decisions for the owner
 
@@ -950,3 +951,32 @@ that does not exist, 429 over the budget. Retired: `POST
 /v1/auth/org/:orgId/identities`, which answered 501 and nothing called; it
 now answers 404. WS-C is wiring the organisation page to it, showing
 instances by label only.
+
+## Addendum 20: the round-two walk's realm defects fixed (WS-B)
+
+Five commits on consumer `dev` and `main`, `a3232684` to `0070ae5c`, one
+per defect with its test; the section "Round-two walk defects" is in
+[one-sign-in-ws-b.md](one-sign-in-ws-b.md) (records `cddc873`). Suites at
+`0070ae5c`: callback 46, credential doors 13, break-glass 5,
+management-signin 18, allowed-redirect 14, frame documents 20,
+`packages/ui` 303, `api-client` 42, the unsigned smoke 27. Nothing walked
+signed in; a reviewer is reading D19 and D25 and the tester is walking the
+invitation journey end to end.
+
+| What | Commit |
+|---|---|
+| D19 under decision 30: at the callback a row bound to this same person and not yet confirmed is confirmed; an audit line (`up:confirm` by `management:oidc`) says so and that session's `amr` carries `management-confirmed`; a blocked row, or one bound to someone else, is refused as before and stays unconfirmed | `a3232684` |
+| D25 under decision 31: "no account here" and "nothing to open" run the launcher's silent check on arrival, on focus and every five minutes while visible; on another person or organisation the page goes through `/login` again for the same destination; "Try again" stays | `c9f31bf7` |
+| D18: after an own switch an uncertain or busy check is asked again up to four times two seconds apart, stopping when the session is replaced; after the last try the page reloads and its own check decides | `b3e76e23` |
+| D24: `/login` and `/auth/callback` draw the checking screen on the first render as the server does; opened unsigned, `/login` handed on to management with no hydration warning | `f5f8b3d4` |
+| D22: the current organisation's row uses the menus' current-item look; every label reads at 4.65:1 or better, measured from the stylesheets by the test | `0070ae5c` |
+
+The status also records what "accept the invitation first" would take if
+the owner chooses it for D19 instead: a refusal code at the callback with
+no session, a resend door taking a short-lived ticket rather than an
+address (the core's send-confirmation door takes a bare address, needs the
+tenant chosen and reveals whether an address is confirmed, so it cannot be
+offered as it stands), the confirmation link landing on the realm's
+`/login` since an invited row has no password, a refusal page, and the
+dev estate's mail actually delivering; and someone who never opens the
+mail could not sign in although management lists them as a member.
