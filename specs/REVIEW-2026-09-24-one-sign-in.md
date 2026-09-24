@@ -24,7 +24,8 @@ and WS-D's follow-up 4 addendum 5; the stage 4 review is addendum 6 and
 its fixes with stage 5's realm half addendum 7; WS-D's follow-up 5 is
 addendum 8, the second consumer review addendum 9 and the session route's
 outage fix addendum 10, WS-B's last lows addendum 11, D2 addendum 12, D1
-addendum 13; the round-two walk and the reviews of D1 and D2 to follow.
+addendum 13, the review of D2 addendum 14; the round-two walk and the
+review of D1 to follow.
 The journey walk's end is addendum 1; the review of WS-D's follow-ups 2 and
 3 is addendum 2.
 
@@ -146,6 +147,8 @@ WS-D as follow-up 4:
 | WS-B | L5 `/authorize` hands over a stored session without D8's check; L6 three OIDC errors read as `login_required`; L7 the return address after sign-in is unchecked (pre-existing open redirect); L8 the check door's limit keys on the proxy's address; L9 the D10 relay message has no state; L10 the organisation list outlives sign-out | low | `2671c10a` (L5, L10), `58103b07` (L6, L8 moot: no `prompt=none` and no check door), `b7402d6c` (L7, L9) |
 | WS-B | L11 the way back after sign-in, and the realm's `withoutContext`, can still come out starting with `//` after dot segments (the router collapses it today); L12 D16 sets the core's clock against management's `auth_time`, separate boxes in production; L13 the single-box `redeploy.sh` keeps the `.rutba.pk` suffix in a stage that no longer runs | low | `44ec719c` (L11), `2a0dd377` (L12), `43298bad` (L13) |
 | WS-D | during an outage `GET /v1/auth/session` could answer 401 (a coded refusal from the gate), 400, or 200 with no organisation, which the check frame reads as signed out or as a change of organisation | medium | `e5686a1`: every failed read is 503; 401 only when the store answered |
+| WS-D | D2's M1 tells for one membership are not serialised across the schedule, the sign-in repair and a re-invite; M3 a pass has no time budget; L4 retry or final by status alone; L5 instance names and raw errors reach the administrator's page; L6 the hub's wording | medium | WS-D follow-up 8 (in progress) |
+| WS-A | D2's M2 the core's invite door re-mails a row bound but never confirmed, so the first sign-in after deploy mails every such row; and it is idempotent only one call at a time (no unique address index) | medium | WS-A (in progress) |
 
 ## 4. The journeys
 
@@ -737,3 +740,43 @@ actions, `/staff`, `/feedback`, `/announcements` (the gateway),
 `/suspensions` (the licence service), `/catalog`, `/estate`,
 `/estate/[storeKey]`, `/domains` (provisioning), `/instances` (its
 licences).
+
+## Addendum 14: the review of D2
+
+Read-only at management `31f664b`; Strapi 110, auth unit 371, integration
+305, perf 5, nothing skipped; nothing walked live. The fix works: a 503 is
+recorded instead of dropped, and a re-invite re-tells.
+
+**Found:** M1 tells for one membership are not serialised (the sign-in
+repair runs outside the lease, the re-tell and a scheduled pass can tell
+the same instance about the same person at once, and each save writes the
+whole record from an earlier read); with the core's invite door idempotent
+only one call at a time (no unique index on the address), two concurrent
+tells can leave the instance two rows with the same address. M2 the first
+sign-in after deploy queues every pre-existing membership, and an instance
+row bound but never confirmed answers `reinvited` and gets a fresh
+set-password mail; the fix is the core's door answering `exists` without
+mail for a row already bound to the same subject (WS-A), with a unique
+address index or an insert-or-select for M1's other half. M3 a pass has no
+time budget and can outlive its five-minute lease. L4 retry or final is
+decided by status alone (a 501 door-not-configured, a 403 or 404 operator
+fault, a 401 unknown tenant that also re-mints the token). L5 the
+invitation answer now shows instance database names and raw errors to the
+administrator's browser, against I4. L6 the hub's wording. Info: the
+record is keyed by database name; a new instance reaches existing members
+only at their next sign-in; role changes are never re-told; no index on
+the due column; with the control plane outside Strapi the worker must be
+restarted to run the new schedule. M1, M3, L4 to L6 and the info items are
+with WS-D as follow-up 8; M2 and the door's concurrency with WS-A.
+
+**Sound:** the record is one JSON field keyed by instance plus a due time,
+the backoff stored; the columns are nullable with no default, added
+without rewriting rows; no event and no mail on the record write; one
+pass per interval across hosts under an advisory lock and a lease row; the
+door is the invitation door, not the W1 doors; the sign-in repair never
+delays the sign-in, calls instances only when something is untold, and is
+bounded; the re-invite uses the first invite's checks and mails only
+never-confirmed or missing rows; the tile stays a link; the schedule adds
+no lookup door and calls with the same service token the first invite
+always used. Files outside the named code: the membership schema, the
+membership events, the registry, auth's README and its fake Strapi.
