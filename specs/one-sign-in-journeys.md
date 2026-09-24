@@ -10,7 +10,7 @@ started by hand from their folders with the environment the dev gateway would
 give them (their `OIDC_CLIENT_ID` passed in the process, never written to a
 file) and stopped at the end.
 
-**Status: midway (journeys 1 to 4 walked; 5 to 8 below are not yet walked).**
+**Status: journeys 1 to 8 walked except the C half of journey 7, which waits on the estate (see there).**
 
 ## Method
 
@@ -67,10 +67,10 @@ restarts under nodemon on a consumer file change):
 | 2 | Two organisations; switch in the console, the realm's apps follow | **FAIL** as the spec words it (stage 4 is round two), and the setup found two defects (D1, D2) |
 | 3 | Stale `tenant=` ignored | **PASS** |
 | 4 | Fresh sign-in lands in the last profile; switcher lists both | **PASS**, with a caveat (the memory lives on another live session) |
-| 5 | Sign-out reaches every app | not yet walked |
-| 6 | Break-glass and the operator's path | not yet walked |
-| 7 | Context password asked once; same password never asked | not yet walked |
-| 8 | Password change everywhere / only here | not yet walked |
+| 5 | Sign-out reaches every app | **PASS** for the consoles and the realm as walked at 12:21-12:24 UTC; the suite's other apps are not reached (D10), and since 12:25 the realm's frame refuses management's call (D12) |
+| 6 | Break-glass and the operator's path | **PASS** |
+| 7 | Context password asked once; same password never asked | B: **PASS** (asked once, bound, not asked again silently; the interactive re-entry was cut off by the realm going down). C: **BLOCKED** (the realm, then auth and Strapi, were down or restarting from 12:30 to at least 13:09) |
+| 8 | Password change everywhere / only here | **PASS** at management and at the instance's own door; the `?local=1` page itself not re-walked because the realm was down (the same request was made to the door it posts to) |
 
 ## 1. Sign in once; open the console, Drive, Workspace and Sign
 
@@ -245,10 +245,196 @@ tab; its next sign-in takes the profile pinned at that moment.
   neither organisation holds a demo instance.
 - Caveat: the choice is remembered only on a live session. A's very first
   sign-in (12:06:36), with no other session holding a choice, pinned nothing
-  and the console asked A to choose (journey 2). Whether the choice survives
-  signing out everywhere is checked after journey 5.
+  and the console asked A to choose (journey 2).
+- After journey 5 had ended both of A's sessions (12:23:41 from the realm,
+  12:24:44 from the hub), a fresh sign-in at 12:25:03 (session `ses_2bb1…`)
+  answered `last_org_id: null`, `org: null`: the last choice does not survive
+  signing out. The acceptance journey's "lands in the one they last acted in"
+  holds only while another session of the person is alive (D14).
 
-## Defects (so far)
+## 5. Sign-out reaches every app
+
+**PASS for the consoles and the realm as walked (12:21 to 12:24 UTC); the
+suite's other apps are not reached, and a change landed at 12:25 stops the
+realm's frame acting on management's call.**
+
+Sign-out in the portal console (owner, 12:21:03):
+
+- `GET /auth/signout` 303 to
+  `http://localhost:4101/oidc/session/end?client_id=portal-console&post_logout_redirect_uri=http://localhost:4118/&id_token_hint=…`;
+  the page posted `/oidc/session/end/confirm` (`logout=yes`) by itself, no
+  question shown. Auth, 12:21:04.650: `session revoked`, `ses_c3d1…`,
+  `reason: logout`. The confirmation page framed
+  `/auth/logout-frame?iss=http://localhost:4101` on five origins: 4111 200,
+  4118 200, 4003 200, 4117 and 4119 refused (the partners and Relay consoles
+  were not running). It then continued to `http://localhost:4118/`, which had
+  no session and went to management's sign-in (`j5-01-owner-console-signout.png`).
+  The management cookie and the console's cookies were gone.
+- The realm's frame ran its page script and posted the realm session's
+  refresh token to `http://127.0.0.1:4020/api/auth/logout` (200) at 12:21:05.
+- 12:21:22, reloading the realm's launcher in that tab: no session left;
+  `/authorize`, `/login`, the hidden frame's `prompt=none` answered
+  `error=login_required` at 12:21:24, and the whole window went to
+  management's sign-in (`j5-02-owner-realm-after-console-signout.png`). The
+  frame had already signed the realm out; its silent check confirmed it.
+- That interactive page is the provider's development form ("Development
+  login form (OIDC_DEV_LOGIN). Production uses the portal's page."), not the
+  estate's front door (D13).
+- The Sign app in the same tab, 12:21:53: still drawn signed in ("E2E Org
+  Owner · Sign Admin"). Its stored token was the realm's session, now revoked
+  (`GET /api/users/me` with it: 401). Ten seconds later it showed "Network
+  Error [GET http://localhost:4020/api/sign/summary… code=ERR_NETWORK…]" and
+  never offered to sign in again (`j5-04-owner-sign-after-wait.png`). Apps
+  other than the realm are not framed at sign-out and run no silent check yet
+  (stage 4); a revoked session reads as a network fault (D10).
+
+Sign-out from the realm (A, 12:23:34):
+
+- The launcher's user menu, "Log out": the realm's `/logout` posted
+  `/api/auth/logout` (200), then went to
+  `http://localhost:4101/oidc/session/end?id_token_hint=…&post_logout_redirect_uri=http://localhost:4003/&state=…&client_id=consumer-realm`,
+  confirmed by itself. Auth, 12:23:41.154: `session revoked`, `ses_431c…`,
+  `reason: logout`. Five frames: 4111 200, 4118 200, **4003 400**, 4117 and
+  4119 refused. It landed on the realm's "You are signed out"
+  (`j5-06-A-after-realm-logout.png`). Every management and portal-console
+  cookie in that browser was gone; `GET /v1/auth/session` answered 401
+  `SESSION_REQUIRED`. **Management's session ended.**
+- The realm's own frame answered 400 from 12:23 on (three `curl`s at 12:24,
+  all 400). WS-A's F9 (consumer `1622d80c`, committed 12:25:17, running from
+  the working tree before that) makes the frame require `iss` **and** `sid`
+  and clear nothing otherwise. Management's frames carried `iss` only at
+  12:21, 12:23 and 12:24. Management's `sid` was still uncommitted in auth's
+  tree at 12:40 (`auth/src/domain/session/front-channel-sid.js`; auth logged
+  `createFrontChannelSid is not defined` at 12:38:16 while it was edited).
+  Until both halves are on the estate, a sign-out in a console leaves a realm
+  tab signed in (D12). It could not be re-walked: the realm was down from
+  12:30.
+- The hub's own sign-out (management `975d536`), A's second browser, 12:24:44:
+  `POST /hub/signout` framed the same five origins, then `/login`.
+
+## 6. Break-glass and the operator's path
+
+**PASS.**
+
+- 12:25:39, the owner's browser with no management session left,
+  `http://localhost:4003/login?local=1`: the instance's own form with its note
+  "This instance's own sign-in, for operators and for accounts not yet linked
+  to a Rutba account. Sign in with Rutba instead", page id
+  `SUITE-AUTH-LOGIN-LOCAL` (`j6-01-break-glass-form.png`). A's address and
+  instance password: the launcher on `individual_dev`
+  (`j6-02-break-glass-after-signin.png`). Core:
+  `[core] [auth] instance password sign-in (break-glass) for user 2 in
+  individual_dev (bound to a management subject)`, then
+  `POST /api/auth/local/any 200`.
+- The operator's handoff, read only, nothing minted. Consumer
+  `console/api/auth/handoff.js` changed three times today (`1afc24b0`,
+  `7579d8b2`, `4e697dbc`). The `purpose === 'operate'` branch still calls
+  `resolveForOperate` unchanged and is never asked for a context password
+  (`7579d8b2` only wraps its answer in an object). Management's side
+  (`api/legacy/strapi/src/estate/bridge.js`) has no commit today.
+
+## 7. The context password
+
+**B: PASS** for "asked once, bound, not asked again". The re-entry after a
+full sign-out was cut off by the realm going down. **C:** see below.
+
+B (`e2e-ind-0146-b@rutba.test`, instance-only on `individual_dev` until now):
+
+- 12:27:21 registered at `http://localhost:4101/signup` ("E2E individual B",
+  management password `Osi-B-Management-2026!`, which differs from the
+  instance's `E2e-ind-b-pass-1`) (`j7-02-B-signup-sent.png`). Strapi,
+  17:27:22 local: the mail "Confirm your Rutba account" with a
+  `/verify?code=…` link; `POST /api/identity/register 202`.
+- 12:27:39 the link, opened in B's browser: 303 to
+  `/login?confirmed=1&login_hint=…` (`j7-03-B-verified.png`).
+- 12:27:55 the realm's `/login`: silent, `login_required`, management's sign-in
+  (the development form, D13) (`j7-04-B-realm-login-to-management.png`).
+  12:28:19 B's management password there. Auth, 12:28:21: `instances asked
+  about the password just proved`, `instances: 1, bound: 0, matched: 0,
+  unmatched: 1`. The core answered the callback `409` and logged
+  `[oidc] context password asked for e2e-ind-0146-b@rutba.test in
+  individual_dev (management usr_1639488f942c72e7)`. The page: "Your password
+  for Rutba for individuals (dev). Rutba for individuals (dev) keeps its own
+  password for e2e-ind-0146-b@rutba.test. Enter it once to link this account
+  to your Rutba account - you will not be asked again."
+  (`j7-05-B-context-password-page.png`, hydrated).
+- 12:28:51 `E2e-ind-b-pass-1`, "Link and continue":
+  `POST /api/auth/oidc/context-password 200`; core
+  `[own-password] user 4's password is now its own (context-password)` and
+  `[oidc] context password given once: user 4 in individual_dev bound to
+  management usr_1639488f942c72e7`; the launcher, "E2E individual B", on
+  `individual_dev` (`j7-06-B-bound-signed-in.png`).
+- 12:29:15 a fresh tab, `/login`: silent, no prompt, core `[oidc] signed in
+  through management in individual_dev (management usr_1639488f942c72e7)`
+  (`j7-07-B-again-fresh-tab.png`).
+- 12:29:42 the realm's `/logout` (auth: `session revoked`, `ses_d391…`,
+  `reason: logout`), then "Sign in again" and B's management password at
+  12:30:59. Auth's fan-out for that sign-in, 12:31:01: `instances: 1, bound:
+  1, matched: 0, unmatched: 0`, so management now sees B's row as bound.
+  Management sent the code back, but the realm's `/auth/callback` page
+  answered "Internal Server Error". The realm's dev server had been answering
+  500 on every page since 12:30:20 (D15), so the interactive re-entry was not
+  seen to finish.
+
+C (`e2e-ind-0146-c@rutba.test`, instance-only on `individual_dev` until now):
+
+- 12:32:47 registered at `/signup` with the **same** password as the
+  instance's, `E2e-ind-c-pass-1` (`j7-10-C-signup-sent.png`); the
+  confirmation mail in Strapi's log at 17:32:48 local; 12:33:04 the link, 303
+  to `/login?confirmed=1` (`j7-11-C-verified.png`). C was not signed in
+  anywhere after that.
+- **The sign-in through the realm's `/login` is BLOCKED so far.** The realm
+  answered 500 from 12:30:20 to 12:53:44 (D15). At 12:54:05 the realm was
+  back, but its silent frame met "Starting Auth (global IdP)… It was not
+  running, so the gateway is booting it now": the estate was being restarted
+  from elsewhere. Auth then waited on management Strapi (`Strapi is not
+  answering yet; waiting to boot`, every five seconds from 12:58:46), which was
+  still "Loading Strapi" at 13:09:33.
+
+## 8. Password change: everywhere, then only here
+
+**PASS** at management and at the instance's own door. The `?local=1` page
+itself could not be re-walked because the realm was down from 12:30. The
+same request its form sends (`POST /api/auth/local/any { identifier,
+password }`, `AuthContext.login` in `consumer/packages/ui/context/AuthContext.js`
+line 417) was made from the command line to the core, which was up.
+
+- A signed in at management at 12:25:03 (`ses_2bb1…`).
+  `http://localhost:4101/account/password`: "Where the new password applies:
+  **Everywhere**, your Rutba sign-in and these 2 apps of your organisations:
+  Individuals, Rutba Sign" (the default), or "Only here" with its sentence
+  (`j8-01-A-account-password.png`).
+- 12:34:54 "everywhere", new password `Osi-A-Everywhere-2026!`. The report:
+  "Password changed. Every other session has been signed out. **Changed:**
+  Individuals. **Not linked to your Rutba account yet:** Rutba Sign. These keep
+  their own password and will ask for it once, the first time you open them
+  through Rutba." (`j8-02-A-everywhere-report.png`). Auth: `sessions revoked
+  for user`, `count: 2`, `reason: password_changed`; `password carried to the
+  instances`, `changed: 1, unbound: 1, failed: []`. Core: `credential/set`
+  409 (the team's instance, where A has no row, D2) and 200 with
+  `[credential] set for e2e-ind-0146-a@rutba.test: the bound row's password
+  changed`. "Rutba Sign" is listed as "will ask for it once", but A has no
+  account there to ask for (D11).
+- 12:37:45 the instance's door: the new password 200 (`individual_dev`), the
+  old one 400 "Invalid identifier or password"; the core logged both
+  (`POST /api/auth/local/any` 200, then 400).
+- 12:38:04 "only here", new password `Osi-A-OnlyHere-2026!`. The warning:
+  "Only your Rutba password has changed. Your organisations' apps keep your old
+  password: signing in through Rutba still opens them, and any app not yet
+  linked to your Rutba account will ask for that old password once."
+  (`j8-04-A-only-here-warning.png`). No carry was logged.
+- 12:38:18 the instance's door: the previous password
+  (`Osi-A-Everywhere-2026!`) 200, the management-only one 400. The instance
+  kept the old password, as the spec says.
+- Restored: 12:38:45 the first try met auth mid-reload (502 from the dev
+  gateway; nothing was submitted). At 12:39:21, "everywhere" back to
+  `E2e-ind-a-pass-1`: "Changed: Individuals", the same "Not linked: Rutba
+  Sign"; auth `password carried to the instances`, `changed: 1, unbound: 1`
+  (`j8-05-A-restored-everywhere.png`). 12:39:37 the instance's door with
+  `E2e-ind-a-pass-1`: 200. A is usable with its original password at
+  management and on `individual_dev`.
+
+## Defects
 
 | # | Severity | What | Where |
 |---|---|---|---|
@@ -261,18 +447,71 @@ tab; its next sign-in takes the profile pinned at that moment.
 | D7 | info | The hub's workspace link is still the C5 handoff: the instance's database rides on `/authorize` (`tenant=`) and on the launcher's URL (`?db=`). Stage 5 turns it into I4. | `management/auth/src/domain/hub/hub.js` line 115 |
 | D8 | info | The realm's `/login` with a live session goes to the launcher without a silent check, so a suite tab keeps its profile after a switch until its session ends (stage 4). | `consumer/console/apps/auth/pages/login.js` |
 | D9 | low | The realm's sign-in page logs "Cannot update a component while rendering a different component" from `useSetPageId` inside `ManagementSignIn`. | `consumer/console/apps/auth/components/ManagementSignIn.js` line 79 |
+| D10 | medium | After a sign-out elsewhere, a suite app other than the realm (Sign here) keeps drawing its signed-in page on a revoked session. Its calls fail and it shows "Network Error … code=ERR_NETWORK" rather than the sign-in. Stage 4's silent check (I6) is the cure; until then the message misleads. | the shared session and API client in `consumer/packages/ui` (`context/AuthContext.js`, the api-client's `withTimeout`) |
+| D11 | low | The "everywhere" report counts an instance where the person has **no account** (the core's 409 for a missing row) as "Not linked to your Rutba account yet … will ask for it once". Nothing will ever ask: there is no row (D2's consequence here). | `management/auth/src/domain/identity/instance-credentials.js` line 193 (`USER_UNKNOWN` counted as `unbound`); the page copy in `src/http/pages/account.page.js` |
+| D12 | high, in flight | Since consumer `1622d80c` (12:25 UTC) the realm's `/auth/logout-frame` requires `iss` and `sid` and answers 400, clearing nothing, without them. Management's front-channel frames carry `iss` only; its `sid` was uncommitted in auth's tree at 12:40. Between the two landings, a sign-out at a console or at the hub leaves every realm tab signed in, and the realm has no silent check to notice. | `consumer/console/apps/auth/pages/auth/logout-frame.js` line 113; `management/auth/src/oidc/logout.js` (the frame URL, line 26) |
+| D13 | info | On the dev estate the interactive half of every app's sign-in is the provider's development form ("Development login form (OIDC_DEV_LOGIN)"), not the estate's front door (address first, federated discovery, second factor). So no dev walk of I4 meets the page production will show. | auth's `OIDC_DEV_LOGIN` switch (`management/auth/src/oidc/interactions.js`) |
+| D14 | medium | The last choice of profile lives only on sessions. When every session of the person has ended, a fresh sign-in pins nothing and the consoles ask again, so acceptance journey 4 holds only while another session is alive. | `management/auth/src/domain/session/pinned-profile.js` (the fallback reads other live sessions only) |
+| D15 | high, estate | At 12:30:20 UTC something outside this walk removed the `.next` build directories of the running dev apps: the realm's, the portal console's cache, Sign's and Workspace's. The realm answered 500 on every page from then on (`ENOENT … .next/dev/server/pages/_app/build-manifest.json` in `/log/erp-auth`) while the gateway kept reporting it `ready`. The two consoles this walk had started aborted (Turbopack could not open its cache files) and were started again from their folders. Sign answered 503 at 12:45; Workspace recovered on its next start. | the dev estate (who ran it is unknown to this record) |
 
-## Accounts and rows created (so far)
+## Accounts and rows created
 
-- A (`e2e-ind-0146-a@rutba.test`, `usr_2764bbc37cdb69a7`) is now an active
-  **member** of organisation `org_c2791c709b12b1fb` ("E2E Org2 1543 Ltd"),
-  added at 12:05:30 UTC through auth's invitation route; the mail in Strapi's
-  log; one `membership.created` event (`evt_6oy7LVJQ5Zl4yoqn`). No row for A
-  in `sign_e2eorg0145owner12d3` (D2).
-- A's pinned profile was moved by the switcher several times; its last value
-  is recorded per journey.
-- Sessions: owner `ses_c3d1…`; A `ses_431c…` and `ses_82a7…`; realm sessions
-  in `sign_e2eorg0145owner12d3` (owner) and `individual_dev` (A).
+Every write went through a product door (a page, or the one API call the page
+would have made, named where it was so); none was made to a database by hand.
+
+- **A** (`e2e-ind-0146-a@rutba.test`, `usr_2764bbc37cdb69a7`): now an active
+  **member** of `org_c2791c709b12b1fb` ("E2E Org2 1543 Ltd"). Added 12:05:30
+  UTC through auth's `POST /v1/auth/org/:orgId/invitations`, the call the
+  organisation page's invite action makes (D1). The mail is in Strapi's log.
+  One `membership.created` event, `evt_6oy7LVJQ5Zl4yoqn`. **No row** for A in
+  `sign_e2eorg0145owner12d3` (D2). A's password was changed three times at
+  management (everywhere, only here, everywhere) and ends as it began,
+  `E2e-ind-a-pass-1`, at management and on `individual_dev` (checked 12:39:37).
+  A's last pinned profile: none (session `ses_2bb1…`, signed in 12:25:03,
+  nothing chosen since).
+- **B** (`e2e-ind-0146-b@rutba.test`, management `usr_1639488f942c72e7`): a
+  **new management account**, registered 12:27:21 and confirmed 12:27:39, with
+  password `Osi-B-Management-2026!`. It has a personal organisation made at
+  confirmation. B's `individual_dev` row (user 4) is now **bound** to that
+  subject (12:28:52). Its instance password stays `E2e-ind-b-pass-1`, marked as
+  the row's own in the core store (`rutba_own_password_4`).
+- **C** (`e2e-ind-0146-c@rutba.test`): a **new management account**,
+  registered 12:32:47 and confirmed 12:33:04, with password
+  `E2e-ind-c-pass-1`, the same as its instance row's. Never signed in at
+  management; its `individual_dev` row is not bound by this walk.
+- **Owner** (`e2e-org-0145-owner@rutba.test`): signed in and out; nothing
+  changed.
+- **Sessions** opened and left to expire: realm sessions for A in
+  `individual_dev` from the break-glass form (12:25:39) and from three calls to
+  the instance's door made from the command line (12:37:45, 12:38:18,
+  12:39:37). Each call that succeeded minted a session whose tokens were
+  thrown away unused. Management sessions: owner `ses_c3d1…` (signed out
+  12:21:04), A `ses_431c…` (12:23:41), `ses_82a7…` (12:24:45), `ses_2bb1…`
+  (live), B `ses_d391…` (12:29:42) and B's 12:30:59 session (live).
+- **No new account** under `e2e-osi-<hhmm>-<role>@rutba.test` was needed.
+
+## Questions for the owner
+
+1. **Where does an owner invite people now?** The portal console's
+   organisation page still reads the retired Organization Service (D1). Move
+   the page onto Strapi's identity gate, or send owners somewhere else to
+   invite?
+2. **A member's row in the organisation's instance:** retry the C7 invitation
+   door until it answers (an outbox), let the realm create the row on first
+   sign-in from the membership, or give the owner a "send again"? Today a 503
+   at the wrong moment loses it for good (D2).
+3. **Should the last profile outlive the sessions?** Keep it on the person
+   (Strapi's user record) so a fresh sign-in after signing out everywhere
+   lands in it (D14), or is "ask again when nothing is live" the intended
+   behaviour?
+4. **Suite apps on a revoked session:** until stage 4's silent check lands,
+   should the shared client at least turn a 401 on a revoked session into the
+   sign-in rather than "Network Error" (D10)?
+5. **The development sign-in form** (D13): switch the dev estate's OIDC
+   interaction to the real front door, so a walk like this one meets the page
+   people will see?
+6. **The Sign app's own landing** (D4): should it try the realm silently
+   before it shows its "Sign in" button, as Workspace does?
 
 ## Noted in passing
 
@@ -280,3 +519,18 @@ tab; its next sign-in takes the profile pinned at that moment.
   4118, at about 11:58 UTC: its log shows `POST /auth/switch` 403 four times,
   `GET /auth/switch?org_id=org_abc123` 405, `GET /auth/orgs` 401 and
   `GET /auth/signin?org=org_abc123&next=/x` 303, none of them this walk's.
+- The owner's test account was used by another session during the walk: a
+  password sign-in at 12:34:07 (auth's fan-out line for
+  `usr_144c1d5021c8531f`) and a sign-out of `ses_cafa…` at 12:38:12, neither
+  of them this walk's. A's first password change also reported
+  `sessions revoked … count: 2`, more than this walk had open for A. Shared test
+  accounts used by two sessions at once make "who signed out whom" hard to
+  read.
+- My midway findings were picked up while the walk ran: management
+  `e087f4e` and `b5b737b` (12:30 and 12:36 UTC) answer D3 by name.
+- Commits that landed after the walk's first half (not re-walked unless said):
+  consumer `c2b6eae7` F1 (brakes key on who), `4e697dbc` F5-F7, `be53be37` F8,
+  `1622d80c` F9 (D12), `64aa5995` F4; management `679f217` (the credential
+  token names the address), `788cc74`, `e7f94e9`, `d3660ff`, `79576e6` (WS-C
+  follow-ups: the demo mark shows), `e087f4e`, `b5b737b` (D3), `50d064a` (the
+  frame names the session, management's half of D12, 12:44 UTC), `9773272`.
