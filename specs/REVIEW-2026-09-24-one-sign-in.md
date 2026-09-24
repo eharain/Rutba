@@ -386,6 +386,28 @@ under are decisions 20 to 22.
     and Strapi's invite must check each against the organisation's active
     licences, map a licence key to its app (the licence `social` is the app
     `relay`), and give each instance the user-level role for it.
+35. **Decided by the owner (2026-09-25): a reset belongs where the sign-in
+    is.** A person who signs in at auth.rutba.io resets there; a storefront
+    customer signs in and resets at the storefront; no back-office user
+    resets through a storefront and no storefront customer resets through
+    auth.rutba.io. Consequence for the deploy: a back-office user whose
+    row exists only at their instance, with no management account yet,
+    gets nothing from a reset at auth.rutba.io today, which is the first
+    production symptom above. Round three, first item, being built:
+    management's reset for such an address creates the management account
+    on mailbox proof and binds the instance row, so the reset at
+    auth.rutba.io works for every back-office user; the doors, the fan-out
+    and the realm keep storefront customer rows out of the back-office
+    sign-in; the storefront's own reset ignores back-office rows. Two
+    assumptions for the owner to confirm: at reset time management may ask
+    every running instance whether the address is a back-office user there
+    (the request is the person's own and only a mail to that address can
+    follow), and a person found that way becomes a member, lowest role, of
+    each such instance's organisation. Also found: a tenant's people table
+    holds back-office accounts and storefront customers side by side, told
+    apart only by the users-permissions role, which neither the credential
+    doors nor the realm's callback filtered on; both are being scoped to
+    the back-office role.
 ## 8. Round two
 
 Stages 4 and 5 of the plan are approved work and need no decision; the fixes
