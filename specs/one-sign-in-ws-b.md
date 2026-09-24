@@ -342,3 +342,35 @@ no environment file, no database, no `.next`, no `dist`.
 
 `git status --porcelain` in `D:/Rutba2.0/consumer` on `dev` at `cfdbb998`:
 empty. `dev` and `main` are both at `cfdbb998` on `origin`.
+
+## Stage 5 follow-up: the second review's findings (2026-09-24)
+
+The second reviewer read `cfdbb998`: nothing high or medium, the earlier
+fixes hold. Three lows and two info items, fixed on consumer `dev`, `main`
+fast-forwarded and both pushed after each.
+
+| # | Finding | Fix | Consumer commit |
+|---|---|---|---|
+| L13 | `redeploy.sh`'s superseded apps stage still carried the `.rutba.pk` suffix in its default redirect list. | The stage's body and the list are gone; the refusal (use the fleet) stays. | `43298bad` |
+| L11 + info | `safeReturnPath` and `withoutContext` let dot segments resolve to `//host` (`/.//evil.example/x`, `/..//evil.example`, `/%2e//evil.example`); `?db=` could still ride in a state (`/authorize` with a stored session, `ProtectedRoute`, `signInHref`), and `?DB=` and `#db=` were not stripped. | Both judge the path after parsing: a pathname starting with `//` or holding a backslash is `/`. Both take `db`, `tenant`, `org`, `org_id` off the query and a query-like hash, in any case. `ProtectedRoute`, `signInHref`, `realmSignInUrl` and `/authorize`'s stored-session hand-over clean the state; the launcher's tidy reads any case. A non-path state (the relay's opaque one) is kept. | `44ec719c` |
+| L12 + info | D16 set the core's clock against management's `auth_time`, and `since` a core time against a management one. The registry kept unclaimed answers until 10,000 entries, and a second callback for a row waited out the timeout. | Freshness is the ID token's `iat` minus `auth_time`, at most ten seconds, both management's clock. `since` has ten seconds of slack. Every verify answer sweeps answers older than thirty seconds, and an answer serves every callback of its row in that time. | `2a0dd377` |
+
+**Left, as the reviewer allowed:** the login links in `AccountMenu` and
+`TopbarActions` still put `router.asPath` into a sign-in's `state` unclean;
+the app's own callback cleans it on the way back (`safeReturnPath`), so no
+database reaches a URL the person lands on, but it can ride on the realm's
+`/authorize` URL in between. "Site" stays the last two labels of a host, and
+the development build admits any loopback origin, both noted by the reviewer
+with no change asked.
+
+**Counts** (consumer `2a0dd377`, 16:58): callback 44, credential doors 13,
+break-glass 5, management-signin 15, allowed-redirect 14, frame documents 20;
+`packages/ui` 302 (`test:session` 30); `packages/api-client` 42; the smoke's
+unsigned half 27 checks, all passing. Nothing was walked signed in; the
+tester's list above still stands.
+
+**Files outside the stream's list:** `infra/deploy/rutba-io/redeploy.sh`,
+granted for L13.
+
+`git status --porcelain` in `D:/Rutba2.0/consumer` at `2a0dd377`: empty;
+`dev` and `main` both at `2a0dd377` on `origin`.
