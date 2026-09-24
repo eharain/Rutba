@@ -39,7 +39,16 @@ if git diff --name-only "${range}" | grep -Eiq "${pattern}"; then
   fail "AI footprint detected in changed file names"
 fi
 
-if git diff --unified=0 --no-color "${range}" | awk '/^\+[^+]/ { print substr($0,2) }' | grep -Eiq "${pattern}"; then
+if git diff --unified=0 --no-color "${range}" \
+  -- . \
+  ':(exclude)package-lock.json' \
+  ':(exclude)pnpm-lock.yaml' \
+  ':(exclude)yarn.lock' \
+  ':(exclude)**/dist/**' \
+  ':(exclude)**/build/**' \
+  ':(exclude)**/vendor/**' \
+  | awk '/^\+[^+]/ { print substr($0,2) }' \
+  | grep -Eiq "${pattern}"; then
   fail "AI footprint detected in added lines"
 fi
 

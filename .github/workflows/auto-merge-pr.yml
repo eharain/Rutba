@@ -13,10 +13,7 @@ jobs:
     if: >-
       github.event.pull_request.state == 'open' &&
       github.event.pull_request.head.repo.full_name == github.repository &&
-      (
-        contains(fromJSON(format('["{0}","@{0}"]', vars.AUTO_MERGE_ALLOWED_USER || 'eharain')), github.actor) ||
-        contains(fromJSON(format('["{0}","@{0}"]', vars.AUTO_MERGE_ALLOWED_USER || 'eharain')), format('@{0}', github.actor))
-      )
+      contains(fromJSON(format('["{0}","@{0}"]', github.actor)), vars.AUTO_MERGE_ALLOWED_USER || 'eharain')
     runs-on: ubuntu-latest
     steps:
       - name: Disable auto-merge for draft PRs
