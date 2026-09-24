@@ -18,8 +18,9 @@ the detailed sources. Times are UTC.
 `main`. The dev estate runs these checkouts.
 
 **Still to come in this record**, appended as addenda when they report: the
-review of WS-D's follow-ups 2 and 3 (running); the release gate (running).
-The journey walk's end is addendum 1.
+release gate (running); WS-D's follow-up 4 and WS-B's stage 4 as they land.
+The journey walk's end is addendum 1; the review of WS-D's follow-ups 2 and
+3 is addendum 2.
 
 ## 1. What landed
 
@@ -122,9 +123,16 @@ question. Everything below is fixed unless marked.
 | WS-D | F6 a listed client with an old secret stayed confidential; a boot re-enabled a disabled one | low | `50367fd` |
 | WS-D | F7 access tokens carry the raw management session id, which `X-Rutba-Session` accepts | pre-existing | **open**, decision 11 |
 
-The review of WS-D's follow-ups 2 and 3 (the D3 retry, the derived `sid`,
-the gate suites, F1 and F3 to F6) is running and is appended below when it
-reports.
+A fourth reviewer read WS-D's follow-ups 2 and 3 (the D3 retry, the derived
+`sid`, the gate suites, F1 and F3 to F6): addendum 2. Its findings, sent to
+WS-D as follow-up 4:
+
+| Stream | Finding | Severity | Fixed in |
+|---|---|---|---|
+| WS-D | G1 a password reset carries the new password everywhere on mailbox proof alone, people with a second factor included; the carried password then signs in at every bound instance's break-glass form with no factor | medium | follow-up 4 |
+| WS-D | G2 an old ID token of the signed-in person still signs them out without the question: the hint names the `sub`, not the session, and expiry is ignored | low | follow-up 4 |
+| WS-D | G3 in production an instance with an http door drops out of the change report silently | low | follow-up 4 |
+| WS-D | G4 a disabled listed client's origin stays trusted for CORS, the write guard, `form-action` and the logout frame | low | follow-up 4 |
 
 ## 4. The journeys
 
@@ -338,3 +346,41 @@ The tester finished what had waited on the estate, against management
 - **Accounts left:** A a member of the team organisation with no row in its
   instance (D2), restored to its original password; B and C new management
   accounts, each `individual_dev` row bound; every test session signed out.
+
+## Addendum 2: the review of WS-D's follow-ups 2 and 3
+
+Read-only, at management `50367fd`; the three suites run by the reviewer
+(unit 357, integration 275, perf 5, nothing skipped); the checkout unchanged.
+
+**Found:** G1 to G4 above, and these info items, also sent to WS-D: the
+end-session alignment keeps the old provider session id where the authorize
+path resets it; none of F1's three tests exercises the alignment itself
+(a probe showed it works; a test is asked for); F3's code check runs before
+the current password is checked (harmless); an ID token's organisation is
+dropped silently when the read fails (`oidc/provider.js` line 88), D3's
+sibling; of the six release-gate files only the preflight stops when the
+switch fails, the others record it and the gate still ends red.
+
+**Sound:** F1's four claims (the provider session follows the management
+session before an end-session request; the hint is compared with both the
+provider's account and the management session's user; no provider session
+gets the question, under a CSP that allows no script; a confirmation ends
+only the confirmed account's session), and no GET anywhere ends a session.
+F3 lives in the service so both paths hit it, uses the sign-in's own time,
+fails closed when the factor cannot be read; "here" bypasses nothing. F4's
+memory is keyed on subject, door and tenant; a stale entry costs one
+prompt; the plaintext is in no log line, the retry log masks addresses; the
+https rule covers `api` and `url` in production only. F5 has one mint
+site and `db` is required for the scope. F6: listed clients are forced
+public, cannot collide with `svc_` ids, a boot leaves a disabled client
+disabled, and the only collateral is an operator-registered app client in
+exactly the list's shape, skipped with a warning. D3's retry covers reads
+only; the hub's worst case is about 8 s and a workspace open about 21 s,
+inside the gateway's 30 s; the new suite fails with the retry off. The
+front-channel `sid` is an HMAC under a key derived from the session key,
+truncated, the same on the ID token, at userinfo and in every frame of both
+sign-out pages. The six gate files pass `node --check`, switch first, check
+the answer and mint naming none.
+
+**Not checked:** the gate itself (a password); the realm's door code (its
+doc only).
