@@ -652,3 +652,85 @@ mail if it had no row.
   have A's row (the core logs the invite), and the hub stops saying "not yet
   told". The management console's member list could show the same record,
   which is WS-C's to decide.
+
+## Round one, follow-up 7 (2026-09-24, 17:25 to 17:45 UTC)
+
+From the lead: no route listed an organisation's members to a member, so
+the portal console's organisation page (WS-C, `24ec0b7`) could show only the
+signed-in person. This is built under decision 29 of the review record, the
+lead's assumption until the owner decides. One commit on management `dev`,
+fast-forwarded to `main` and pushed. `origin` holds both at `0c379b1`.
+
+| What | Where |
+|---|---|
+| **Strapi's identity gate: `GET /api/identity/users/me/organizations/:org/members`**, answered for the calling person's own Strapi token only (`x-rutba-user-token`) and for an organisation (its id or slug) they are active in. An owner or admin there sees every member (active, invited, deactivated). A member or viewer sees their own row. Somebody not active there gets 403 `PERMISSION_DENIED`, with the same message whether the organisation exists or not. Nothing takes an id or an address. Each person is limited to 60 reads a minute. The route audits the read even though it is a GET (`identity.organization.members_read`, with scope and count). | `src/estate/org-members.js` (the rule, pure), `services/identity.js` `members`, the controller and the route |
+| **Auth: `GET /v1/auth/org/:orgId/members`**, carried like the invitation route: the organisation from the path, the caller from the session, the caller's own Strapi token. Rate-limited by the `directory` bucket (`RATE_LIMIT_DIRECTORY`, 60 a minute, a page render's size), `no-store`, and audited as `membership.members_read`. | `src/strapi/strapi-members.service.js`, `auth.routes.js`, `app.js` |
+| **Retired:** `POST /v1/auth/org/:orgId/identities` (names for a roster's ids). It answered 501 and nothing called it. The consoles use `/internal/identities` for staff, which stays. It now answers 404. | `auth.routes.js`, `container.js` |
+
+### The response, for WS-C
+
+```json
+{
+  "org": { "id": "org_acme", "slug": "acme", "name": "Acme Ltd", "kind": "team" },
+  "scope": "all",
+  "your_role": "owner",
+  "instances": [{ "tenant_ref": "acme_sign", "label": "Acme Sign", "product": "sign" }],
+  "members": [
+    {
+      "user_id": "usr_…",
+      "name": "Lena",
+      "email": "lena@acme.com",
+      "role": "member",
+      "roles": [{ "app": "portal", "key": "member" }],
+      "status": "active",
+      "since": "2026-09-01T10:00:00.000Z",
+      "you": false,
+      "told": { "acme_sign": "pending" }
+    }
+  ]
+}
+```
+
+- `scope` is `all` (an owner or admin) or `self` (anybody else, whose list
+  holds only their own row).
+- `your_role` and each `role` are the highest portal role: `owner`, `admin`,
+  `member`, `viewer`, or null. `roles` holds every app role.
+- `status` is `active`, `invited` or `deactivated`.
+- `since` is when the membership was made. That is the invitation's date for
+  somebody invited, and the joining date for somebody added directly. An
+  accepted invitation keeps its invitation date, because no acceptance date is
+  recorded.
+- `told` is keyed by `tenant_ref`, one key per entry in `instances`, each
+  `told`, `pending`, `failed`, or null with no record (follow-up 6). Owners are
+  never told (the provisioner makes them), so theirs is null. Follow-up 8
+  changes what the page may show of instances (L5); the shape above is as of
+  `0c379b1`.
+- The caller comes first, then active, invited and deactivated, each by name.
+- Errors: 401 with no session; 403 `PERMISSION_DENIED` for an organisation
+  the caller is not active in, or one that does not exist; 429 over the
+  budget.
+
+### Tests (17:40 UTC, at `0c379b1`)
+
+- **Strapi** `src/estate/org-members.test.js`, 5 cases:
+  - an owner sees all, in order, with dates and told states;
+  - an admin sees all;
+  - a member sees only themselves, told state included;
+  - an invited, a deactivated and an outside person see nothing;
+  - the highest role.
+- **Strapi suite:** 115 of 115.
+- **Auth** `integration/org-members.test.js`, 4 cases. Its fake Strapi answers
+  with Strapi's own `membersView`, not a copy:
+  - an owner sees all, by id and by slug, audited;
+  - a member sees self with the told state;
+  - an outsider gets identical 403s for Acme and for an organisation that does
+    not exist;
+  - no session is 401, and the retired route is 404.
+- **Auth counts:** unit 371, integration 309, perf 5. Nothing skipped.
+
+### Requests
+
+- **WS-C:** wire the organisation page to `GET /v1/auth/org/:orgId/members`
+  with the console cookie, as the invitation form does.
+- **The owner:** decision 29 (members see only themselves; owners and admins
+  see everyone) is the lead's assumption, built as such.
