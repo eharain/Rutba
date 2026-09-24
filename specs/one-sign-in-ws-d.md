@@ -734,3 +734,100 @@ fast-forwarded to `main` and pushed. `origin` holds both at `0c379b1`.
   with the console cookie, as the invitation form does.
 - **The owner:** decision 29 (members see only themselves; owners and admins
   see everyone) is the lead's assumption, built as such.
+
+## Round one, follow-up 8 (2026-09-24, 17:45 to 18:30 UTC)
+
+From the lead:
+- The D2 reviewer's findings on `31f664b`: M1, M3, L4, L5 and L6, and info items I7 to I10.
+- The consoles' builder's two asks: session handles for the staff screens, then the audit trail.
+- Three defects from the round-two walk (records `aa8e827`): D20, D21 and D23.
+- The core's new `BOUND_ELSEWHERE` answer (decision 32).
+
+Eight commits on management `dev`, each fast-forwarded to `main` and pushed.
+`origin` holds both at `1bb6826`.
+
+| Commit | What it fixed |
+|---|---|
+| `71eefd3` | **M1:** only one telling of a membership at a time. Every path (invitation, re-invite, schedule, sign-in, a newly recorded instance) first claims the membership with one conditional update of the new `instanceTellClaimedUntil`, which lasts five minutes if the holder dies. It reads the record after claiming and releases the claim with the record it writes. A path that cannot claim leaves the work to the holder. A re-invite answers what the record says, with `inFlight`. The test runs a scheduled pass, a re-invite and a sign-in at once: one door call, one outcome kept. **M3:** a pass takes no new membership after four minutes, inside its five-minute lease. An instance that did not answer is called once per pass; the other members' tries on it are moved to the same time, not counted. **L4:** the state is decided by the door's code, not its status: `told`, `pending` (it did not answer), `failed` (eight tries unanswered), `blocked` (Rutba's side not set up: `DOOR_NOT_CONFIGURED`, a token without the scope, a core without the route, an unknown database), `refused` (about the person: `IDENTITY_BLOCKED`, `SUBJECT_TAKEN`, `NO_ADMIN_ROLE`, an address it will not take) and **`taken`** (`BOUND_ELSEWHERE`, decision 32). `blocked` is not retried on a timer, so the token churn on an unknown database stops. It is retried at a sign-in, a re-invite, or when the instance is recorded again. **I7:** the record is keyed by the instance's id; an entry keyed by `tenantRef` is read as the same instance and moved. **I8:** an instance the provisioner records as running is queued at once for its organisation's existing members (`recordInstance`). The member list names instances by id and label, never by database. |
+| `11269e8` | **L5:** an invitation's answer through auth carries `instance: { told, in_flight?, workspaces: [{ id, label, state }] }`, never a database or a raw door or mint error. **L6:** the hub's words match each state. It says who can help only where somebody can: "failed" says the next sign-in retries, and "blocked" says there is nothing for the person to do. |
+| `6aa11a3` | **Staff session handles.** `GET /internal/identities/:userId/sessions` names each session by `handle` (`sh_` plus 16 characters, an HMAC of the id under its own label), never the id. `POST /internal/identities/:userId/revoke-sessions` with `handle` ends that one session, looked up among that person's own sessions. Without a handle it ends every session as before. A raw id as a handle is 400. |
+| `8b83ffb` | **D20:** the fan-out's one-hour "no row" memory holds only while management's told state for that instance (the hub's `told` and `toldAt`) stays what it was. A tell that succeeded since, a re-invite, or any change of state means the instance is asked again. |
+| `d2f02ce` | **D21:** the hub's workspace route puts only the page's path in the realm's `state`, never the query of the instance's address (which can carry `?db=`). |
+| `435b232` | A test flake, not a defect: the session-view outage case that slows a read now waits for the fake to let go of it. Once, in the full run, the stale request had taken the next case's arranged failure. |
+| `bcc511b` | **D23:** ID tokens carry `amr`. The provider session's `amr` now follows a step-up too (`sso.js`). |
+| `1bb6826` | **The audit trail** (`GET /internal/audit`) names each event's session as `session_handle` (the same `sh_…`), never `sid`. That is the last of F7's front-channel half. |
+
+### What the realm sees for amr (D23)
+
+On every ID token from management (the `openid` scope, so every OIDC client,
+not only the listed ones):
+
+- `["pwd"]` for a password alone;
+- `["pwd", "otp"]` once an authenticator code was used, at sign-in or at a
+  step-up (a step-up after the provider session began shows on the next ID
+  token);
+- `["pwd", "recovery"]` for a recovery code.
+
+"Has a second factor been used" is `amr` containing `otp` or `recovery`.
+
+### For WS-C: what the console types become
+
+- **Staff sessions list** (`/internal/identities/:id/sessions`): each row is
+  `{ handle, created_at, expires_at, last_org_id, amr }`, where it used to
+  have `sid`. WS-C has wired it (`7a393be`).
+- **Audit events** (`/internal/audit`): `session_handle: string | null`
+  replaces `sid`. That is the one line in the management console's audit type.
+- **Members** (`/v1/auth/org/:orgId/members`, follow-up 7):
+  - `instances` is `[{ id, label, product }]` (no `tenant_ref`);
+  - `told` is keyed by that `id`;
+  - a told state is `told`, `pending`, `failed`, `blocked`, `refused`,
+    `taken`, or null.
+- **Invitation answer:** `instance: { told, in_flight?, workspaces: [{ id, label, state }] }`.
+
+### Checked and left as they are
+
+- **The revocation feed** (`/internal/revocations`, `/internal/revocations/:sid`)
+  still carries raw ids. The gateway matches them against the `sid` in access
+  tokens, which is F7's access-token half (decision 11, open), and no page
+  shows them.
+- **The reviewer's "skip the tell when management already holds a bound
+  state"** was not done. The bound memory is auth's, in memory, and Strapi
+  never sees it. The core's fix (`40579cd8`) answers `exists` with no mail for
+  a row bound to the same subject, which covers it.
+- **I9, I10** are notes in the auth README:
+  - role changes are not re-told;
+  - `instance_tell_due_at` has no index;
+  - where `CONTROL_PLANE_IN_STRAPI=false`, the control-plane worker reads its
+    schedules only at start, so it **must be restarted** after this deploy to
+    run `identity.instance-tell`. That belongs in the deploy notes too, which
+    the lead keeps.
+
+### Tests (18:20 to 18:25 UTC, at `1bb6826`)
+
+| Suite | Before (follow-up 7) | After follow-up 8 |
+|---|---|---|
+| Strapi `npm test` | 115 | 118 of 118 (`instance-tell` 16 cases, `org-members` 5) |
+| auth `npm run test:unit` | 371 | 374 of 374 |
+| auth `npm run test:integration` | 309 | 317 of 317 (new `staff-session-handles`, 5 cases) |
+| auth `npm run test:perf` | 5 | 5 of 5 |
+
+Nothing skipped.
+
+### Live (18:27 UTC)
+
+- Strapi reloaded on these files at 17:43 UTC and started. That reload added
+  the `instanceTellClaimedUntil` column. It is serving hub reads.
+- Auth reloaded on each commit:
+  - `/v1/auth/org/x/members` with no session is 401;
+  - the retired `/identities` route is 404;
+  - discovery lists `amr` among the supported claims.
+
+Nothing behind a sign-in was walked.
+
+### Requests
+
+- **WS-C:** the audit type's `sid` becomes `session_handle`; the members
+  answer's `instances` and `told` keys change as above.
+- **The realm (WS-A):** read `amr` from the ID token for D16.
+- **The deploy:** restart the control-plane worker where it hosts the
+  schedules.
