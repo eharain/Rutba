@@ -252,8 +252,8 @@ The journey record's D1 to D15, with where each stands now.
 | D28 | low | "You are member in …" on the member's view of the organisation page. | management `cace52f` |
 | D30 | low | A reset for an address no instance knows leaves no line at management; only the core's "no" shows it. | management `426899b`: one line with the digest, "no instance knows it; nothing was mailed"; the mailed and asked-nobody lines carry the same digest |
 | D31 | low | The dev storefront serves no tenant (no edge in front of it), so its register answers a tenant-context error and shows the visitor nothing; decision 35's customer half cannot be walked on the dev estate. | estate gap, noted |
-| D32 | low | The core's log-mode mail prints only recipient and subject, so no link the core sends can be checked on the dev estate. | WS-A |
-| D33 | low, **deploy-blocking** | The instance console's "New User" offers "Staff" and other roles beside "Rutba App User"; the round-three rule counts only the latter as back-office, so a person on another role, tenant 1's staff possibly included, is treated as a storefront customer: management's reset does not find them and the storefront's would mail them. | WS-A: a set of back-office role types; the Infra session asked for a count per role type in production |
+| D32 | low | The core's log-mode mail prints only recipient and subject, so no link the core sends can be checked on the dev estate. | consumer `a995f399`: the body printed in log mode outside production |
+| D33 | low, **deploy-blocking** | The instance console's "New User" offers "Staff" and other roles beside "Rutba App User"; the round-three rule counts only the latter as back-office, so a person on another role, tenant 1's staff possibly included, is treated as a storefront customer: management's reset does not find them and the storefront's would mail them. | consumer `fd84caf0`: back-office is every role except the storefront's (`CUSTOMER_ROLE_TYPES`: authenticated, public, rutba_web_user, rutba_portal), one shared check in every door, the owner door's grant included; the sign-in shells, the route grants and the console's New User still admit rutba_app_user alone (decision 37, WS-B in progress); the production count per role type waits on the owner's go in the Infra session |
 | D34 | low | The "Set your Rutba password" page for a new account still shows the authenticator field and the "Everywhere / Only here" choice. | management `426899b`: neither shown when `new=1` |
 | D35 | info | A reset-made account has no personal organisation and no name; the hub greets by the address's local part. | management `426899b`: the set-password page asks an optional name, saved on the account; no personal organisation, as registration would not give one to someone already in an organisation |
 | D29 | low | A periodic check that gets no answer during a restart waits five minutes for the next one; three of four switch-follows in the walk took eight to nine minutes. | consumer `c0d4a05b`: an automatic check with no answer is asked again after 30 s, at most twice, then the timer; a real answer ends the retries, so an idle tab still costs one request per five minutes; a check that throws counts as no answer; the refusal pages' own check does not retry yet |
@@ -432,6 +432,21 @@ under are decisions 20 to 22.
     [one-sign-in-ws-b.md](one-sign-in-ws-b.md)'s round three note; the
     operate path also moves a row on its next use). A production data
     change, so yours to say.
+37. **Which role a back-office person is made on (D33).** The doors now
+    treat every non-customer role as back-office (consumer `fd84caf0`; the
+    roles found: `authenticated`, `public`, `rutba_web_user`, `rutba_portal`
+    as the storefront's; `rutba_app_user` the back office's own; `staff`
+    "POS Staff User" that no code creates or reads; `admin` the test
+    super-admin; `rutba_rider_user` a delivery rider), but the sign-in
+    shells and the seeded route grants admit `rutba_app_user` alone, and the
+    instance console's New User picker starts empty. Recommend, and being
+    built: New User makes back-office people on `rutba_app_user` by
+    default, the shells tell a person on another back-office role that an
+    administrator must set their role rather than logging them out, and at
+    the deploy every row on a non-customer role other than `rutba_app_user`
+    is moved onto it, if the production count shows any. The alternative,
+    widening the shells and the route grants to every back-office role, is
+    larger and leaves `staff` meaning nothing.
 ## 8. Round two
 
 Stages 4 and 5 of the plan are approved work and need no decision; the fixes
