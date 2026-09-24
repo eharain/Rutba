@@ -586,18 +586,19 @@ Consumer `b9cfcb0d`, on `dev`, `main` fast-forwarded, both pushed.
   `operate` by that staff member the row is found by its subject and its role
   link moves from `authenticated` to `rutba_app_user` (a log line says so).
   Until then it is still on `authenticated`: the storefront's reset could mail
-  it and the realm's callback answers `USER_UNKNOWN`. To move them all at once,
-  the lead can run in each individual-mode database:
-  `UPDATE up_users_role_lnk SET role_id = (SELECT id FROM up_roles WHERE type = 'rutba_app_user') WHERE user_id IN (SELECT l.user_id FROM up_users_app_roles_lnk l JOIN api_pro_app_roles r ON r.id = l.app_role_id WHERE r.key = 'platform_operator');`
+  it and the realm's callback answers `USER_UNKNOWN`. The statement that moves
+  them all at once is in "For deployment" below, for the Infra session; it is
+  not run here.
   A row taken over by address before this fix keeps its registrant's password
   and cannot be told apart from an operator row here; giving every
   `platform_operator` row a fresh random password (operators never use one)
-  would close that, and is the lead's call.
+  would close that. That is **decision 36, the owner's** (the coordinator,
+  2026-09-25), not made here.
 - **Own regression fixed with it:** the handoff smoke's fixture row sat on no
   role, so its C checks had failed since `06e94995` (not run then). The row is
   now on the back-office role: 38 of 39 again, check A (the child process the
   preload does not reach) as before.
-- **Noted, not changed:** `operator.js` admits any session carrying
+- **Noted, not changed** (since done, below): `operator.js` admits any session carrying
   `metadata.sub`, which the realm's callback writes too, so a staff member's
   ordinary sign-in to the individual instance carries operator powers now that
   the callback finds operator rows, as it did before `06e94995`. If operator
@@ -607,3 +608,69 @@ Consumer `b9cfcb0d`, on `dev`, `main` fast-forwarded, both pushed.
   The individual-mode suites (`api/core/tests/individual-mode/*`) fail at
   their harness boot on this machine (`NoTenantContextError`), before any
   code of this change runs; none of them uses the operate path.
+
+## Round three review: operator acts need the operate session (2026-09-25)
+
+Consumer `c2987080`, on `dev`, `main` fast-forwarded, both pushed.
+
+- **The check.** `requireOperator` (`console/api/auth/operator.js`) admitted
+  any session carrying `metadata.sub`, which the realm's callback writes too,
+  so with operator rows on the back-office role (`b9cfcb0d`) a staff
+  member's ordinary sign-in to the individual instance carried operator
+  powers. An operator act now needs a session the operate handoff minted:
+  `purpose: 'operate'` and `amr ['management-handoff']` on its metadata,
+  both written only by the handoff redeem (`signInFromCode`), and carried to
+  the child session by a refresh.
+- **What an operator sees on an ordinary session** (the realm's callback,
+  the bridge's `open`, a password, or any session with only a subject on it),
+  on every operator route, searching or acting: **403 `ForbiddenError`,
+  code `OPERATE_HANDOFF_REQUIRED`**, message "Operator actions need a
+  session opened through the operate door: management's operate handoff
+  (POST /api/auth/handoff with purpose "operate", redeemed at
+  /api/auth/handoff/redeem). An ordinary sign-in to this instance, through
+  Rutba's sign-in or by password, carries no operator powers." Nothing is
+  audited and nothing is written. A row without `platform_operator` still
+  gets `NOT_IN_THIS_MODE` first; an operate session with no subject on it is
+  still `OPERATOR_SUB_MISSING`. The console's people page shows that
+  message in its error banner (`OperatorPeople.js`, read in code, not in a
+  browser).
+- **Tests:** `api/core/tests/individual-mode/operator.test.js` opens its
+  sessions through the real `signInFromCode`: the realm callback's shape,
+  the bridge's `open`, a bare subject and a password are each refused on a
+  search and on a disable, with no audit row and nothing written; an operate
+  session with no subject is `OPERATOR_SUB_MISSING`; an operate session keeps
+  its power across a refresh; the suite's bridge session is now a real
+  operate session. 6 of 6. `smoke-individual`'s stand-in writes the purpose
+  and amr the redeem writes: its G checks 17 of 17; the smoke 49 of 50, the
+  one failure its B check on the confirmation redirect (the estate env file's
+  public URL wins over the smoke's), not this change. Handoff 30, callback 62,
+  sign 9.
+- **Running the individual-mode suites on this machine:** their harness sets
+  `CORE__RUTBA_CORE_TENANTS` empty, which the loader skips, so the estate
+  env file's tenant directory makes them pooled and they fail at boot
+  (`NoTenantContextError`). A test-only preload kept outside the repositories
+  hides that line; with it operator 6, sign 9, first-run 6 of 7 (its CLI
+  check spawns a child the preload does not reach). The earlier entry's
+  "fail at their harness boot" was this.
+
+### For deployment (the Infra session)
+
+Consumer `b9cfcb0d` and `c2987080`: no new variables, no migration.
+Operator rows made before `b9cfcb0d` sit on the `authenticated` role; each
+moves onto `rutba_app_user` at its next operate. To move them at once, run
+in **each individual-mode database** (not run here):
+
+```sql
+UPDATE up_users_role_lnk
+   SET role_id = (SELECT id FROM up_roles WHERE type = 'rutba_app_user')
+ WHERE user_id IN (SELECT l.user_id FROM up_users_app_roles_lnk l
+                     JOIN api_pro_app_roles r ON r.id = l.app_role_id
+                    WHERE r.key = 'platform_operator');
+```
+
+Check first that `SELECT id FROM up_roles WHERE type = 'rutba_app_user'`
+returns one row there (an instance without it answers operate 409
+`APP_ROLE_MISSING`). After `c2987080`, an operator who was working in the
+individual instance on a session the realm opened loses operator acts
+(`OPERATE_HANDOFF_REQUIRED`) until they open it again from management's
+operate door; their operate sessions keep working.
