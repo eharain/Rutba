@@ -13,10 +13,10 @@ four status files ([WS-A](one-sign-in-ws-a.md), [WS-C](one-sign-in-ws-c.md),
 the detailed sources. Times are UTC.
 
 **Where the code is.** Round one: management `50367fd`, consumer `5d3c36f4`.
-Round two so far: management `08e264d` (follow-ups 4 to 8, stage 5's
-management half, D1, D2 and the members list), consumer `1ed304ff` (stage 4, stage 5's realm half, both
-reviews' fixes, the invite door under retries, the walk's defects and
-their review). Both pushed; nothing on GitHub but `dev` and
+Round two so far: management `cb61de1` (follow-ups 4 to 9, stage 5's
+management half, D1, D2 and the members list), consumer `62af024b` (stage 4, stage 5's realm half, both
+reviews' fixes, the invite door under retries, the walk's defects, their
+review and its re-check). Both pushed; nothing on GitHub but `dev` and
 `main`. The dev estate runs these checkouts.
 
 **Still to come in this record**, appended as addenda when they report: the
@@ -1137,3 +1137,30 @@ identity's real state, so the rule's check learns nothing from the claim
 and the protection is only that management signs in confirmed addresses;
 WS-D is asked to send the real flag and to say where an unconfirmed
 address is refused at sign-in (follow-up 9).
+
+The two lows are fixed in consumer `1e899483` and `62af024b` (records
+`6d37c19`; callback 59, management-signin 21, the handoff suite 26 with its
+preload): only an explicit false or 0 counts as unconfirmed, in the rule,
+in both branches of the callback and on the hub's path, so a legacy row
+with NULL signs in and is left unchanged; a refusal page signs in again at
+most once a minute per tab, with the launcher's own mark. The hub keeps
+confirming when the code is issued, judged acceptable: it records only
+what management vouches for behind its service token and opens nothing by
+itself, since a session still needs the once-used two-minute code from its
+bound origin. The hub's unbound-row-by-address path still reads NULL as
+not confirmed, as it always has.
+
+**Follow-up 9 (WS-D, management `cb61de1`, records `1d0714e`; auth unit
+376, integration 318, perf 5):** `email_verified` now carries Strapi's real
+`confirmed` flag for the address, kept on the session at sign-in, on the
+ID token with the `openid` scope, at userinfo and on the session view;
+older sessions with no stored flag read true, which they earned. Where
+management refuses an unconfirmed address: Strapi's sign-in itself, after
+the password check, 403 `EMAIL_NOT_VERIFIED`, with no setting governing it
+(not Strapi's own email-confirmation setting, which this code does not
+read), passed on by auth as 403; the second factor starts only from a
+challenge that sign-in issues after the check; confirming an address and a
+password reset each set it confirmed before signing in, the reset because
+opening the link proves the mailbox; the development sign-in goes through
+the same path and is refused in production. So every session today
+carries true, and the claim would say false if that gate were relaxed.
