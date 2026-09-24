@@ -15,12 +15,7 @@ jobs:
   auto-merge:
     if: >-
       github.event.pull_request.state == 'open' &&
-      github.event.pull_request.head.repo.full_name == github.repository &&
-      (
-        github.event.action == 'converted_to_draft' ||
-        env.AUTO_MERGE_ALLOWED_USER_NORMALIZED == github.actor ||
-        env.AUTO_MERGE_ALLOWED_USER_NORMALIZED == format('@{0}', github.actor)
-      )
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - name: Disable auto-merge for draft PRs
@@ -35,7 +30,11 @@ jobs:
 
           if [[ $status -ne 0 ]]; then
             echo "$output"
-            echo "$output" | grep -qi "not enabled" || exit $status
+            if echo "$output" | grep -Eqi "not enabled|already disabled|already.*disabled|auto-merge.*disabled"; then
+              echo "Auto-merge was already disabled; continuing."
+            else
+              exit $status
+            fi
           fi
 
       - name: Enable auto-merge (squash)
