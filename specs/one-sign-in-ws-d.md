@@ -587,6 +587,8 @@ at `7e32e89`.
 
 Nothing skipped.
 
+**During an outage (management `e5686a1`, from the second consumer review):** before this commit, the gate refusing a session read with a coded 401 made the route answer 401, which the realm's check frame takes as signed out. A 400 from the gate answered 400. Organisations that could not be read answered 200 with `org: null`. Now every failed read in the session store, and any organisation read that fails, answers 503 `UPSTREAM_UNAVAILABLE`; 401 is kept for no such session or one that has ended. The new suite `integration/session-view-outage` has 9 cases, and 3 of them failed against the code before the commit. The counts at `e5686a1`: unit 370, integration 303, perf 5.
+
 ### Requests
 
 - **WS-C:** drop `sid` from those three response types, or make it
