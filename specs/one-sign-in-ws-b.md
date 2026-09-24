@@ -475,3 +475,33 @@ and the core and realm reloaded under it on each commit.
 
 `git status --porcelain` in `D:/Rutba2.0/consumer` at `1ed304ff`: empty;
 `dev` and `main` both at `1ed304ff` on `origin`.
+
+## The reviewer's re-check of 1ed304ff (2026-09-24, 23:40 to 23:52)
+
+The rule, `details.profile` and the hub's use held. Two lows, one commit
+each with tests, on consumer `dev`, `main` fast-forwarded and both pushed.
+
+| # | Finding | Fix | Consumer commit |
+|---|---|---|---|
+| L1 | The callback sent a row whose `confirmed` is NULL into the rule, which read anything not true as unconfirmed; the core's token check refuses only `confirmed === false` and accepts NULL, so a legacy bound NULL row whose address had changed was newly refused. | `isUnconfirmed` (an explicit `false` or `0`) decides in the rule (an early return, the conditional write on `confirmed = false` alone, the re-read), in the callback's subject and address branches, and on the hub's open path. A NULL row is confirmed for every one of them and nothing is written to it. Tests: the legacy row under a new address signs in with nothing written; a NULL row by address binds while an explicit 0 is refused; the rule leaves a NULL row alone even from a stale read; the hub issues and redeems a code for one. | `1e899483` |
+| L2 | Since L8 the watch starts from the refused profile on every load, so a lasting disagreement between the ID token's organisation and the session read's would send the page through `/login` on every arrival, with no once-a-minute guard. | `refusalWatchStep` takes `recentlyActed`; the hook reads `actedRecently` and sets `markActed` on the tab's session storage, the launcher's own mark, so the page acts at most once a minute per tab. Test: such a disagreement acts on the first arrival, waits within the minute, acts again after it. | `62af024b` |
+
+**Info, the hub confirms at issue, not at redemption: kept, as acceptable.**
+The confirmation states only what management already vouches for behind its
+service token (the row is bound to this person and the address is the row's
+own). It opens nothing by itself: a session still needs the code, spent once,
+within two minutes, from the origin it is bound to. Moving the write to
+redemption would split the rule into a check at issue and a write on the
+path every code takes, for a purpose nothing has called since stage 5. The
+hub's address branch (`handoff.js`, an unbound row found by address) still
+reads a NULL `confirmed` as not confirmed, as it always has; L1 named the
+callback, so it was left.
+
+**Counts** (consumer `62af024b`, 23:52): callback 59, credential doors 13,
+break-glass 5, management-signin 21, allowed-redirect 14, frame documents
+20; the handoff suite under the test-only preload 26 of 26; `packages/ui`
+and `packages/api-client` unchanged and passing; the smoke's unsigned half
+27 checks, all passing. Nothing was walked signed in.
+
+`git status --porcelain` in `D:/Rutba2.0/consumer` at `62af024b`: empty;
+`dev` and `main` both at `62af024b` on `origin`.
