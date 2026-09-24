@@ -1039,3 +1039,54 @@ ran against the suites' fakes only.
   (`queueForInstance`) is told to every member of its organisation, including
   someone who came in by a reset. That is an ordinary new instance of their
   organisation, and it was left as it is.
+
+### Round three, the re-check (2026-09-25, 22:10 to 22:45 UTC)
+
+The reviewer re-checked `44edf3f`. H1, L6 and M3 each had a remainder, and
+the core's bind-only door landed (consumer `2e960a16`). Two commits, each
+fast-forwarded to `main` and pushed; `origin` holds both at `85d0f14`.
+
+**`0152fde` (Strapi).** The three remainders and the switch to bind-only are
+one commit, because they share `instance-reset.js`, `instance-tell.js` and one
+test file.
+
+- **H1:** a membership made by a reset carries `joinedVia: 'reset'` (a new
+  membership attribute). On every path an instance with no record counts as
+  `none` for it: the schedule, a sign-in's repair (`queueMemberships`) and an
+  instance recorded later (`queueForInstance`). The hub and the member list
+  read the same through `toldStateFor`.
+- **L6:** if the tell throws after the account exists, it is caught, the
+  instances that said yes are recorded `pending` and bind-only for the
+  schedule (`recordPending`), and the reset answers success.
+- **M3:** the ask gate hands a finished ask's slot straight to the next
+  waiter, so the number in flight never passes the limit.
+- **Bind-only:** the reset's tell sends `{ email, rutba_sub, bind_only: true }`
+  (the door service passes `bind_only` through). A 404 `USER_UNKNOWN` on a
+  bind-only tell (the row has gone since the instance said yes) is recorded
+  `none`. This retires the M2 request to WS-A: the door now leaves the row's
+  roles, mail and confirmation alone.
+- **Tests:**
+  - a reset membership at the next sign-in, with an instance that was
+    suspended then and is live now, stays untold and reads `none`;
+  - a new instance recorded later is told to an ordinary colleague, not the
+    reset member;
+  - a reset membership with nothing recorded is told nowhere;
+  - a tell that throws leaves the instance `pending`, then `told` bind-only by
+    the schedule;
+  - the gate holds at the limit when asks finish in the same tick (the old
+    gate reached 3 of 2 in the same test);
+  - bind-only `USER_UNKNOWN` is recorded `none`.
+
+**`85d0f14` (auth, info).**
+
+- A `none` instance says "Not enabled for you here. Ask an administrator of
+  this organisation if you need it." on the hub.
+- The carry does not send it the password; it counts it as no account there.
+- The README says what bind-only, `joinedVia` and the budget do.
+
+**Noted, not changed:** anybody can spend the hourly budget of asks and so
+switch the lookup off for the rest of that hour. That is logged, and
+acceptable for now.
+
+**Counts at `85d0f14`:** Strapi 139 of 139; auth unit 378, integration 328,
+perf 5. Nothing skipped.
