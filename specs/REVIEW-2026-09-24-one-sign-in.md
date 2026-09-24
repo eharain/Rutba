@@ -13,8 +13,8 @@ four status files ([WS-A](one-sign-in-ws-a.md), [WS-C](one-sign-in-ws-c.md),
 the detailed sources. Times are UTC.
 
 **Where the code is.** Round one: management `50367fd`, consumer `5d3c36f4`.
-Round two so far: management `98d954a` (follow-ups 4 to 6, stage 5's
-management half, D1 and D2), consumer `0070ae5c` (stage 4, stage 5's realm half, both
+Round two so far: management `1bb6826` (follow-ups 4 to 8, stage 5's
+management half, D1, D2 and the members list), consumer `0070ae5c` (stage 4, stage 5's realm half, both
 reviews' fixes, the invite door under retries, the walk's defects). Both pushed; nothing on GitHub but `dev` and
 `main`. The dev estate runs these checkouts.
 
@@ -28,8 +28,8 @@ addendum 13, the reviews of D2 and D1 addenda 14 and 15, the round-two
 walk addendum 16, the invite door addendum 17, the consoles' fixes
 addendum 18, the members route addendum 19, the realm's walk fixes
 addendum 20, the members list addendum 21, the review of the realm's walk
-fixes addendum 22; the auth stream's follow-up 8, the realm's last fix pass
-and the last walk to follow.
+fixes addendum 22, the auth stream's follow-up 8 addendum 23; the realm's
+last fix pass and the last walk to follow.
 The journey walk's end is addendum 1; the review of WS-D's follow-ups 2 and
 3 is addendum 2.
 
@@ -151,10 +151,10 @@ WS-D as follow-up 4:
 | WS-B | L5 `/authorize` hands over a stored session without D8's check; L6 three OIDC errors read as `login_required`; L7 the return address after sign-in is unchecked (pre-existing open redirect); L8 the check door's limit keys on the proxy's address; L9 the D10 relay message has no state; L10 the organisation list outlives sign-out | low | `2671c10a` (L5, L10), `58103b07` (L6, L8 moot: no `prompt=none` and no check door), `b7402d6c` (L7, L9) |
 | WS-B | L11 the way back after sign-in, and the realm's `withoutContext`, can still come out starting with `//` after dot segments (the router collapses it today); L12 D16 sets the core's clock against management's `auth_time`, separate boxes in production; L13 the single-box `redeploy.sh` keeps the `.rutba.pk` suffix in a stage that no longer runs | low | `44ec719c` (L11), `2a0dd377` (L12), `43298bad` (L13) |
 | WS-D | during an outage `GET /v1/auth/session` could answer 401 (a coded refusal from the gate), 400, or 200 with no organisation, which the check frame reads as signed out or as a change of organisation | medium | `e5686a1`: every failed read is 503; 401 only when the store answered |
-| WS-D | D2's M1 tells for one membership are not serialised across the schedule, the sign-in repair and a re-invite; M3 a pass has no time budget; L4 retry or final by status alone; L5 instance names and raw errors reach the administrator's page; L6 the hub's wording | medium | WS-D follow-up 8 (in progress) |
+| WS-D | D2's M1 tells for one membership are not serialised across the schedule, the sign-in repair and a re-invite; M3 a pass has no time budget; L4 retry or final by status alone; L5 instance names and raw errors reach the administrator's page; L6 the hub's wording | medium | management `71eefd3` (M1 a claim per membership, M3 a four-minute budget and one call per unanswering instance per pass, L4 by code with `taken` for a held address, the record keyed by instance id, a new instance told at once), `11269e8` (L5 a reduced view, L6) |
 | WS-A | D2's M2 the core's invite door re-mails a row bound but never confirmed, so the first sign-in after deploy mails every such row; and it is idempotent only one call at a time (no unique address index) | medium | consumer `40579cd8`: `exists` with no mail for a row bound to the same subject; an insert-or-select on the subject index for concurrent invites |
 | WS-C | D1's M1 a re-invite's `retold` outcome is shown as "we have emailed an invitation"; L2 checkout's confirm button drawn with nothing pinned; L3 the invite form promises role changes and removal no door supports; L5 stale `roles.ts` | medium | management `5976bf4` (M1 and the role check), `0299832` (L2), `cc2af47` (L3), `1cc2879` (L5) |
-| WS-D | the staff person page prints full raw session ids from auth's internal sessions route | low | management `6aa11a3`: a handle in place of the id; the audit route to check |
+| WS-D | the staff person page prints full raw session ids from auth's internal sessions route | low | management `6aa11a3`: a handle in place of the id on the staff list, revocation by handle; `1bb6826`: the audit feed carries the handle too |
 | WS-B | D19's M1 the callback confirms a row without checking that management holds the address as verified and equal to the row's; M2 the refusal pages have no "Try again" at all; L3 the confirmation is not conditional on still-unconfirmed and not-blocked and not in one transaction with its audit; L4 test gaps; L5 the mailed set-password link survives (decision 33); L8 D25's baseline is the first answer, not the refused profile | medium | WS-B (in progress) |
 
 ## 4. The journeys
@@ -232,10 +232,10 @@ The journey record's D1 to D15, with where each stands now.
 | D17 | info | An instance where the person has no row is asked again at every password sign-in and never remembered; each ask spends one of the W1 door's ten verifies per address per fifteen minutes. | management `cd5c673` skips it for an hour, on the same door answer as D11 |
 | D18 | low | After a switch in an app's own switcher, the app reloads only when its immediate check says "replace"; an uncertain check leaves it in the old organisation for five minutes. | consumer `b3e76e23` |
 | D19 | **high** | The realm's callback signs a person into a row bound to their subject but never confirmed (the row management's tell just created); the core refuses every token of an unconfirmed row, so the new member sees "That sign-in did not finish"; no invitation link to accept on the estate. | consumer `a3232684` under decision 30: confirmed at the callback, audited, `amr` management-confirmed; review and walk pending |
-| D20 | low | The one-hour "no row" memory outlived the row management's own tell created in the same second, so the next sign-in skipped that instance. | WS-D follow-up 8 |
-| D21 | low | The database name still rides in the hub's 303 `state`; the realm strips it. | WS-D follow-up 8 |
+| D20 | low | The one-hour "no row" memory outlived the row management's own tell created in the same second, so the next sign-in skipped that instance. | management `8b83ffb`: the memory holds only while the told state is unchanged |
+| D21 | low | The database name still rides in the hub's 303 `state`; the realm strips it. | management `d2f02ce`: the state carries only the page path |
 | D22 | low | "(current) Team" on the refusal page is hard to read on its background. | consumer `0070ae5c` |
-| D23 | low | The ID token management issues carries no `amr`, so the realm's D16 rule for second-factor people never fires. | WS-D follow-up 8 |
+| D23 | low | The ID token management issues carries no `amr`, so the realm's D16 rule for second-factor people never fires. | management `bcc511b`: `amr` on every ID token (`pwd`, `pwd`+`otp`, `pwd`+`recovery`), a step-up on the next one |
 | D24 | low | The realm's `/login` fails hydration (server and client render different classes); the dev overlay covered two screenshots. | consumer `f5f8b3d4` |
 | D25 | medium | A tab left on the realm's refusal pages never checks, so it does not follow the person's next switch until "Try again". | consumer `c9f31bf7` under decision 31; walk pending |
 
@@ -1051,3 +1051,39 @@ organisation; D18's retries are serial, bounded and cannot interleave
 with the timer; D24's first render is the same on server and client with
 a reload line after ten seconds if the script never runs; D22's test reads
 the real stylesheets.
+
+## Addendum 23: WS-D follow-up 8 (the D2 review, the walk's D20, D21, D23, the handles)
+
+Eight commits on management `dev` and `main`, `71eefd3` to `1bb6826`; the
+section is in [one-sign-in-ws-d.md](one-sign-in-ws-d.md) (records
+`a942e30`). Tests at `1bb6826`: Strapi 118, auth unit 374, integration
+317, perf 5, nothing skipped. One slip owned: D21 was committed before an
+integration run had finished and that run had a timing flake in the
+outage test, fixed in `435b232`, green three times since.
+
+| What | Commit |
+|---|---|
+| M1: one telling of a membership at a time; every path claims it first with a conditional update (`instanceTellClaimedUntil`, lapsing after five minutes), reads after claiming, releases on write; the test runs a pass, a re-invite and a sign-in at once and sees one door call. M3: no new membership after four minutes into a pass, an unanswering instance called once per pass. L4: the state decided by the door's code; `BOUND_ELSEWHERE` is `taken`. The record keyed by instance id, older entries moved. A newly recorded instance told to existing members at once | `71eefd3` |
+| L5: the invitation answer's instance view is `{ told, in_flight?, workspaces: [{ id, label, state }] }`, no database name, no raw error. L6: the hub's wording per state | `11269e8` |
+| The staff sessions list names sessions by a handle (`sh_` plus 16 characters, a keyed digest), never the raw id; revocation by handle, or all without one | `6aa11a3` |
+| D20, D21 (section 4), the flake | `8b83ffb` `d2f02ce` `435b232` |
+| D23: `amr` on every ID token with the `openid` scope: `pwd`, `pwd` and `otp` after an authenticator code, `pwd` and `recovery` for a recovery code; a step-up shows on the next ID token | `bcc511b` |
+| `/internal/audit` events carry `session_handle` in place of `sid` | `1bb6826` |
+
+The states, as the members and invitation answers and the hub carry them:
+`told` (acknowledged), `pending` (no answer, retried with a growing wait),
+`failed` (eight tries unanswered, retried at the next sign-in), `blocked`
+(Rutba's side not set up: door not configured, wrong scope, missing route,
+unknown database; retried at sign-in, re-invite or when the instance is
+recorded again, never on the timer), `refused` (the instance refused the
+person, final), `taken` (the address held by someone else there, final,
+said plainly). Checked and left alone: the revocation feed still carries
+raw session ids because the gateway matches them against access tokens
+(F7's access-token half, decision 11). The realm keeps reading `amr` as it
+does. Live at 18:27: Strapi reloaded with the new field; the members route
+answers 401 without a session, the retired route 404, discovery lists
+`amr`. **For deployment:** where the control-plane worker hosts the
+schedules (`CONTROL_PLANE_IN_STRAPI=false`) it must be restarted to pick
+up `identity.instance-tell`; the README says so, and management keeps no
+deploy-notes file. WS-C has two type changes to follow (the invitation
+view's `workspaces`, the audit's `session_handle`).
