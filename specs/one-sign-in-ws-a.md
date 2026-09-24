@@ -98,9 +98,9 @@ whatever issuer and audience the configuration names.
   on WS-D's client: until `CORE__OIDC_CLIENT_ID` is set, part A answers 501
   and the smoke exits 2 ("not ready").
 - **Stage 4 (I5, I6) and stage 5 (I7)** were not round-one items for WS-A:
-  no switcher, no five-minute silent check in `AuthContext`, sign-out ends
-  only this app's session (hence `signed_out=1`). The config door passes
-  `end_session_endpoint` through for stage 5; nothing reads it yet.
+  no switcher, no five-minute silent check in `AuthContext`. (Sign-out through management's end-session and the
+  front-channel logout frame were built afterwards, at WS-D's request: see
+  "After the lead's message" below.)
 - **Promises with no production caller yet:** W1 verify and set have none
   until WS-D's W2 ships; the own-password mark has no reader besides W1 set
   clearing it (management's I10 report is the intended one).
@@ -199,3 +199,105 @@ outside it; `packages/ui`, `management-token.js`, `authorize.js`,
 `git status --porcelain` in `D:/Rutba2.0/consumer` on `dev` at `b58019e5`,
 after the last commit and push: empty. `dev` and `main` both at `b58019e5` on
 `origin`.
+
+## After the lead's message: sign-out (I7), consumer `80b6b4a4`
+
+WS-D's two requests to WS-A, built in scope:
+
+1. **`/auth/logout-frame`** (`console/apps/auth/pages/auth/logout-frame.js`),
+   the path management frames (`<origin>/auth/logout-frame?iss=<issuer>`).
+   It answers 200 with `Content-Security-Policy: frame-ancestors 'self'
+   <issuer origin>`. The issuer comes from the process environment when the
+   app has it, else from the core's config door, else `'self'` only. The
+   page clears the realm's stored session twice: first a few lines of script
+   in the server-rendered page, because a hidden frame may never hydrate in a
+   development build. That script asks the core to revoke the session and
+   removes AuthContext's keys and the kept ID token. Then AuthContext's own
+   `logout()` runs after the session check.
+2. **Sign out goes to management's end-session.** The core's callback now
+   answers `id_token` beside the session, and puts it in the details of a
+   `CONTEXT_PASSWORD_REQUIRED` refusal too. The page keeps it in the
+   session's own store as `oidcIdToken`. `/logout`, where every app's
+   "Sign out" lands, waits for the session check, then:
+   - clears the realm's session;
+   - takes the ID token from whichever store holds it;
+   - goes to `end_session_endpoint` from the config door (management's
+     discovery) with `id_token_hint`, `post_logout_redirect_uri`
+     `http://localhost:4003/`, a random `state` and `client_id`.
+
+   A marker in this tab (`rutba.signout.pending`, ten minutes) makes the
+   sign-in page the browser returns through say "You are signed out" and wait
+   for a click. A break-glass session has no ID token, so it ends at the
+   realm alone, on `/login?signed_out=1`.
+
+Tests: `management-signin.test.js` 9 → 11 (end-session URL, the marker,
+the kept ID token from either store, the frame policy); the callback suite
+asserts the `id_token` in both answers.
+
+## Live check (2026-09-24, 11:28 to 11:39 UTC)
+
+The estate restarted from the lead's side. The core's config door answered
+`client_id: consumer-realm` at 11:28:24 UTC, with `end_session_endpoint`
+`http://localhost:4101/oidc/session/end` and hub `http://localhost:4101/hub`.
+No environment file edited, no restart asked for, no database written.
+Two things I did not plan restarted the core: committing files under
+`console/api/auth` made its nodemon reload it, twice. Both times it was back
+within a minute.
+
+**Smoke** (`node console/api/auth/scripts/smoke-one-sign-in.js`, last run
+11:39 UTC): A, B and C all pass. A: the config door answers the client id.
+B: management's discovery agrees. C: `prompt=none` with no Rutba session
+comes back to `http://localhost:4003/auth/callback` with
+`error=login_required` and the state it was sent, and shows no page. The
+first run found two bugs in the smoke itself, both fixed in `8e18ed85`:
+management serves discovery through a 302, which the smoke did not follow,
+and a run that stopped at part A exited 0.
+
+**Part D and the signed-in half were not run.** They need a password typed
+into management's sign-in: the smoke's `SMOKE_PASSWORD`, or the form in the
+browser. I do not enter passwords to authenticate, the test accounts'
+included, whoever asks. So these remain unwalked:
+
+- the code exchange with a real ID token;
+- `CONTEXT_PASSWORD_REQUIRED` and the context-password page;
+- a Sign out with a kept ID token reaching `end_session_endpoint`.
+
+To walk them, somebody signs in. Either run
+`SMOKE_EMAIL=e2e-ind-0146-a@rutba.test SMOKE_PASSWORD=… node console/api/auth/scripts/smoke-one-sign-in.js`,
+or sign in on the browser page at
+`http://localhost:4101/oidc/interaction/…` that `/login` leads to. Use the
+unbound account `e2e-ind-0146-b` for the context-password page.
+
+**Browser.** A screenshot was taken before each verdict. Screenshots timed
+out while the pane was hidden, and each verdict below comes from a screenshot
+that did render. The fibre check read `__reactContainer$…` on `#__next` of
+every realm page below, so all of them hydrated.
+
+| Page | Seen |
+|---|---|
+| `/login` (no session) | silent first, then the whole window at management's sign-in, "Continuing to consumer-realm". A probe recorded the rest in the tab's sessionStorage. The hidden frame went to `http://localhost:4101/oidc/auth` 405 ms after load, with `client_id=consumer-realm`, `redirect_uri=http://localhost:4003/auth/callback`, `scope=openid profile email rutba`, `prompt=none`, PKCE S256, a nonce and a state, and no organisation or tenant. The callback page inside the frame posted `{ error: 'login_required' }` from `http://localhost:4003` at 2.7 s: an answer, not the ten-second timeout. The interactive transaction was kept with its verifier |
+| `/login?tenant=pos_db&redirect_uri=…` | the same journey to management's sign-in. No chooser; the stale `tenant` was not read |
+| `/login?signed_out=1` | "You are signed out" and a "Sign in again" button. Pressing it cleared the marker and ran the silent-then-interactive path above |
+| `/auth/callback?code=…&state=<never started here>` | "Start signing in again", "This sign-in link has already been used, or was opened somewhere else", one link to `/login`. Nothing was exchanged: the core logged no callback |
+| `/login?local=1` | the break-glass form with its note ("This instance's own sign-in, for operators and for accounts not yet linked to a Rutba account", "Sign in with Rutba instead" → `/login`), page id `SUITE-AUTH-LOGIN-LOCAL` |
+| `/auth/logout-frame` at the top level | 200, `frame-ancestors 'self' http://localhost:4101`. A fake session planted in both stores (`jwt`, `user`, `oidcIdToken`, `permissions`) was gone afterwards; the page's own script had run (`data-rutba-signed-out="1"`); its revocation POST reached the core (401, the token being fake) |
+| `/auth/logout-frame` framed from `http://localhost:4999` | refused by the realm's policy: "Framing 'http://localhost:4003/' violates … frame-ancestors 'self' http://localhost:4101" |
+| `/auth/logout-frame` framed from management's own signed-out page (`/oidc/session/end/success`, whose policy has `frame-src … http://localhost:4003`) | loaded with no refusal, and a fake session planted in the realm's localStorage beforehand was cleared |
+
+Found and fixed during the check (consumer `8e18ed85`): every interactive
+start that was abandoned left its transaction in the tab's sessionStorage
+until the tab closed (three were seen). `savePending` now sweeps records
+past their ten minutes. The test count is 11 → 12.
+
+One thing seen at management, WS-D's to judge. `/oidc/session/end` with no
+provider session lands on "You are signed out" with no front-channel frames
+on it. So a browser whose management session has already gone does not clear
+the apps' stored sessions from that page. Each app's next silent check is what
+signs it out there.
+
+After the check (11:40 UTC): `console/api/auth/tests` 35 of 35 (callback 23,
+credential doors 8, break-glass 4); `console/apps/auth/src` 26 of 26
+(management-signin 12, allowed-redirect 14); the bridge suites as recorded
+above. Consumer commits since the status: `80b6b4a4` (sign-out) and
+`8e18ed85` (the live check's fixes), both on `dev` and `main`, pushed.
+`git status --porcelain` in `D:/Rutba2.0/consumer` at `8e18ed85`: empty.
