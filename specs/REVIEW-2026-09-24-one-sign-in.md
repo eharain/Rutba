@@ -30,7 +30,8 @@ walk addendum 16, the invite door addendum 17, the consoles' fixes
 addendum 18, the members route addendum 19, the realm's walk fixes
 addendum 20, the members list addendum 21, the review of the realm's walk
 fixes addendum 22, the auth stream's follow-up 8 addendum 23, the realm's
-last fix pass addendum 24; the last walk to follow.
+last fix pass addendum 24, the last walk addendum 25, which closes round
+two.
 The journey walk's end is addendum 1; the review of WS-D's follow-ups 2 and
 3 is addendum 2.
 
@@ -232,13 +233,17 @@ The journey record's D1 to D15, with where each stands now.
 | D16 | medium | I9's "same password, never asked" rests on a race: the sign-in fan-out is fired and forgotten after the sign-in answers, and the realm's code exchange does not wait for it; C was spared the prompt by 0.4 s. A slow or dropped fan-out shows a same-password person the prompt for the password just typed. | decision 23; the realm-side wait is being built by WS-B |
 | D17 | info | An instance where the person has no row is asked again at every password sign-in and never remembered; each ask spends one of the W1 door's ten verifies per address per fifteen minutes. | management `cd5c673` skips it for an hour, on the same door answer as D11 |
 | D18 | low | After a switch in an app's own switcher, the app reloads only when its immediate check says "replace"; an uncertain check leaves it in the old organisation for five minutes. | consumer `b3e76e23` |
-| D19 | **high** | The realm's callback signs a person into a row bound to their subject but never confirmed (the row management's tell just created); the core refuses every token of an unconfirmed row, so the new member sees "That sign-in did not finish"; no invitation link to accept on the estate. | consumer `a3232684` under decision 30: confirmed at the callback, audited, `amr` management-confirmed; review and walk pending |
+| D19 | **high** | The realm's callback signs a person into a row bound to their subject but never confirmed (the row management's tell just created); the core refuses every token of an unconfirmed row, so the new member sees "That sign-in did not finish"; no invitation link to accept on the estate. | consumer `a3232684` and `ebf6d41b` under decision 30: confirmed at the callback, address-checked, audited; walked: E's row confirmed at first sign-in |
 | D20 | low | The one-hour "no row" memory outlived the row management's own tell created in the same second, so the next sign-in skipped that instance. | management `8b83ffb`: the memory holds only while the told state is unchanged |
 | D21 | low | The database name still rides in the hub's 303 `state`; the realm strips it. | management `d2f02ce`: the state carries only the page path |
 | D22 | low | "(current) Team" on the refusal page is hard to read on its background. | consumer `0070ae5c` |
 | D23 | low | The ID token management issues carries no `amr`, so the realm's D16 rule for second-factor people never fires. | management `bcc511b`: `amr` on every ID token (`pwd`, `pwd`+`otp`, `pwd`+`recovery`), a step-up on the next one |
 | D24 | low | The realm's `/login` fails hydration (server and client render different classes); the dev overlay covered two screenshots. | consumer `f5f8b3d4` |
-| D25 | medium | A tab left on the realm's refusal pages never checks, so it does not follow the person's next switch until "Try again". | consumer `c9f31bf7` under decision 31; walk pending |
+| D25 | medium | A tab left on the realm's refusal pages never checks, so it does not follow the person's next switch until "Try again". | consumer `c9f31bf7` under decision 31; walked, follows in under four minutes |
+| D26 | medium | A newly invited member arrives in the organisation's instance with no apps (the invite door gives a member none by design), so their first open stops at "You cannot open the suite" until the owner grants an app in the instance's own console; nothing in management tells the owner. | decision 34 |
+| D27 | low | Members told before the tell record existed show no told state, so "told" and "never told" look the same for them. | WS-C, a line under the roster |
+| D28 | low | "You are member in …" on the member's view of the organisation page. | WS-C |
+| D29 | low | A periodic check that gets no answer during a restart waits five minutes for the next one; three of four switch-follows in the walk took eight to nine minutes. | WS-B, a sooner retry |
 
 ## 7. Decisions for the owner
 
@@ -367,6 +372,14 @@ under are decisions 20 to 22.
     password later is harmless and expected; the audit records what changed.
     The alternative is to void the link at confirmation. Built: consumer
     `ebf6d41b`.
+34. **What an invitation hands out (D26).** Today a member invited from
+    the console reaches the instance with no app and stops at "You cannot
+    open the suite" until the owner grants one in the instance's own
+    console, which management never mentions. Recommend: the invite form
+    carries an app choice defaulting to the organisation's licensed
+    products at their basic level, sent with the tell, so the journey ends
+    inside the app; and until that lands, the members page says "no app
+    yet" for such a member. Not built; round three.
 ## 8. Round two
 
 Stages 4 and 5 of the plan are approved work and need no decision; the fixes
@@ -1164,3 +1177,42 @@ password reset each set it confirmed before signing in, the reset because
 opening the link proves the mailbox; the development sign-in goes through
 the same path and is refused in production. So every session today
 carries true, and the claim would say false if that gate were relaxed.
+
+## Addendum 25: the last walk, which closes round two
+
+The tester walked the invitation journey end to end and the round's last
+fixes on the live estate, 18:02 to 18:58 UTC, ending on consumer
+`62af024b` and management `cb61de1` with clean trees and all four doors
+answering; the section "Round two, the last walk" in
+[one-sign-in-journeys.md](one-sign-in-journeys.md) (records `5b96fb1`)
+lists the dozen commits that landed during it.
+
+| Step | Verdict |
+|---|---|
+| The invitation journey: a fresh account E registered and confirmed at management, invited into the team from the owner's organisation page ("already had a Rutba account and is now in the organisation; we have let them know"); the instance told at once (invite door 201), E's hub never showing "not yet told"; the realm confirming E's row at first sign-in (the core's log names E's subject, not the address); E's first open stopping at "no app access assigned" (**D26**); after the owner ticked Sign for E in the instance's own console, E on the launcher and in Sign as the team, the envelopes list loading, the core's reads 200; after management's 18:11 fix no URL in the chain names the instance | **Pass, with D26** |
+| Journey 2 both ways, with Sign handed out the same way: A's launcher and Sign followed into the team's instance and back, each at the first check that reached management (Sign's return 3 min 46 s); three of the four moves took eight to nine minutes because the check before met a builder's restart (**D29**). D25: E's "not set up here" page followed the switch back on its own check in 3 min 58 s, without "Try again" | **Pass** |
+| The members page: the owner sees all four people with roles, statuses, dates and "Rutba Sign: told" for A and E; A as a member sees only A's row and no invite form; no database name on either; the owner's and the colleague's rows show no told state (**D27**) | **Pass** |
+| D22: the current organisation's row readable, amber with a tick | **Pass** |
+| D18: a switch in the launcher's own menu moved it in about six seconds; the hydration overlay (D24) gone | **Pass** |
+
+Resolved as seen: D18, D19, D21, D22, D24, D25. D23 landed but was not
+re-checked. D16's waiting case still has no product door to set it up.
+New: D26 medium (decision 34), D27, D28, D29 low, the lows sent to their
+streams. Accounts left in place: E (`e2e-osi-1803-e@rutba.test`, the
+others' password pattern), a member of the team with a confirmed row and
+Sign access and no row in the individual instance; A's team row now
+confirmed with Sign access, A's password unchanged; the owner made both
+app grants in the instance's console. Cleanup: the owner, E and A signed
+out everywhere and answering "no active session"; the portal console, the
+headless browsers and the recorders stopped; the instance console on 4022
+woken by the walk and left under the gateway; no build or clean script,
+no `.next` deleted, no database written by hand.
+
+**Round two closes here.** What the plan's stages 4 and 5 promised is
+built, reviewed and walked: one sign-in at management, a pinned profile
+every app follows within five minutes, a switcher in every app, nothing
+about an instance in any URL, an invitation that reaches the instance and
+a first sign-in that lands in the app once an app is granted. Open for
+round three: decision 34 (what an invitation hands out), decisions 10, 11,
+29, 30 to 33 to confirm, D5, D13, D14, F2, F7's access-token half, the
+release gate brought up to date, the two lows in flight.
