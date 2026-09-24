@@ -13,7 +13,7 @@ four status files ([WS-A](one-sign-in-ws-a.md), [WS-C](one-sign-in-ws-c.md),
 the detailed sources. Times are UTC.
 
 **Where the code is.** Round one: management `50367fd`, consumer `5d3c36f4`.
-Round two so far: management `7e32e89` (follow-ups 4 and 5, stage 5's
+Round two so far: management `e5686a1` (follow-ups 4 and 5, stage 5's
 management half), consumer `cfdbb998` (stage 4, stage 5's realm half, the
 stage 4 review's fixes). Both pushed; nothing on GitHub but `dev` and
 `main`. The dev estate runs these checkouts.
@@ -22,8 +22,8 @@ stage 4 review's fixes). Both pushed; nothing on GitHub but `dev` and
 release gate (addendum 3: it cannot run here); WS-B's stage 4 is addendum 4
 and WS-D's follow-up 4 addendum 5; the stage 4 review is addendum 6 and
 its fixes with stage 5's realm half addendum 7; WS-D's follow-up 5 is
-addendum 8 and the second consumer review addendum 9; the round-two walk to
-follow.
+addendum 8, the second consumer review addendum 9 and the session route's
+outage fix addendum 10; the round-two walk and WS-B's last lows to follow.
 The journey walk's end is addendum 1; the review of WS-D's follow-ups 2 and
 3 is addendum 2.
 
@@ -144,7 +144,7 @@ WS-D as follow-up 4:
 | WS-B | M4 a stale tab revokes the session a sibling tab just received | medium | `7076109d` |
 | WS-B | L5 `/authorize` hands over a stored session without D8's check; L6 three OIDC errors read as `login_required`; L7 the return address after sign-in is unchecked (pre-existing open redirect); L8 the check door's limit keys on the proxy's address; L9 the D10 relay message has no state; L10 the organisation list outlives sign-out | low | `2671c10a` (L5, L10), `58103b07` (L6, L8 moot: no `prompt=none` and no check door), `b7402d6c` (L7, L9) |
 | WS-B | L11 the way back after sign-in, and the realm's `withoutContext`, can still come out starting with `//` after dot segments (the router collapses it today); L12 D16 sets the core's clock against management's `auth_time`, separate boxes in production; L13 the single-box `redeploy.sh` keeps the `.rutba.pk` suffix in a stage that no longer runs | low | WS-B follow-up (in progress) |
-| WS-D | while Strapi is down, `GET /v1/auth/session` must answer 503, never 401, or the check frame signs every suite tab out | to confirm | WS-D (in progress) |
+| WS-D | during an outage `GET /v1/auth/session` could answer 401 (a coded refusal from the gate), 400, or 200 with no organisation, which the check frame reads as signed out or as a change of organisation | medium | `e5686a1`: every failed read is 503; 401 only when the store answered |
 
 ## 4. The journeys
 
@@ -607,3 +607,30 @@ nothing, so the route answers 401, would sign every suite tab out during an
 outage. WS-D is asked to make it 503 and test it. Also unchecked: tenant
 1's older realm's build arguments (unset, it fails closed and is another
 site anyway), the bridge suites, real clock skew between the boxes.
+
+## Addendum 10: the session route during an outage (WS-D)
+
+The question left by addendum 9 had a real gap behind it. Management
+`e5686a1` on `dev`, `main` and origin; the lines are in the follow-up 5
+section of [one-sign-in-ws-d.md](one-sign-in-ws-d.md) (records `a86e010`).
+Tests at `e5686a1` against the fakes: unit 370, integration 294 → 303, perf
+5, nothing skipped.
+
+Already safe: Strapi unreachable, timing out, answering 5xx, or rejecting
+auth's token with no code, all became 503. The gap: the gate refusing a
+session read with a coded 401 made the route answer 401, which the realm's
+check frame reads as signed out, so every suite tab on the estate would
+have been cleared; a 400 from the gate came through as 400; an organisation
+that could not be read even after the retry gave 200 with no organisation
+and an empty list, which the realm could read as a change of organisation.
+Now every failed read in the session store is 503 `UPSTREAM_UNAVAILABLE`
+whatever the gate answered; 401 means only that the store answered (no such
+session, an ended session, or an id no session could have, refused without
+asking); on this route a failed organisation read is 503 too; the one 401
+that stays is Strapi saying the person's own token is gone, which happens
+only while Strapi is up. A new suite `integration/session-view-outage` has
+nine cases (a timeout, a 502, 401 with and without a code, a 400,
+unreadable organisations, each 503 with the session still live after; an
+unknown id, an impossible id, an ended session, each 401); against the code
+before the fix three of them failed. The test Strapi can now simulate
+failed answers.
