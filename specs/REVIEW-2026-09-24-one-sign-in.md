@@ -14,7 +14,7 @@ the detailed sources. Times are UTC.
 
 **Where the code is.** Round one: management `50367fd`, consumer `5d3c36f4`.
 Round two so far: management `98d954a` (follow-ups 4 to 6, stage 5's
-management half, D1 and D2), consumer `40579cd8` (stage 4, stage 5's realm half, both
+management half, D1 and D2), consumer `a9d0129c` (stage 4, stage 5's realm half, both
 reviews' fixes, the invite door under retries). Both pushed; nothing on GitHub but `dev` and
 `main`. The dev estate runs these checkouts.
 
@@ -355,7 +355,7 @@ under are decisions 20 to 22.
     the row to the new subject behind an `exists` answer (pre-existing).
     Recommend, and being built: refuse with a distinct code, change
     nothing, and let the operator resolve it; an unconfirmed row may still
-    be re-bound, since nobody has proven it.
+    be re-bound, since nobody has proven it. Built: consumer `a9d0129c`.
 ## 8. Round two
 
 Stages 4 and 5 of the plan are approved work and need no decision; the fixes
@@ -896,6 +896,11 @@ two rows for an address could not take it without rewriting them; no
 migration number needed. Remaining gap: an invite with no subject racing one
 in a second core process is protected only by that process's queue, and
 management's calls always name the person. Not run: the tenants-door smoke,
-which creates and drops databases. Flagged and now decision 32: a confirmed
-row bound to another person is still silently re-bound; WS-A is building
-the refusal.
+which creates and drops databases. Flagged and now decision 32, built in
+`a9d0129c` (records `44c3e88`): a confirmed row bound to another person is
+refused with 409 `BOUND_ELSEWHERE`, the row and any outstanding link
+untouched, no mail, and the row's own person still gets `exists`; an
+unconfirmed row bound to another person is still re-bound and re-invited,
+with a log line naming the address, the database and both subjects. Tests:
+the invites suite 8, the auth door suites 64, the realm pages 51; the core
+reloaded and reported ready; the tenants README describes the refusal.
