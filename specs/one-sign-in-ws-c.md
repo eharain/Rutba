@@ -441,7 +441,16 @@ Needs the tester, signed in:
   sentence is hard to reach signed in.
 - On the staff person page, sessions show as `sh_...`.
 
+**Follow-up 8's two shapes (18:30 UTC, management `08e264d`).** The invitation's
+`instance` is now `{ told, in_flight?, workspaces: [{ id, label, state }] }` (`11269e8`) and
+is read as such. When `in_flight` is set and a workspace is not yet told, the answer says it
+"is already being told about them again" and does not quote the old record. The
+management console's `AuthEvent` has `session_handle` in place of `sid` (`1bb6826`); no page
+drew the field, and the audit table's meta holds handles only. The members answer is keyed
+by instance id since `71eefd3`, as the roster test already assumed. Portal console tests
+went from 55 to 56, the management console stays at 74, and `tsc` is clean in both.
+
 ### Management checkout
 
 `git status --porcelain -- console packages/session packages/design-system package-lock.json`
-in `D:\Rutba2.0\management` at 18:08 UTC, after `7a393be`: empty.
+in `D:\Rutba2.0\management` at 18:34 UTC, after `08e264d`: empty.
