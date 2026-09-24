@@ -384,7 +384,7 @@ fast-forwarded and both pushed after each.
 | # | Defect | Fix | Consumer commit |
 |---|---|---|---|
 | D19 (high) | The realm signed a person into a row management's own invitation made (`rutba_sub` set, `confirmed` false) before they accepted the instance's mail; the core refuses every token of an unconfirmed row, so the session opened was useless. | At the callback, a row bound to this very subject and not yet confirmed is confirmed (conditional on still being bound to the subject, `confirmation_token` cleared), a `core_change_audits` line `up:confirm` by `management:oidc` says so, and that one session's `amr` carries `management-confirmed` next to the usual mark; the next sign-in is ordinary. A blocked row is still refused `USER_BLOCKED`; a row bound to another subject is still refused (`USER_UNKNOWN`), and neither is confirmed. Tests: the unconfirmed bound row signs in and is confirmed after, with the audit and the `amr`; blocked and bound-elsewhere refused and left unconfirmed. Built under the lead's assumption (decision 30), pending the owner. | `a3232684` |
-| D25 (medium) | "No account here" and "nothing to open" ran no check, so a tab left on them never followed the person's next switch. | Those pages run the launcher's silent check (the realm's `/auth/check` frame, on arrival, on focus thirty seconds apart, every five minutes while visible). The first signed-in answer is the profile the page was refused for; another person or another organisation after it sends the page through `/login` again for the same destination. "Try again" stays. Test: `refusalWatchStep`, the page's decision (same profile stays; another org, another person or nothing pinned signs in again; uncertain answers stay; no baseline until somebody is signed in). | `c9f31bf7` |
+| D25 (medium) | "No account here" and "nothing to open" ran no check, so a tab left on them never followed the person's next switch. | Those pages run the launcher's silent check (the realm's `/auth/check` frame, on arrival, on focus thirty seconds apart, every five minutes while visible). The first signed-in answer is the profile the page was refused for; another person or another organisation after it sends the page through `/login` again for the same destination. "Try again" was said to stay; it was never offered on these two pages (review M2, fixed in `4d9f2523`, below). Test: `refusalWatchStep`, the page's decision (same profile stays; another org, another person or nothing pinned signs in again; uncertain answers stay; no baseline until somebody is signed in). | `c9f31bf7` |
 | D18 | After the person's own switch, one uncertain or busy check left the page to the five-minute timer. | The switcher asks again up to four times two seconds apart (`SWITCH_CHECK_ATTEMPTS`, `SWITCH_CHECK_GAP_MS`), stopping as soon as a check replaces, adopts or signs out; after the last it reloads and the page's own load check decides. Test: `switchFollowUp`. | `b3e76e23` |
 | D24 | `/login` hydration mismatch: the server drew the checking screen, the browser's first render the sign-in shell, because Next marks the router ready at once on a URL with no query. | `/login` and `/auth/callback` also wait for their own first effect (`signInView`: mounted and ready), so the first browser render draws what the server drew. Test: `signInView`. Live, unsigned: the realm's `/login` ran in the browser pane and handed the visitor on to management's sign-in page, the console showing only the DevTools and HMR lines, no hydration warning. | `f5f8b3d4` |
 | D22 | "(current) Team" on the refusal page's organisation list: Bootstrap's solid-blue `active` row, the kind in secondary grey on it (about 1:1). | The row takes the suite's current-item look, the amber tint and dark ink of the menus' active item (`profileRowClass`, `.si-profile` rules in `signin.css` over the app-home tokens), with the chrome switcher's check mark; the disabled current row keeps it. Test: the classes, and every label's contrast read from the stylesheets: name 17:1, "(current)" 6.9:1, kind 4.65:1 on the tint and 4.97:1 on white. | `0070ae5c` |
@@ -432,3 +432,46 @@ file, no database by hand, no `.next`, no `dist`, no new dependency.
 
 `git status --porcelain` in `D:/Rutba2.0/consumer` at `0070ae5c`: empty;
 `dev` and `main` both at `0070ae5c` on `origin`.
+
+## Review of the walk-defect commits (2026-09-24, 23:05 to 23:37)
+
+The reviewer read `a3232684` to `0070ae5c`: no high, every suite passing;
+two mediums, four lows and two info items. Fixed on consumer `dev`, one
+commit per finding or natural group with its tests, `main` fast-forwarded
+and both pushed after each.
+
+| # | Finding | Fix | Consumer commit |
+|---|---|---|---|
+| M1 (medium) | D19 confirmed a bound row without checking `email_verified` or comparing the token's address with the row's. | The rule moves to `console/api/auth/confirm-bound-row.js`: a bound, unconfirmed row is confirmed only when management vouches for the address (`email_verified` not false) and it is the row's own, case-folded as the doors compare (`lower(email)` against the trimmed, lower-cased claim). Otherwise 404 `USER_UNKNOWN` and the row untouched. Tests: `email_verified: false`; another address; no address; mixed case accepted. | `ebf6d41b` |
+| L3 | The confirmation was conditional on id and subject only, and the write and the audit line were separate. | One transaction (the core's `withTransaction`); the write is conditional on the binding, the address, still unconfirmed and not blocked. When it changes nothing, the row is read again: confirmed by another sign-in is an ordinary sign-in; blocked is `USER_BLOCKED`; otherwise `USER_UNKNOWN`. Tests: two racing callbacks (both signed in, one audit line, one session marked); a stale read after another confirmation; a block and a re-binding between read and write; an audit table that cannot be written leaves the row unconfirmed. | `ebf6d41b` |
+| L4 | The bound-elsewhere case used an unconfirmed row, so the unconfirmed rule refused it first; no `email_verified: false` test; no own-password test. | Bound elsewhere now uses a confirmed row (still bound to its person, no session). Added: the `email_verified: false` refusal, and no `rutba_own_password_<id>` mark after a confirmation. | `ebf6d41b` |
+| L5, decision 33 | D19 cleared `confirmation_token`, which C7 never sets; the invitation's real link is `reset_password_token`; the audit did not record the change. | Only `confirmed` changes. **The invitation's link stays valid on purpose** (decision 33): setting an instance password through it later is harmless and expected. The audit's `changes` is `[{ field: "confirmed", from: false, to: true }]`, the core's change-audit shape. Test: both tokens kept, the audit's change. | `ebf6d41b` |
+| I6 | The audit summary said the row was made by management's invitation, which is not always true. | It says what is known: bound to this management subject, and management vouches for the same address, naming the door (`management-oidc` or `management-handoff`). | `ebf6d41b` |
+| M2 (medium) | "No account here" and "nothing to open" had no "Try again", in every version; after "ask your administrator" the only way out was a reload, which on `/auth/callback` presents the spent code again. | Both carry `retry`; the button is `signInAgain(returnTo)`, the realm's `/login` with the destination and its state and nothing of the callback. The refusal table moves out of the component as `describeRefusal`. Test: the flags per code and the button's link. | `4d9f2523` |
+| L8 | D25's baseline was the first signed-in answer, so a switch before it was missed; "nothing pinned" signed in again where the launcher does nothing. | The callback names the profile on `USER_UNKNOWN` and `NO_INSTANCE` (`details.profile`: the person's own `sub` and pinned `org_id`, only once the person is known, answered to the page holding the code verifier). The page seeds its baseline from it (`refusedProfileOf`), falling back to the first answer, and decides as `decideCheck` does: another person, or another organisation where both name one. Tests: the refusals name the profile; the watch from a named baseline and without one. | `9aa4d3e5` |
+| I7 | The hub handoff's `open` path still opened an unusable session on a bound, unconfirmed row. | **Not cut; M1's rule applied there instead**, through the same module (audit `user_label` `management:handoff`). The cut is not small: most of the handoff suite (its redemption tests) and the smoke are built on `open` codes, and management's internal `POST /handoff` still accepts `purpose: open` (`management/auth/src/http/routes/internal.routes.js` line 116, read, not touched), so cutting it here would also need that route narrowed. The handoff body carries no `email_verified`; the address stands as management's word, behind the service token. Test: refused for another address with no code, confirmed for its own, and the code redeems into a session. | `1ed304ff` |
+
+**Counts** (consumer `1ed304ff`, 23:37): callback 56, credential doors 13,
+break-glass 5, management-signin 20, allowed-redirect 14, frame documents
+20; `packages/ui` 303 and `packages/api-client` 42, unchanged; the smoke's
+unsigned half 27 checks, all passing. The handoff suite, with a test-only
+`--require` preload kept outside the repositories that hides the env file's
+four bridge lines (as WS-A records): 25 of 25; `smoke-handoff.js` under it 38
+of 39, its check A (the child process the preload does not reach) as before.
+
+**Docs:** `docs/one-sign-in-realm.md` (the "Who" table's D19 row, the D25
+paragraph: "Try again" offered, the named baseline) and
+`docs/identity-bridge.md` (the `open` rule for a bound, unconfirmed row).
+
+**Files:** new `console/api/auth/confirm-bound-row.js`; `oidc.js`,
+`handoff.js`, the callback tests; `api/core/tests/handoff.test.js` (the
+suite of `handoff.js`; its schema gains `core_change_audits`);
+`console/apps/auth/{src/management-signin.js,src/management-signin.test.js,components/SignInOutcome.js,components/useRefusalWatch.js}`;
+the two docs. Nothing under `management/` changed, no environment file, no
+database by hand, no `.next`, no `dist`, no new dependency.
+
+Nothing was walked signed in; the tester is walking the invitation journey,
+and the core and realm reloaded under it on each commit.
+
+`git status --porcelain` in `D:/Rutba2.0/consumer` at `1ed304ff`: empty;
+`dev` and `main` both at `1ed304ff` on `origin`.
