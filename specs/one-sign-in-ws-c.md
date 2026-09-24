@@ -407,9 +407,41 @@ back, the server stopped and its directory removed. Nothing listens on 5118.
 
 Not mine, noted by the reviewer: the management console's person page prints
 full session ids from auth's internal sessions route; when auth answers a
-display prefix instead, that page needs a one-line type change here.
+display prefix instead, that page needs a one-line type change here. *Done:* auth answers a handle since `6aa11a3`, and the page shows it since `7a393be` (below).
+
+### The members route (17:55 to 18:10 UTC)
+
+WS-D's `GET /v1/auth/org/:orgId/members` (follow-up 7, `0c379b1`) wired into
+the organisation page, with follow-up 8's changes (`71eefd3`, `6aa11a3`) read
+as they landed. One commit each on management `dev`, fast-forwarded to
+`main`, both pushed at `7a393be` (18:05 UTC).
+
+| What | Commit |
+|---|---|
+| **The told states of follow-up 8.** `blocked` is said as "not yet told"; `refused` and `taken` as "could not be told", beside `pending` and `failed`. `toldWords` is the one mapping (told, not yet told, could not be told, or nothing for null or a state not known here), used by the invitation answer and the roster. | `4c53c84` |
+| **The roster.** `authApi.members` (GET, the console cookie, the organisation escaped into the path) and `rosterView`: scope `all` lists everybody in the route's order; `self` lists the reader's own row and says "The full list of people in X is for its owners and admins." Each row has the name (or the address), "you", the role, the status in words (active, waiting for them to confirm, removed), "since" or "invited" with a UTC date, and under each workspace's label its told state in words, or nothing for null. A workspace is keyed by `id` (follow-up 8) or an older auth's `tenant_ref`, and only its label is drawn (a missing label is "Workspace", or "Workspace 2" when there are several). `product` is not read. A 403 `PERMISSION_DENIED` and auth being down each have a fixed sentence, and anything else (429, 5xx) has a plain one. None of them shows auth's text, and the page then shows the reader from the session. `organisationPage` is the page's whole decision: a personal account reads no roster, and an owner or admin keeps the invite form whatever the roster answered. | `c222e73` |
+| **The staff person page names a session by its handle.** Follow-up 8 (`6aa11a3`) answers `handle` (`sh_` and 16 characters), not the raw id. The type and the page's two uses changed. The console's audit type still declares `sid` on auth events, and no page draws it. | `7a393be` |
+
+Tests: the portal console went from 44 to 55: 2 for the told states, 9 for the members route through the API client (the wire shape, `all`, the older `tenant_ref` shape, no instance id drawn, `self`, 403, auth down, 429/500/401, the page decision). The management console stays at 74. `tsc` is clean in both.
+
+Checked unsigned: the estate's portal console on 4118 was down until about
+18:00, so both pages were compiled again on a verification server of mine on
+5118 (`/organisation` 307 to the sign-in, `/checkout?intent=x` 200). The
+`tsconfig.json` and `next-env.d.ts` that Next rewrote on start were put back,
+the server was stopped and its directory removed. Then 4118 was up again and
+answered `/organisation` with the same 307.
+
+Needs the tester, signed in:
+
+- An owner of a team organisation sees everybody with dates, statuses and each
+  workspace's words.
+- A member sees their own row and the owners-and-admins line.
+- The error sentences are held by the unit tests only. A removed member is
+  usually refused at the token mint before the roster is read, so the 403
+  sentence is hard to reach signed in.
+- On the staff person page, sessions show as `sh_...`.
 
 ### Management checkout
 
 `git status --porcelain -- console packages/session packages/design-system package-lock.json`
-in `D:\Rutba2.0\management` at 17:50 UTC, after `1cc2879`: empty.
+in `D:\Rutba2.0\management` at 18:08 UTC, after `7a393be`: empty.
