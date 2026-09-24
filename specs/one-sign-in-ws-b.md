@@ -227,3 +227,118 @@ database, no `.next` directory, no `dist`.
 `git status --porcelain` in `D:/Rutba2.0/consumer` on `dev` at `e4a728d5`,
 after the last commit and push: empty. `dev` and `main` are both at
 `e4a728d5` on `origin`.
+
+## Stage 5 and follow-up (2026-09-24, 15:19 to 15:30)
+
+The coordinator's second list: stage 5's realm half and the auth stream's
+asks, against management `a3eaabc` (auth hot-reloaded at about 15:07). One
+commit each on consumer `dev`, suites green first, `main` fast-forwarded and
+both pushed after each.
+
+| # | What changed | Consumer commit |
+|---|---|---|
+| 1 | **Stage 5, the realm's half** (plan stage 5, D7). The hub's workspace links now go to auth's signed `/hub/open/:orgId/:workspace` (management `5209896`), which pins the organisation and sends the person to the realm's `/login?redirect_uri=<app>/auth/callback&state=<page>` (or `/login` alone when the workspace is the realm). So on the normal path the realm reads no `tenant`: `/authorize` reads it only beside a handoff `code` (the operator's path, unchanged) and no longer passes it to `/login`; `/login` passes none to its unconnected-instance fallback; the break-glass form (`?local=1`) keeps the chooser. A `state` that names `db`, `tenant`, `org` or `org_id` loses them before it is carried on (`withoutContext`) - the hub builds the state from the instance's recorded address, which still carries the provisioner's `?db={db}` - and the launcher tidies a `?db=` off its own URL. The session names the database; the URL never does. | `1848f790` (15:19) |
+| 2 | **D11 and D17, the W1 doors.** No row for the address: verify and set both answer 404 `USER_UNKNOWN` (audited as `no-row`), so management can report "no account there" and skip the instance for an hour. Every other answer is as it was: a row that is not bound or did not match is `{ bound: false }`, a row not bound to the subject is 409 `NOT_BOUND`. | `9f5d0c57` (15:22) |
+| 3 | **D16 reads `auth_time`.** Management sets `require_auth_time` on first-party clients; a later silent sign-in in the same session keeps the same `auth_time` with a later `iat`. The callback waits for the fan-out only when `auth_time` is within ten seconds of now and asks at once otherwise; with no `auth_time` the timeout alone decides, as before. | `6d67400d` (15:23) |
+| 4 | **The tick.** W4's list marks the pinned organisation `current: true` (management `a3eaabc`): the profiles frame passes it on, the switcher ticks it (the session's own organisation only when the list marks none), and the realm's refusal page shows it as current and does not offer it - no second read. | `dd322d81` (15:24) |
+| 5 | **Decision 27, one read per check.** Credentialed CORS checked first: `OPTIONS` and `GET /v1/auth/session` from `http://localhost:4003` answer `access-control-allow-origin: http://localhost:4003` with credentials; from `http://localhost:4029`, nothing. The realm's `/auth/check` now reads `GET /v1/auth/session` with management's cookie: 200 is signed-in with `user.user_id` (the ID token's `sub`) and `org`, 401 is `login_required`, anything else uncertain. The answer to the apps is unchanged, so nothing in `packages/ui` changed for it. `prompt=none` runs only when a session must be replaced, through `/login`. The core's check door (`POST /api/auth/oidc/check`) is retired; the config door names `session_endpoint`. | `58103b07` (15:30) |
+
+**Seen on the dev estate, unsigned** (15:28 to 15:52; screenshots before each
+verdict, two retaken after the pane stopped drawing):
+
+- The harness page (now at `http://localhost:5199`, stopped after):
+  `/auth/check` answered `login_required` from one request -
+  `GET http://localhost:4101/v1/auth/session` 401 in the network log, no
+  `/oidc/auth`, no nested frame; `/auth/profiles` answered `signed-out`; the
+  relay reached the harness only.
+- `/login` in the hub's new shape (`redirect_uri=http://localhost:4029/auth/callback&state=/envelopes?db=sign_e2eorg0145owner12d3&status=sent`):
+  the silent attempt answered `login_required` and the window went to
+  management's sign-in form. The interactive transaction the page kept reads
+  `redirect_uri` Sign's callback, `app: sign`, `state: /envelopes?status=sent` -
+  the `db` gone. The record was removed from the pane afterwards.
+- The smoke: A, B, C, E, F, G pass, 27 checks (F now checks the config door's
+  `session_endpoint` and that the check door answers nothing; G checks W4 and
+  the session read from the realm and from Sign).
+- Seen in passing: the pane's network log holds another session's sign-out
+  (`state=review-browser`) whose frame of the realm's `/auth/logout-frame`
+  answered 500 at some point; probed at 15:28 it answers 400 without `sid` and
+  200 with one, so it was a moment mid-reload, not a fault in the page.
+
+**Needs the tester, signed in:** a hub workspace tile opening Sign and the
+realm's launcher through `/hub/open/...` with nothing on the link, landing
+signed in on the page (the launcher's URL with no `?db=`); the operator's
+path (Operator page, `purpose: operate`) still working exactly as before; an
+account with no row in an instance reported "no account there" and skipped;
+a fresh password sign-in whose same-password row the fan-out binds, and a
+silent sign-in minutes later asked at once when the row still asks; the
+switcher's tick on the organisation management pins; the check's one read per
+tab (the network log should show `GET /v1/auth/session`, no `/oidc/auth`).
+
+**Left:** the core's C5 handoff still accepts `purpose: 'open'`; management no
+longer calls it, and retiring it at the core means changing `handoff.js`,
+whose suite needs the test-only preload the round records. Say if it should go
+now.
+
+## Stage 4 follow-up: the review's findings (2026-09-24, 15:36 to 15:47)
+
+| # | Finding | Fix | Consumer commit |
+|---|---|---|---|
+| H1 | The frame pages and the relay trusted `/authorize`'s redirect allowlist, whose suffix entries (`.rutba.pk`, `.shop.rutba.io`, ...) also match the storefronts, which run their merchants' HTML: a merchant's script could read a visitor's organisations, switch them, read their subject and receive the relay's session. | A list of their own, `NEXT_PUBLIC_AUTH_FRAME_ORIGINS`: exact `scheme://host` origins, never a suffix or wildcard (such entries are dropped, not widened), https only in production, the realm itself always, any loopback origin in development only. `/auth/check`, `/auth/profiles`, `/auth/iframe-callback`, their `frame-ancestors` and the sign-in page's relay notice use it. `run-fleet.sh` names the 21 back-office hosts its Caddyfile serves one by one in `REALM_REDIRECT_HOSTS` (no suffix, no storefront) and passes the same hosts as origins in the new build argument; the Dockerfile declares it. | `2e69326a` |
+| M2 | D16's slow path marked management's password as the row's own. | A context-password post that finds the row already bound to the ticket's subject opens the session with no password check and no mark (the binding is the proof, I9), and spends the ticket. | `90fb27fe` |
+| M3 | The cross-site test ignored the app's site. | The frames answer `unsupported` without asking when the realm or the app's origin (the one the server checked) is on another site than management's endpoint - so an app at `127.0.0.1` beside a localhost realm, or on a customer's domain, no longer reads `login_required` and clears every session. | `15df55a3` |
+| M4 | A stale tab revoked the session a sibling had just stored. | Before replacing or clearing, the check compares the shared stored session's profile with the tab's own; a sibling's newer session is adopted by a reload, never revoked (`beforeActing`). | `7076109d` |
+| L5 | A hand-over counted as the page's first check. | It no longer does: the page's load check runs on a session `/authorize` handed over. | `2671c10a` |
+| L6 | `interaction_required` and the like cleared sessions. | Gone with decision 27: the check no longer runs `prompt=none`, so only a 401 from management's session read is `login_required`. | `58103b07` |
+| L7 | `AuthCallback` returned to any `state`. | `safeReturnPath`: a path on the app starting with a single slash, else `/`. | `b7402d6c` |
+| L8 | The check door's per-address brake was everybody's behind the edge. | The check door is retired (decision 27); the session read is management's, with its own limits. | `58103b07` |
+| L9 | The relay's answer carried no state; the source check was skipped with no frame. | A state per silent ask, carried as the relay's `state` and named in both answers; no frame, no answer. | `b7402d6c` |
+| L10 | The switcher's kept list outlived a sign-out. | One list of stored session keys (`lib/session-keys.js`), used by `clearAuth` and the realm's logout frame, includes it. | `2671c10a` |
+| info | The check door wrote no log line; D16's registry kept used answers. | The door is retired; a verify answer is removed once a callback takes it or is woken by it. | `cfdbb998` |
+
+**What the environments need (H1):** the dev estate, nothing - loopback
+origins are admitted in development, and every suite app there is on
+`localhost`. Production: `NEXT_PUBLIC_AUTH_FRAME_ORIGINS` on the realm's build,
+the exact origins of the suite's back-office apps and never a storefront's;
+the fleet's `run-fleet.sh` now derives it from the same named host list as
+`NEXT_PUBLIC_AUTH_ALLOWED_REDIRECT_HOSTS`. Unset, the frames answer the realm
+alone, and the suite gets no silent check, switcher or silent restore - nothing
+else breaks. The lead sets any environment line; none was written.
+
+**Not changed, for the lead:** `infra/deploy/rutba-io/redeploy.sh` line 428
+still gives `.rutba.pk` as a suffix in `DEFAULT_AUTH_ALLOWED_HOSTS` - the same
+storefront exposure at `/authorize` for whatever that path builds, outside the
+grant. And if tenant 1's back office on `*.rutba.pk` (the older edge's hosts)
+signs in at the fleet's realm, those hosts go on the fleet's list by name.
+
+**To WS-D:** `GET /v1/auth/session` answers management's raw session id
+(`session.sid`) to the realm's frame with every check. The frame reads only
+`user.user_id` and `org` and posts nothing else, but a read without the id, or
+a lighter endpoint for the check, would keep the credential out of page
+script altogether (it is the value `X-Rutba-Session` accepts, review F7).
+
+## Test counts after the follow-ups (consumer `cfdbb998`, 15:49)
+
+| Suite | After stage 4 (`e4a728d5`) | Now |
+|---|---|---|
+| `console/api/auth/tests/oidc-callback.test.js` | 44 | 43 (the check door's five gone, one retiring it; auth_time, M2, used-once added) |
+| `console/api/auth/tests/credential-doors.test.js` | 12 | 13 |
+| `console/api/auth/tests/break-glass.test.js` | 5 | 5 |
+| `console/apps/auth/src/management-signin.test.js` | 14 | 15 |
+| `console/apps/auth/src/allowed-redirect.test.js` | 14 | 14 |
+| `console/apps/auth/src/frame-documents.test.js` | 18 | 20 |
+| `packages/ui`, `npm test` | 296 | 300 (`test:session` 28) |
+| `packages/api-client`, `npm test` | 42 | 42 |
+| smoke, unsigned | 23 checks | 27 checks |
+
+## Files touched in the follow-ups
+
+In the stream's files, and: `infra/deploy/rutba-io/fleet/run-fleet.sh` (the
+coordinator granted it for H1) and `infra/docker-build/Dockerfile` (named by
+the rule: the new build argument must be declared there to reach the realm's
+bundle). New: `packages/ui/lib/session-keys.js`. Nothing under `management/`,
+no environment file, no database, no `.next`, no `dist`.
+
+## Consumer checkout after the follow-ups
+
+`git status --porcelain` in `D:/Rutba2.0/consumer` on `dev` at `cfdbb998`:
+empty. `dev` and `main` are both at `cfdbb998` on `origin`.
