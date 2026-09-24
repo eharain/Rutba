@@ -381,7 +381,35 @@ None is small: each needs a Strapi gate route first.
 - D2 (the instance never told about an invitation) was answered in
   management `31f664b` while this ran; not this stream's.
 
+### Review follow-up (17:30 to 17:50 UTC)
+
+The reviewer's findings on `24ec0b7`, `74ec02f`, `98d954a`, as the
+coordinator relayed them. One commit each on management `dev`, fast-forwarded
+to `main`, both pushed at `1cc2879` (17:45 UTC).
+
+| Finding | Fix | Commit |
+|---|---|---|
+| **M1.** A re-invite of an existing member (`outcome: 'retold'`, management `31f664b`) said "We have emailed X an invitation", though no mail goes out; the `Invitation` type had three outcomes and no `instance`; the page said everybody invited is emailed. **Info:** the form counted the platform role, which Strapi does not. | One sentence per outcome in `invitationAnswer` (`lib/organisation.ts`): invited, added, reinstated, and retold ("already in X, so no email was sent", then what the workspaces answered: has them now, not answered yet, did not take them); `ALREADY_A_MEMBER` and auth being down have their own; an unknown outcome claims no mail. The type carries the four outcomes and `instance.instances[]` as `{ id?, label?, state }` only. The page line now says each invitation reports what it did. `mayInvite` (owner or admin, Strapi's `INVITER_ROLES`) decides the form, and the action stops before auth when it is false. | `5976bf4` |
+| **L2.** Checkout drew its confirm button in the "choose" and "none" states. | `billingTarget` (`lib/org.ts`) decides who is billed; the form is drawn only when an organisation is pinned, a notice otherwise. | `0299832` |
+| **L3.** The invite form promised role changes and removal "at any time". | Reworded to what exists: no change or removal from the console yet; somebody new has nothing until they use the link, an existing account joins at once. A test reads the form and holds the wording. | `cc2af47` |
+| **L5.** `portalRoles` used only by its test; the header named the Organization Service. | `portalRoles` and `holdsAtLeast` (unused after M1) removed; the header names Strapi. | `1cc2879` |
+
+Portal console suite 29 to 44 (invitation answers 9, the platform role 1, `mayInvite` 2, a
+retell's pass-through 1, billing target 4, form wording 2; the two helpers'
+four tests gone); the other suites unchanged. `tsc` clean.
+
+The estate's portal console on 4118 had stopped by 17:38, so the pages were
+compiled on a verification server of mine on 5118 (`NEXT_DIST_DIR=.next/verify-ws-c`,
+inside the ignored `.next`): `/organisation` 307 to the sign-in,
+`/checkout?intent=x` 200 with "Which plan?". Next rewrote the console's
+`tsconfig.json` include list and `next-env.d.ts` on start; both were put
+back, the server stopped and its directory removed. Nothing listens on 5118.
+
+Not mine, noted by the reviewer: the management console's person page prints
+full session ids from auth's internal sessions route; when auth answers a
+display prefix instead, that page needs a one-line type change here.
+
 ### Management checkout
 
 `git status --porcelain -- console packages/session packages/design-system package-lock.json`
-in `D:\Rutba2.0\management` at 17:22 UTC, after `98d954a`: empty.
+in `D:\Rutba2.0\management` at 17:50 UTC, after `1cc2879`: empty.
