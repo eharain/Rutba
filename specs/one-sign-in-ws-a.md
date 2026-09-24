@@ -524,3 +524,141 @@ its README), on `dev` and `main`, pushed.
 
 The core reloaded on the commit and answered `ready`. `git status
 --porcelain` in `D:/Rutba2.0/consumer` at `a9d0129c`: empty.
+
+## Round three (2026-09-25): a reset belongs where the sign-in is
+
+The owner's rule is decision 35 of the review record. Back-office people sign
+in and reset at Rutba's sign-in (auth.rutba.io); storefront customers do both
+at the storefront; never across. The work was built in the order given, in
+three consumer commits on `dev`, each landed on `main` and pushed. The dev
+estate was stopped, so only the suites ran.
+
+### The role join
+
+A tenant's people table holds two kinds of row side by side:
+
+- **back-office rows**, on the users-permissions role of type
+  `rutba_app_user` (`APP_ROLE_TYPE`);
+- **storefront customers**, on any other role, usually `authenticated`.
+
+`api/core/src/auth/up.js` now has three finders:
+
+- `findAppUserRow(where)` and `findAppUserByEmail(email)` find back-office
+  rows;
+- `findCustomerUserRow(where)` finds rows on any role but the app role, or
+  on none.
+
+Each adds the role test to the one statement that finds the row, as an
+EXISTS, or NOT EXISTS, subquery:
+
+```sql
+select 1 from up_users_role_lnk role_link
+  join up_roles role_of_row on role_of_row.id = role_link.role_id
+ where role_link.user_id = up_users.id and role_of_row.type = 'rutba_app_user'
+```
+
+**Cost per call:** no second round trip. For each row the address or subject
+matches, the database does one lookup on the link table's `user_id` index
+and one on `up_roles`' primary key. A handful of rows match an address, and
+at most one matches a subject.
+
+`up.js` repeats the value `rutba_app_user`, because the core does not reach
+into the console's modules. A test holds it equal to
+`console/api/setup/domain/instance-state.js`'s `APP_ROLE_TYPE`.
+
+### What changed
+
+1. **Role scope (consumer `b70b0ec2`).** Three doors now see only back-office
+   rows. A storefront customer's row with the same address is invisible to
+   them: it is never verified against, never bound to a management subject,
+   and never given a password.
+   - **W1 verify** looks rows up by subject and by address this way. With
+     only a customer's row, it answers `USER_UNKNOWN`. When a back-office
+     row exists, the customer's password is no proof, and the answer is
+     `{ bound: false }`.
+   - **W1 set** also looks rows up by subject and by address this way. It
+     answers `USER_UNKNOWN` or `NOT_BOUND`, as before. A customer row bound
+     to the subject by an older door is not one `set` may change.
+   - **The invite door** finds the address's back-office row the same way.
+     With only a customer's row, the invitation creates a new back-office row
+     beside it, and the customer's row stays untouched.
+
+   The auth suites' rows now sit on a role, as live rows do: the app role by
+   default, a customer's role on request.
+2. **The door for management's reset (consumer `1440e692`)**, described in
+   full in "The door's contract" below. The tenants door's two suites now
+   share one harness, `console/api/tenants/tests/harness.js`.
+3. **Each reset mails only its own kind (consumer `64b946cc`).** The two
+   paths:
+   - **The storefront's reset** is `POST /api/auth/forgot-password`, the
+     `forgotPassword` controller, which the storefront's api-client
+     (`web/auth.js`) calls. It now finds the address's row with
+     `findCustomerUserRow`, so a back-office row gets no mail and no code.
+   - **The realm's break-glass reset** is `POST /api/auth/forgot-password/any`,
+     the `forgotPasswordAny` controller, which the forgot view of
+     `/login?local=1` calls. It now uses `findAppUserRow`, so a customer's
+     row gets no mail and no code.
+
+   Both still answer `{ ok: true }` either way. **Both controllers live in
+   `console/api/auth/routes.js`, not in `up.js`.** The rule's finders went
+   into `up.js` as asked, and the two controllers' lookups in `routes.js`
+   changed to use them: that is the one file outside this round's list, for
+   this reason.
+
+### The door's contract, for WS-D
+
+```
+POST /api/tenants/:db/people/exists
+Authorization: Bearer <management service token, scope tenants:admin - as the invite door>
+{ "email": "person@example.com" }
+
+200 { "exists": true }    a back-office row (rutba_app_user) with the address, not blocked
+200 { "exists": false }   anything else: none, only a storefront customer's row,
+                          blocked, a malformed address, a database this core
+                          does not serve
+429 { error: { name: "TooManyRequestsError", details: { code: "TOO_MANY_ATTEMPTS" } } }
+                          past ten calls per database and address in fifteen
+                          minutes; Retry-After in seconds
+401 / 403 / 501           the service-token guard's own answers, as at the invite door
+```
+
+The body is exactly `{ exists }`, not wrapped in `data` as the other tenants
+doors' answers are. The address is matched case-insensitively. Every call
+writes one `core_change_audits` row in the tenant (action `people:exists`)
+and one log line. Both carry the address only as a digest: `sha256:`
+followed by the first sixteen hex characters of the SHA-256 of the
+lower-cased address.
+
+The 429 is the one departure from "always 200": the brake is the verify
+door's, and that is how the verify door answers it. Management should read a
+429 as "not known now" and not mail.
+
+### Tests (20:38 UTC)
+
+- `console/api/tenants/tests`: 15 of 15 (invites 9, people-exists 6).
+- `console/api/auth/tests`: 86 of 86 (callback 62, credential doors 17,
+  break-glass 7).
+- `console/apps/auth/src`: 55 of 55.
+- Handoff: 27 of 27 under the test-only preload.
+
+The new tests cover:
+
+- a customer row and a back-office row sharing an address, at verify, at
+  set and at the invite door;
+- the reset door's true, its six falses, the digest-only audit and log, the
+  brake, and the guard;
+- both reset refusals, with the same answer either way.
+
+### For other streams
+
+- **The realm callback and the hub's handoff** (`oidc.js` findPerson,
+  `handoff.js` resolveForOpen) also find rows by address or subject for
+  management's purposes. They were not in this round's list. While this round
+  ran, another session role-scoped both with the same finders.
+- **A customer row that an older door bound to a management subject** still
+  holds that subject. The subject is unique per database, so it blocks binding
+  that person's back-office row, and the invite door answers
+  `SUBJECT_TAKEN`. Unbinding such rows is an administrator's clean-up. No code
+  here does it.
+
+**Consumer checkout:** `git status --porcelain` at `64b946cc`: empty.
