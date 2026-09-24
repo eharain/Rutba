@@ -982,3 +982,60 @@ pushed. `origin` holds both at `54e422b`.
 - **For the owner:** assumptions (a) and (b) are built as the lead stated
   them. The role given is portal `viewer`.
 - **For WS-A:** nothing new. The exists door is used as `1440e692` answers it.
+
+### Round three follow-up: the review (2026-09-25, 21:00 to 22:05 UTC)
+
+The reviewer read `128ed06` to `54e422b`. There were one high, three mediums
+and five lows, plus some info items. Two commits on management `dev`, each
+fast-forwarded to `main` and pushed; `origin` holds both at `44edf3f`. Tests
+ran against the suites' fakes only.
+
+| Commit | Findings | What changed |
+|---|---|---|
+| `39aa2e5` | **H1** | The asks go only to live instances. After the link, only the instances that said yes are told (`tellOnInvite`'s new `only`). The organisation's other running instances are recorded as a new state, `none`: they are never told on this person's behalf. Sign-in and the schedule do not re-queue `none`; only an administrator's re-invite tells it. The hub says nothing for it. An instance that said yes but is not live is never asked in the first place. |
+| | **M2** | A reset's tell is bind-only. The invite door gets no roles, so an existing row keeps the roles its administrator gave it. The entry keeps `bindOnly` through its retries and re-queues. |
+| | **M3** | Asks are bounded for the whole process: at most eight in flight, and a budget of 2000 an hour. Once the budget is spent, a request asks nobody (it is logged) and still answers `reset_sent`. |
+| | **M4** | An account holder's reset mail is also sent after the answer, so both paths answer after one read. |
+| | **L5** | The code is taken by a conditional delete (`deleteMany` on the core-store row, counted), so a double submit makes one account. |
+| | **L6** | The account and its memberships are made in one transaction. On failure the code is put back and the link works again. The username is the address unless an old account holds it, in which case it is `address#xxxxxx`. The tells run after the commit and never throw: a failure there is a recorded `pending`, which the schedule retries. |
+| | **L7** | Asking and completing both require an active or trial team organisation that is not org-zero, and a live, active instance that is not the realm's or the individual one. |
+| `44edf3f` | **L8** | A forgot that is forwarded to another realm writes its `password request` line, with outcome `forwarded`. |
+| | **L9** | `new=1` is kept through the retry redirect: the form carries `fresh`. |
+| | **Info** | A row that answered `taken` is not sent the password: it is reported as failed with reason `taken`, and the page says so in words. The reset-done page's link back to sign-in carries no `login_hint` (the address). The `password.reset_requested` audit event records `meta.address` as the digest, not the plain address. |
+
+**Tests added:**
+- Strapi `instance-reset`, now 15 cases:
+  - two instances of one organisation where one said yes: only it is told, the other is recorded `none`;
+  - non-live, personal, suspended, org-zero, individual and realm instances are not asked;
+  - an account holder's mail is written only after the answer;
+  - the hourly budget and the limit in flight;
+  - a concurrent double submit makes one account;
+  - of two links from two requests, the second is refused;
+  - a failure while the account is made leaves nothing and puts the code back;
+  - an old account's username does not block the new one;
+  - the invite door is sent `roles: []`.
+- Auth:
+  - the forwarded line and the digest in the audit (`password-log-lines`);
+  - the retry keeps the set-password page (`instance-reset`);
+  - a `taken` row is not sent the password (`unit/instance-credentials`);
+  - the reset-done link carries no address (`front-door-journey`).
+- **Counts:** Strapi 133 of 133; auth unit 377, integration 328, perf 5.
+  Nothing skipped.
+
+**For the reviewer and WS-A:**
+- **M2 needs a door shape from WS-A.** With `roles: []` the invite door
+  already keeps a row's roles (it only edits them when it is given some). But
+  for a row that was never confirmed it still answers `reinvited` and mails
+  that instance's own invitation again. What a reset wants is **"bind only":
+  record the subject, change no roles, send nothing** - for example a
+  `bind_only: true` flag on the invite, answering `exists`. Please relay it.
+- **`SUBJECT_TAKEN` as `taken` is intended for ordinary invitations too.** An
+  invitation whose person's subject is already on another row at that
+  instance (a customer row an older door bound, say) is now `taken`, not
+  `refused`. Only that instance's administrator can resolve it, and the hub
+  says so ("This workspace has another account in the way of yours. Ask its
+  administrator to sort it out.").
+- **A `none` entry has one exception:** an instance recorded as running later
+  (`queueForInstance`) is told to every member of its organisation, including
+  someone who came in by a reset. That is an ordinary new instance of their
+  organisation, and it was left as it is.
