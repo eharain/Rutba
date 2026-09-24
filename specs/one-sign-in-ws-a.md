@@ -662,3 +662,74 @@ The new tests cover:
   here does it.
 
 **Consumer checkout:** `git status --porcelain` at `64b946cc`: empty.
+
+### Round three, the reviewer's findings (2026-09-25)
+
+Each finding went into its own commit, or one per natural group, with its
+tests, on consumer `dev`, landed on `main` and pushed. The estate was
+stopped, so only the suites ran.
+
+| # | Fix | Commit |
+|---|---|---|
+| M1 | **Each reset completes where it began.** The realm's reset (`POST /api/auth/forgot-password/any`) mails a link to the realm's own reset page, `<NEXT_PUBLIC_AUTH_URL>/login?code=...`, never the tenant's `email_reset_password` shop page. The page is the realm's `pages/login.js`: a `code` takes it to the instance's own form, on its reset view, which spends the code at `/api/auth/reset-password/any`. The origin comes from the core's `NEXT_PUBLIC_AUTH_URL`, or else `PUBLIC_URL`. The fleet already sets it on the core container (`infra/deploy/rutba-io/fleet/run-fleet.sh`, the core's `-e NEXT_PUBLIC_AUTH_URL=https://auth.consumers.rutba.io`), so no new line was needed there. The script's comment beside the shop-page line was corrected, as granted. With neither name set in production, the realm's reset sends nothing, rather than a storefront link. `/api/auth/reset-password` now spends a code on a storefront customer's row only, and `/api/auth/reset-password/any` on a back-office row only; a code of the other kind is "Incorrect code provided" and opens no session. `docs/tenancy-directory.md`'s line that staff use the shop's page is corrected. `upEmail.sendResetPassword` takes the reset page as an option. | `4383f081` |
+| M2, M4 | **Each sign-in finds only its own kind of row, whatever the address's case.** New finders in `up.js`: `findAppUserByIdentifier`, `findCustomerByIdentifier` and `findCustomerByEmail`. They compare the address lower-cased, or the username exactly, and take the oldest row first. The storefront's `/auth/local` and its resend (`/auth/send-email-confirmation`) look among customers' rows. The realm's `/auth/local/any` looks among back-office rows. The invite door and both forgot doors compare the address lower-cased. The plain `/auth/local` still marks its session `instance-password`, but now logs "storefront password sign-in": since M2 it is the storefront's sign-in, and the break-glass form uses `/any`. | `a4808433` |
+| M3, L7 | **W1 verify answers `{ bound: false }` when a storefront row holds the subject**, and logs that row's id. A bind that meets the unique index anyway is not bound either. Any other failure is a plain `500 INTERNAL`, with no SQL, message or value in the answer. The credential doors now log the address as a digest; the tenant's audit row keeps it. | `fb7073ef` |
+| M5, M8 | **Management's owner door never takes a storefront customer's row.** `bootstrapOwner` asks the first-run grant for the back office's row only. That is a new opt-in `backOfficeOnly` in `api/core/scripts/grant-full-access.js`, passed through by `console/api/setup/domain/bootstrap.js`: the two files outside this round's list, one option each. So the owner gets a new row beside the customer's, and the door answers the row the grant made. The CLI and the recovery doors keep taking any row, since repairing an administrator stuck on the wrong role is what they are for. **M8:** I read the schema on 2026-09-25, read-only, from `SHOW INDEX FROM up_users` in `pos_db`, `individual_dev` and `sign_e2eorg0145owner12d3`. No unique index on `username`, `email` or `display_name`; the only unique besides the primary key is `up_users_rutba_sub_uniq`. The fleet's tenants load the same Strapi schema, and a provisioned tenant (the third) comes from the template, so the insert does not fail. The users-permissions schema still declares `username` and `displayName` unique, and grant-full-access refuses a clash. So a new back-office row beside a customer whose username is the address takes the address with `#staff`, a number after the first, never the address alone. | `f7779a0b` |
+| L7 | The role type is compared lower-cased in the core's finders, so a row's kind is the same on Postgres, SQLite and MySQL. | `cff42cb2` |
+
+**The lead's addition: `bind_only` on the invite door, for management's reset**
+(consumer `2e960a16`). The contract, for the auth stream:
+
+```
+POST /api/tenants/:db/invites
+Authorization: Bearer <management service token, scope tenants:admin>
+{ "email": "person@example.com", "rutba_sub": "<subject>", "bind_only": true }
+
+200 { data: { db, email, userId, outcome: "exists", rutbaSubRecorded, bindOnly: true } }
+      the address's back-office row (users-permissions role rutba_app_user,
+      address compared case-insensitively) now carries rutba_sub, or already did;
+      no role changed (any "roles" in the body is ignored), nothing mailed, no
+      set-password link written, confirmation untouched
+404 USER_UNKNOWN        no back-office row with the address - none at all, or only
+                        a storefront customer's; nothing is created
+409 BOUND_ELSEWHERE     a confirmed back-office row bound to another subject (decision 32)
+409 IDENTITY_BLOCKED    the back-office row is blocked
+409 SUBJECT_TAKEN       another row already holds this rutba_sub
+400 SUBJECT_REQUIRED    bind_only without rutba_sub
+```
+
+The error shape is `{ error: { status, name, message, details: { code } } }`,
+with the code as the name for all but `SUBJECT_TAKEN` (name only) and
+`SUBJECT_REQUIRED` (name `ValidationError`, code in details). An
+unconfirmed row bound to another subject is re-bound, as decision 32 allows,
+with a log line, and answered `exists`. Without `bind_only`, the door is
+unchanged.
+
+**Tests** (21:32 UTC):
+
+- `console/api/tenants/tests`: 22 of 22 (invites 15, owner 1, people-exists
+  6).
+- `console/api/auth/tests`: 96 of 96 (callback 62, credential doors 22,
+  break-glass 12).
+- `console/apps/auth/src`: 55 of 55.
+- The bridge suites under the test-only preload are as before.
+
+The individual-mode first-run suite passes 6 of 7 under the preload. Its CLI
+test spawns a child process the preload does not reach, the same machine trap
+as the verifier's child-process test. The CLI path is untouched: without
+`backOfficeOnly` the grant behaves as before.
+
+**Not done, and notes:**
+
+- **L7's other half is not mine.** The warning for a customer row holding a
+  subject should name the row id, and the realm should get a distinct refusal
+  code. That warning is in `handoff.js` and `oidc.js` (WS-B's). The verify
+  door now does both: its log names the row, and the tenant's audit says
+  `subject-held-by-customer`.
+- **Operator rows are on the `authenticated` role.** The handoff's operator
+  path creates them there, so these finders count them as storefront rows.
+  They never sign in by password, but the storefront's forms would now reach
+  them and the realm's would not. This is with the realm's builder, alongside
+  the reviewer's operator note.
+
+**Consumer checkout:** `git status --porcelain` at `cff42cb2`: empty.
