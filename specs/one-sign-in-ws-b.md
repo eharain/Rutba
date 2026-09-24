@@ -674,3 +674,34 @@ returns one row there (an instance without it answers operate 409
 individual instance on a session the realm opened loses operator acts
 (`OPERATE_HANDOFF_REQUIRED`) until they open it again from management's
 operate door; their operate sessions keep working.
+
+## Round three re-check: the operator's set-password link (2026-09-25)
+
+Consumer `53d374d4`, on `dev` and `main`, pushed.
+
+- **The low.** The operator's set-password link (`issueSetPasswordLink`,
+  `console/api/auth/operator.js`) was built from the instance's
+  `email_reset_password`, else `PUBLIC_URL/reset-password`. People in an
+  individual-mode instance sit on `rutba_app_user`, whose codes the
+  storefront's `/auth/reset-password` refuses since decision 35, so the link
+  answered "Incorrect code" or opened a page the realm does not have.
+- **Now** it is the realm's own `/login?code=`, as the tenants door's
+  `authUrl()` builds it: the realm's reset view spends it at
+  `/auth/reset-password/any`. Origin: `NEXT_PUBLIC_AUTH_URL`, else
+  `PUBLIC_URL`, else the dev realm outside production (the realm's reset
+  reads it the same way); a production server told neither answers 503
+  `REALM_URL_MISSING` and issues no code. The instance's
+  `email_reset_password` is no longer read here.
+- **Test:** `operator.test.js` checks where the link lands, not only its
+  shape. With a storefront page configured on the instance, the link's
+  origin is the realm's, its path `/login`, and the code its only
+  parameter. The realm's login page takes `?code=` to the reset view that
+  posts `/auth/reset-password/any`. The storefront's reset refuses the code
+  (the person is a `rutba_app_user` row). The realm's reset spends it: the
+  new password is the person's and the code is cleared. 7 of 7.
+  `smoke-individual` checks for a `/login?code=` link: 49 of 50, the same B
+  check as before. Locally the link read `http://localhost:4003/login`,
+  from the estate env file's `NEXT_PUBLIC_AUTH_URL`.
+- **For deployment:** nothing new. The fleet already gives the core
+  `NEXT_PUBLIC_AUTH_URL` (`run-fleet.sh`), which the realm's reset and the
+  tenants door use.
