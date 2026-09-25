@@ -468,6 +468,10 @@ under are decisions 20 to 22.
     turns a merchant's own default customer role into rows of no kind.
     Recommend, and being built: they write the default role only when it
     is absent or names a role that no longer exists, never over a choice.
+    Built: consumer `cfb318cd` (one helper used by the seed and the
+    registration extension; the setting holds a role type, so dangling means
+    no role has that type any more; the deploy's seed run is the path that
+    runs it every deploy).
 ## 8. Round two
 
 Stages 4 and 5 of the plan are approved work and need no decision; the fixes
