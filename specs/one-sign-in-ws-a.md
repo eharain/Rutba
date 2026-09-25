@@ -977,3 +977,102 @@ refused rather than back-office.
 The consumer checkout after `fc2de6ee` holds another session's uncommitted
 README and ROADMAP edits, left alone; nothing of
 WS-A's.
+
+### Round three, the last lows (2026-09-25)
+
+The re-check's four lows (review record, after addendum 34), fixed before
+the deploy. Two consumer commits on `dev`, each landed on `main` and
+pushed: `affb8f96` (items 1 to 3) and `cb08ffc3` (item 4). The dev estate
+was not touched; only the suites ran.
+
+1. **Verify's holder check** (`console/api/auth/credential.js`). W1 verify
+   asked `findCustomerUserRow({ rutba_sub })`, which since `fc2de6ee` sees
+   customer rows only; with an `admin` or no-kind row holding the subject
+   and a back-office row of the same address whose password matched, verify
+   went on to `bindSub`, met the unique index and logged it as
+   `bound-elsewhere`. It now asks `subjectHolderOutsideBackOffice(sub)` (the
+   callback's and the hub's finder), logs `held by row <id> (sha256:…)
+   outside the back office; not bound`, audits
+   `subject-held-outside-back-office` (was `subject-held-by-customer`), never
+   tries the bind, and answers as the address does: `{ bound: false }` when
+   a back-office row has it (the lead's case, unchanged), 404 `USER_UNKNOWN`
+   when none does. That keeps decision 33's "verify `USER_UNKNOWN`, bound
+   already or not" for a refused or no-kind row alone; the one answer that
+   moved is a customer row holding the subject with no back-office row for
+   the address, `{ bound: false }` before and `USER_UNKNOWN` now - as for no
+   account (D11), and what the callback answers for that person anyway. The
+   finder stays in `handoff.js`: `up.js` was not in this change's files, and
+   `credential.js` already takes `bindSub` from there. Moving it beside
+   `findUnplacedByEmail` (with the repeated digest helper) is still open.
+2. **The bind and the unique index** (`handoff.js` `bindSub`). Another row
+   taking the subject between the holder check and the write made the
+   conditional update meet the index, and the raw database error went back
+   through the callback and the hub. A unique violation is now 409
+   `USER_BOUND_ELSEWHERE` ("that management account is bound to another
+   account here"), with a log line naming the row that took it by id and
+   digest when it can still be read. `isUniqueViolation` moved into
+   `handoff.js`; `credential.js` re-exports it, and verify's catch now needs
+   only the refusal's code.
+3. **Operate by subject** (`handoff.js` `resolveForOperate`). The row was
+   found by `findUserRow({ rutba_sub })` with no role check. It is now
+   `findAppUserRow` (back-office rows only), then
+   `subjectHolderOutsideBackOffice`: any other holder - a customer's,
+   `admin`, a type no list names, an empty or NULL type, no role - is **409
+   `OPERATOR_SUBJECT_HELD`**, logged `operate refused: management <sub> is
+   held by row <id> (sha256:…) outside the back office; nothing moved, bound
+   or granted`; no role change, no `platform_operator`, no code, and no
+   operator row made beside it. The address path is unchanged.
+
+   **This changes b9cfcb0d's promise.** An operator row made before
+   `b9cfcb0d`, on `authenticated` and still bound to its staff subject, no
+   longer moves "at its next operate": it is refused like any other holder
+   until the statement in [one-sign-in-ws-b.md](one-sign-in-ws-b.md) "For
+   deployment" moves it. (Found by address with its subject cleared, it is
+   still moved, as before.) So for the Infra session that statement is now
+   needed, not optional, in every individual-mode database that has such
+   rows. As written it moves every row holding `platform_operator`,
+   whatever its role; since `admin` is never moved (addendum 34), it should
+   also carry `AND user_id IN (SELECT l.user_id FROM up_users_role_lnk l
+   JOIN up_roles r ON r.id = l.role_id WHERE r.type = 'authenticated')`, the
+   role the old path used. Not run here.
+4. **The tenants README** (`console/api/tenants/README.md`). The exists door
+   row (line 15) and the back-office rule under "Invitations arrive again and
+   again" still said "any role but the storefront's". Both now name the three
+   lists in their order (refused `admin`; back office `rutba_app_user`,
+   `staff`, `rutba_rider_user`; customer, the storefront's four and the
+   tenant's `advanced.default_role`; anything else of no kind), and the
+   invite door's `409 ROLE_REFUSED` / `ROLE_UNKNOWN` and `bind_only`'s 404
+   for those rows.
+
+Docs: `docs/identity-bridge.md` (the refusal table gains
+`OPERATOR_SUBJECT_HELD` and the race under `USER_BOUND_ELSEWHERE`; `operate`)
+and `docs/one-sign-in-realm.md` (the binds' race; verify's holder).
+
+**Tests** (2026-09-25, 08:30 to 08:50 UTC+5):
+
+| Suite | Result |
+|---|---|
+| `console/api/auth/tests` | 125 (callback 66, credential doors 32, break-glass 18, hub-roles 5, register 4) |
+| `console/api/tenants/tests` | 35 |
+| `console/apps/auth/src` | 55 |
+| `api/core/tests/handoff.test.js` | 31, under the test-only preload |
+| `api/core/tests/individual-mode/operator.test.js` | 7, under the preload |
+
+The new tests: credential doors - an `admin` row and three no-kind rows
+(no role, a role with no type, a type nobody named) each holding a subject
+beside a back-office row with the address and its password, `{ bound:
+false }`, nothing bound, the holder named by id and digest, never
+`bound-elsewhere` or the address; a customer holder alone, `USER_UNKNOWN`;
+`bindSub` meeting the index, 409 with the taker named and no SQL. The hub -
+a SQLite trigger makes the race (as the bind writes, another row takes the
+subject), 409 `USER_BOUND_ELSEWHERE`, no SQL or subject in the answer, no
+code. The core's handoff - the legacy operator row refused, then the
+operator's again after the deploy statement's move; `admin`, customer,
+role-less and unnamed-type holders refused with nothing moved, granted or
+coded. Run against the previous `credential.js` and `handoff.js`, the new
+tests failed there (five in the auth suites, one of them the M3 test's
+changed log wording; two in the core's handoff). The preload hides the
+four estate lines from `.env.development` and lives in the session's
+scratchpad, not in a repository.
+
+The consumer checkout was clean before and after both commits.
