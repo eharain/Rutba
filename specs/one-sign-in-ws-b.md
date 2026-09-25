@@ -966,3 +966,165 @@ a NULL or empty type, rows on a type no list names), the move is one
 statement per type - `staff`, and `rutba_rider_user` only if the owner
 says - `admin` is named as never moved, and no-kind rows are reported, not
 moved.
+
+## Decision 10, customer-domain realms (2026-09-25)
+
+The lead's recommendation (c), built pending the owner: no frame for a realm
+or suite app on another site than management; a top-level round trip
+instead. One commit on consumer `dev`, `61672195`, `main` fast-forwarded and
+both pushed. The code's record is `consumer/docs/one-sign-in-realm.md`,
+"A realm on another site than management (decision 10, 2026-09-25)", and
+`consumer/packages/ui/README.md`. The frame is unchanged where the realm and
+the app share management's site (`*.rutba.io`).
+
+**Found first, checked against the code.** The brief said the realm's
+`/login` "already re-checks a live session against management's pin
+top-level (D8)". It did not on such a realm: D8's check is the same
+`/auth/check` frame, which answers `cross-site` there, so `/login` handed
+the stale session on unchecked - the hub's tile for another organisation
+included. And its silent `prompt=none` frame could only ever say
+`login_required` there. Both are fixed below.
+
+**What was built.**
+
+- **The suite app** (`AuthContext`, `lib/session-check.js`). The frame's
+  `unsupported` answer keeps `reason: "cross-site"`; `decideCheck` answers
+  `round-trip`; the page asks no frame again; `roundTripStep` decides when;
+  a sibling tab's newer session is adopted first (M4); then the whole window
+  goes to `<realm>/login?redirect_uri=<app>/auth/callback&state=<path?query#hash>`.
+  Nothing is revoked by the app.
+- **The realm's `/login` with a live session.** Where its own check frame
+  answers `cross-site`, it checks at the top level: `prompt=none` in the
+  whole window (which carries management's `SameSite=Lax` cookies), the
+  transaction marked `recheck`, at most three per tab per minute
+  (`takeRecheck`: a person's hub tile straight after an app's trip is
+  honoured; anything that came round by itself stops at the third and the
+  session goes on unchecked).
+- **`/auth/callback` for a `recheck`** waits for the realm's session to be
+  read, then keeps one of two: a code for the same person and no other
+  organisation keeps the live session (the new one revoked by its own refresh
+  token; the ID token and management session id updated for sign-out);
+  another profile revokes the live one and stores the new; `login_required`
+  ends the live one and signs in afresh; `interaction_required` and the like
+  try once interactively; `USER_UNKNOWN`, `NO_INSTANCE`, `USER_BLOCKED`,
+  `USER_BOUND_ELSEWHERE` end the live one and show the refusal;
+  `CONTEXT_PASSWORD_REQUIRED` ends it and asks; anything else is uncertain
+  and changes nothing.
+- **Sign-in and the session's end.** On such a realm `/login` makes no
+  silent frame attempt (`crossSiteRealm`, the frame's own site rule, held
+  equal to it by a test) and goes to management in the whole window, framed
+  under the relay it tells the app at once. So when a session ends
+  (`SessionExpiredDialog`, now "Checking your Rutba sign-in") the way back is
+  the same round trip: a person still signed in at management is back on
+  the page with no sign-in page.
+- **`checked=1`.** A hand-over right after management answered (a sign-in's
+  `finish`, the top-level check, D8's frame check that kept the session)
+  goes through `/authorize?...&checked=1`, which passes it to the app's
+  callback; `AuthCallback` notes the round trip, so a fresh sign-in is not
+  followed by a second trip. It grants nothing.
+- **Two fixes the round trip needs.** The core rotates a refresh token into
+  a child row and revokes only the row named, so the realm's copy of the
+  shared session can lag the app's: `AuthCallback`, handed another profile's
+  session over the one it holds, now ends its own old one with its own
+  tokens. And the bootstrap on the app's `/auth/callback` page could clear
+  the session the hand-over had just stored while it was still validating
+  the old, revoked one: it now never clears or overwrites a session stored
+  while it ran.
+
+**Triggers and limits.** Only the page's load and the tab coming back into
+view (`visibilitychange`; a window's focus, the five-minute timer, a look
+again and `checkNow` never trip); at most once per five minutes per app
+(`localStorage` `rutba.sessionCheck.roundTripAt`, shared by its tabs, which
+share the session); never within a minute of the tab acting (the launcher's
+`rutba.sessionCheck.actedAt`), and never unless both marks were written, so
+never a loop; never while a form is in use - a focused field, a field
+holding what the page did not draw it with, or typing seen on the page since
+its last submit (`input` events, since a React field keeps its default in
+step with its value) - that trip waits for the next trigger.
+
+**What a person sees.** On a page load or a return to the tab, at most once
+per five minutes, the realm's "Checking your sign-in" for a moment, then the
+same page, reloaded (URL, query and hash kept; unsaved React state, scroll
+and open dialogs not, hence the form rule). A switch at management: the
+page comes back in the pinned organisation. A sign-out at management:
+management's sign-in page. Nothing reaches an idle page until it is loaded
+or looked at again.
+
+**Counts** (consumer `61672195`): `packages/ui` `test:session` 39 to 46 (the
+cross-site answer, `roundTripStep`, the marks, `formBusy` and `fieldDirty`,
+adopting first, a timeline of load, return, timer, focus and reload with no
+loop), the rest of `npm test` passing; `console/apps/auth/src` 55 to 61
+(`siteOf`/`crossSiteRealm` against the frame script, three checks a minute,
+the `recheck` transaction and `checked=1`, errors, refusals, the two
+sessions); `console/api/auth/tests` 125, unchanged.
+
+**Live (unsigned), cut short.** The core (`erp-core` behind the dev gateway
+on 4020) stayed "starting" for the whole session: its gateway log shows
+nodemon's start line and nothing after it, the shape of the local Postgres
+wedge the estate notes record (only an elevated service restart clears it;
+nothing was restarted here). Management auth answered. So the harness page
+(`http://127.0.0.1:5199`, a small node server in the session's scratchpad,
+stopped after) could not show the check frame's `cross-site` answer: the
+frame's first read is the core's config door. Seen: the realm's changed
+pages (`/login`, `/auth/callback`, `/authorize?...&checked=1`, `/`) render
+200 with no compile error; `/login` in the round trip's own shape
+(`redirect_uri=http://127.0.0.1:5199/auth/callback&state=/page?x=1#h`)
+hydrated and stopped on "Signing in did not finish" (the config door
+unreachable, CORS-less 503), no error from the new code in the console.
+Sign (4029) answered 503 from the gateway throughout. Worth re-running
+once the core is back: the harness's frame should answer
+`{ status: "unsupported", reason: "cross-site" }` (M3's case, now the
+round trip's input).
+
+**Not walked:** everything after a live session - the round trip keeping,
+replacing and signing out, the realm's top-level check, the hub tile on such
+a realm. Each needs a management session, and no password is typed here; the
+dev estate has no realm on another site than management (the realm and
+management are both `localhost`, and management's first-party list,
+`AUTH__OIDC_FIRST_PARTY_CLIENTS`, names the realm at `http://localhost:4003`
+only), so those paths are proved by the unit tests only until a
+customer-domain realm is set up for the tester.
+
+**What remains.**
+
+- **The server-side check with a management refresh token** (not built). It
+  would take: at management, refresh tokens for the realm's client bound to
+  the management session so they die with a sign-out (first-party clients
+  already get them, `issueRefreshToken`), and the pinned organisation
+  readable server-side at refresh (today a grant's resource is fixed at
+  issue: the refreshed ID token would have to name the current pin, or the
+  core read the session by its id with a service token); at the core (WS-A's
+  files), keep management's refresh token per session sealed with the vault
+  key (an open gap) - the callback's exchange receives it and keeps only the
+  ID token today - and refresh at management on the core's own refresh or on
+  a schedule: `invalid_grant` revokes the consumer session and its rotated
+  rows, another pin marks it so the next call answers `SESSION_ENDED` (the
+  dialog's round trip then takes the pin), management unreachable changes
+  nothing. The push form is OIDC Back-Channel Logout (and a switch event)
+  from management to the core, server to server, which reaches a
+  customer-domain realm where no frame can; management's end-session has the
+  front channel only. Either closes the gaps below the round trip cannot:
+  an idle page, and the five minutes.
+- **Rotated rows after a sign-out.** When management holds nobody, or the
+  core refuses, the realm ends its copy of the shared session; an app that
+  refreshed since holds a newer row, valid until its next trip sends the
+  person to sign in, or its idle expiry. The core ending a session's rotated
+  rows with it would close it (the core's files).
+- **Not covered on such a realm:** the switcher (the profiles frame still
+  answers `unsupported`; it would need a top-level profiles page); the
+  refusal pages' watch (D25); Sign's landing (D4, `drive`, outside the
+  grant), which shows its landing there. An autofocused field postpones the
+  trip until the focus leaves it.
+- **For production:** management must list each such realm's
+  `<realm>/auth/callback` for its client, as the interactive path already
+  requires; nothing else is configured.
+
+**Files** (consumer): `packages/ui/{context/AuthContext.js,components/AuthCallback.js,components/SessionExpiredDialog.js,lib/session-check.js,lib/session-check.test.js,README.md}`,
+`console/apps/auth/{components/ManagementSignIn.js,components/ManagementCallback.js,components/SignInOutcome.js,pages/authorize.js,src/management-signin.js,src/management-signin.test.js,src/frame-documents.test.js,README.md}`,
+`docs/one-sign-in-realm.md`. Nothing under `consumer/api`,
+`consumer/console/api` or `management`, no environment file, no database, no
+`.next`, no new dependency.
+
+`dev` and `main` both at `61672195` on `origin`. After the push,
+`docs/one-sign-in-realm.md` carried two uncommitted lines from another
+session (WS-A's `findUnplacedBySubject` wording), left as they are.
