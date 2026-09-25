@@ -189,8 +189,8 @@ Added after the first round's review (2026-09-22, see
   read it: a bare "next free" goes stale in silence the moment somebody mints
   one, while a dated reading tells the next stream how far to trust it and
   when to go and look again. The directory is the record; this line is a
-  reading of it. **Read 2026-09-22 against the directory: last taken 114;
-  next free 115; nobody holds one.** (Round two: WS-D took 114 for the repair
+  reading of it. **Read 2026-09-25 against the directory: last taken 118
+  (`118-talent-outcome-delivery-note`); next free 119; nobody holds one.** (Round two: WS-D took 114 for the repair
   of `up_users.rutba_sub`; 115 was claimed for C11's key and released when the
   door reused the built-in core store, so it was never minted;
   `consumer/api/core/migrations/README.md` says the same.)
