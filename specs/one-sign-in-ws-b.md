@@ -1193,3 +1193,270 @@ restarting under them, and from about 10:50 UTC the core refused to boot
 (118-talent-outcome-delivery-note)", another builder's migration), so the
 render, the confirmation link and the customer's sign-in wait for a core
 that boots. The test customer stays unconfirmed in `pos_db`.
+
+## Round four review: the client side (2026-09-25)
+
+The round four review of consumer `61672195` (decision 10 above) found five
+client-side defects and one note; this builder fixed them in `packages/ui`,
+`packages/api-client` and the realm (`console/apps/auth`), one commit per
+finding, each on consumer `dev`, `main` fast-forwarded and both pushed. The
+server half of finding 2 (`POST /api/auth/logout` taking a refresh token
+without an access token) is another builder's, in `console/api`; nothing
+under `api/` or `console/api/` was touched here. Each finding was read
+against the code first; all five held as stated.
+
+| Finding | What | Commit |
+|---|---|---|
+| 2 (low), the client half | A session is ended by its refresh token alone, with no `Authorization` header, so one whose access token lapsed (the idle tab the round trip exists for) is ended too. `lib/session-revoke.js`, a keepalive `fetch`; `revokeSession` and `logout()` both use it. `AuthCallback`'s old session and the realm's keep path (`ManagementCallback`, the same profile) retry once after a second, then give up quietly, and are never waited on (the keep path used to `await` it). | `0535e90a` |
+| 3 (low) | `refreshAccessToken` writes its answer only while storage still holds the refresh token it sent (check and write with no `await` between). Otherwise the answer, a success or a refusal, is dropped and the stored session answered (`superseded: true`); a sign-out while the refresh was out stays a sign-out (`reason: 'superseded'`, not a dead session). The bootstrap, told superseded, writes nothing and draws what is stored. | `fb8f5594` |
+| 4 (low) | `checked=1`, and ending the session held before, are believed only after a trip the tab left on itself: before the window leaves for the realm the tab writes `sessionStorage` `rutba.sessionCheck.pending` (a random value and the time, read back); `AuthCallback` takes it (removed whatever it says) and honours both only while it was there and at most two minutes old (`markTripPending`, `takeTripPending`, `handOverSteps`). Without it a callback is a plain hand-over: stored, nothing ended, no trip put off. Noted by the round trip (no trip without it), the silent check's replace, `ProtectedRoute`, the session-ended dialog and the Login buttons, so a sign-in the app started is still not followed by a second trip. Nothing in the URL. | `17127861` |
+| 5 (low) | The typing mark is the page's pathname and the time, kept across a change of query and any submit or reset, cleared only when the app goes to another pathname (Next's `routeChangeComplete`; `noteTyping`, `afterNavigation`, `typedHere`). | `17bdb218` |
+| 6 (info) | Every mark is read back when written (`markActed`, `markRoundTrip`, the pending note): a store that takes a write and keeps nothing gets no trip. | `6336f387` |
+
+**Finding 4 without a value in the URL.** Sound without `state` carrying a
+nonce: the realm's hand-over comes back to the tab that left, and that
+tab's `sessionStorage` is its own, so a note it keeps is enough to tell its
+own trip from any other arrival. What it does not do is prove which
+hand-over came back (another tab's link cannot write this tab's store, but
+a page this same tab visits in the two minutes after leaving could send it
+to a crafted callback while the note is fresh). That residue is the
+pre-existing login-forgery exposure below, not a new one.
+
+**Finding 6, why a read-back is enough here.** A read-back catches a store
+that takes a write and forgets it at once. A store that keeps writes for
+the page and forgets them across a navigation is not caught by it, and
+needs no catch: the round trip runs only where the realm is on another site
+than management, and there the realm makes no silent frame sign-in - it
+goes to management in the whole window and its transaction must survive
+that trip, or its `/auth/callback` refuses it as stale. So in such a store
+no sign-in finishes, no session is stored and no trip starts, and anything
+that did come round (the realm's recheck, whose three-a-minute limit is in
+the same kind of store) stops at the stale transaction. Open: a store that
+forgets some keys and keeps others.
+
+**How the app calls logout now** (for the server half's contract):
+
+- A session with a refresh token: `POST <API_URL>/auth/logout`, headers
+  `Content-Type: application/json` and, when the app has a name,
+  `X-Rutba-App: <app>`; body `{ "refreshToken": "<that session's refresh token>" }`;
+  no `Authorization` header. A `fetch` with `keepalive: true` and a
+  four-second timeout (axios where there is no `fetch`). Any 2xx is done.
+- A 401 to that - which only a core from before the contract answers - and
+  an access token at hand: the same body once more with
+  `Authorization: Bearer <jwt>` (the call every app made until now).
+- A session with no refresh token: `Authorization: Bearer <jwt>` and body
+  `{}`, as before. Neither token: nothing is sent, never an unnamed logout.
+- Retries: `AuthCallback`'s old session and the realm's keep path, one
+  after a one-second pause on anything but 2xx (the same request); the
+  person's own sign-out (`logout()`), none. The retry is best effort: if the
+  page has gone by then, only the first request (keepalive) got out.
+
+**Counts.**
+
+| Suite | Before | After |
+|---|---|---|
+| `packages/ui` `npm test`, `test:session` | 46 | 59 (`session-revoke.test.js` 7; `session-check.test.js` +3 finding 4, +2 finding 5, +1 finding 6) |
+| `packages/ui` `npm test`, the rest | core 22, 33, 37, 32, 31; charts 66; channel 10; links 41 | unchanged |
+| `console/apps/auth/src/*.test.js` | 61 | 61 |
+| `packages/api-client` `npm test` | 42 (17, 7, 5, 5, 3, 5) | 47 (`tests/refresh-compare-and-set.test.js` 5, of which 3 fail against the previous `api.js`) |
+
+Nothing skipped. Also: every changed file parses, every named import in the
+changed components resolves to an export, and `packages/ui`'s
+`validate:exports` passes.
+
+**Live: none.** The dev estate did not serve during this work (core `:4020`
+503, the realm `:4003` no answer, Sign `:4029` 503), and nothing was
+started, stopped or restarted. Not proved live: the logout request against
+the server half, the keepalive request surviving the realm's hand-over, the
+pending note across a real trip, the typing mark across a Next route
+change. The dev estate has no realm on another site than management in any
+case, so the round trip itself still waits for a customer-domain realm set
+up for the tester.
+
+### Pre-existing: callback without a request
+
+Every path that puts a token on an app's `/auth/callback` goes through one
+line of code: the realm's `/authorize` with a live session
+(`consumer/console/apps/auth/pages/authorize.js:117-131`), which sets
+`token`, `refreshToken`, `state` and `checked` on the destination's query
+and navigates the whole window there. Nothing ties that to a request the
+app made (login forgery); finding 4 only stops such a callback from ending
+the old session or putting the round trip off. The destination check
+(`console/apps/auth/src/allowed-redirect.js:58-96`) matches the host only,
+so the token can be put on any path of an allowed host, not only
+`/auth/callback`.
+
+Entry points that reach an app's callback without the app starting it:
+
+1. **The realm's `/authorize` opened directly**, with `redirect_uri` or
+   `return_to` naming an allowed host: a token at once when the realm holds
+   a session (`authorize.js:84-131`).
+2. **The realm's `/login` opened directly** with a destination
+   (`console/apps/auth/pages/login.js:570-586`, `returnFrom` in
+   `src/management-signin.js:169-171`): with a live realm session,
+   `components/ManagementSignIn.js:271-303` hands it on through `continueTo`
+   (`management-signin.js:180-187`); with a management session only, the
+   sign-in finishes with nobody typing and `components/SignInOutcome.js:37-64`
+   continues; with `?local=1`, `?code=` or `?prompt=reset`, `LocalSignIn`
+   (`login.js:190-207`) goes to `/authorize` once signed in.
+3. **The realm's `/authorize?code=&tenant=`** (the identity bridge's
+   hand-off): the code is redeemed, the session stored, then item 1
+   (`authorize.js:155-183`).
+4. **Management's hub workspace tiles** (`management/auth/src/domain/hub/hub.js:351-356`)
+   to `GET /hub/open/:orgId/:workspace` (`management/auth/src/http/routes/hub.routes.js:148-180`),
+   `openWorkspace` (`management/auth/src/domain/hub/hub.service.js:191-209`),
+   `realmHref` (`hub.js:110-127`): `<realm>/login?redirect_uri=<workspace>/auth/callback&state=<path>`,
+   then item 2.
+5. **Management's sign-in with one workspace** (`sendWhereNext`,
+   `management/auth/src/http/routes/discovery.routes.js:821-834`; `whereNext`,
+   `hub.service.js:345-353`; `whereTo`, `hub.js:471-494`): straight into
+   item 4, after `finishSignIn` (`discovery.routes.js:1056-1069`) or a
+   `GET /signin` with a management session (`:443-444`). Fed by every
+   marketing site's "Sign in" (`management/packages/marketing-kit/src/sign-in.ts:69-76`),
+   management's verification and invite mails
+   (`management/api/legacy/strapi/src/gates/mailer.js:56,89`, then
+   `GET /verify`, `discovery.routes.js:1104-1152`) and `customerSignInUrl`
+   (`management/console/management-console/src/lib/customer-app.ts:71`).
+6. **Management's hub Sign console tile**, and a prepare intent or
+   `from=sign-site` with one organisation holding Sign (`hub.js:341-349`,
+   `:472-477`, `:486-490`; `hub.routes.js:209-238`; `openConsole`,
+   `hub.service.js:293-310`; `consoleSignInHref`,
+   `management/packages/estate-map/src/index.js:96-102`, whose map names
+   Sign's sign-in path as `/authorize`, `estate-map.json:97`): Sign's own
+   `/authorize`, item 7.
+7. **Sign's `/authorize` door** (`consumer/drive/apps/sign/pages/authorize.js:27-41`,
+   `authorizeHref` in `drive/apps/sign/lib/handoff.mjs:110-121`): any
+   inbound link is forwarded to the realm's `/authorize` with Sign's
+   callback, `code` and `tenant` passed through.
+8. **The operator's "Open as operator"**
+   (`management/console/management-console/src/app/(console)/operator/actions.ts:22-27`,
+   `src/lib/operator.ts:59-66`, `management/api/legacy/strapi/src/estate/bridge.js:143-183`,
+   `management/auth/src/http/routes/internal.routes.js:112-149`,
+   `openInstance` `hub.service.js:227-247`, `bridgedHref`/`workspaceHref`
+   `hub.js:145-180`): `<realm>/authorize?redirect_uri=<instance>/auth/callback&...&code=`,
+   item 3.
+9. **Global auth forwarding to a realm** (`discovery.routes.js`:
+   `credentialForm` 562-669, `POST /signin` 525, `POST /login` 894-896,
+   `forwardIfElsewhere` 793-808, `chooseRealm` 762-791, `forwardTo`
+   195-216, to `<issuer>/authorize` at 246 with both `return_to` and
+   `redirect_uri`): a link naming an allowed app callback is forwarded with
+   no typing when the return host or the remembered-realm cookie picks a
+   realm, then item 1.
+
+Beside them: the realm's framed "Sign in" link lands on the realm's own
+callback (`components/ManagementSignIn.js:75-86, 329-337`). App-started, and
+so not in the list: `ProtectedRoute`, `SessionExpiredDialog`,
+`AuthContext`'s round trip and replace, the Login buttons of `TopbarActions`
+and `AccountMenu` (all of which now write the pending note), and Sign's
+landing `signIn()` (`consumer/drive/apps/sign/pages/index.js:76-79`, called
+at `:125` and `:150`), which does not (outside this change's files). Ruled
+out: the realm launcher's tiles (the app's root, `pages/index.js:146-155`),
+the apps' cross-app links (`lib/links.js`, `lib/roles.js`: plain app URLs),
+the consumer's own mails (`<realm>/login?code=` with no destination),
+management links that name a callback with no token (`AuthCallback` sends
+those to sign in), the storefront (its own NextAuth) and the desktop shells
+(the app's root).
+
+**The tokens in the URL.**
+
+- **Where they travel: the query, never the fragment.** Set in one place
+  for a top-level hand-over, `authorize.js:121-130` (`token` the realm's
+  access token, `refreshToken` its stored refresh token, then `state`,
+  `checked`), navigated with `window.location.href`, a new history entry.
+  The silent relay uses the same code in a hidden frame: `relayFrameUrl`
+  (`packages/ui/lib/session-ended.js:32-39`) asks `/authorize` for
+  `<realm>/auth/iframe-callback?origin=...`, so the tokens sit in that
+  frame's query; the frame's script (`src/frame-documents.js:421-427`, the
+  React fallback `pages/auth/iframe-callback.js:35-40`) posts them to the
+  checked parent origin and the app takes them by message
+  (`SessionExpiredDialog.js:64-70`). Read from the query by
+  `packages/ui/components/AuthCallback.js` (`router.query`), re-exported as
+  `pages/auth/callback.js` by about 45 apps; 19 of those also export
+  `getServerSideProps`, so the request carrying the tokens is rendered by
+  the app's Next server. The realm's own `/auth/callback`
+  (`console/apps/auth/pages/auth/callback.js:34-35`) passes a `?token` URL
+  to the same component.
+- **Stripped after reading: on success only.** `router.replace(safeReturnPath(state))`
+  (`history.replaceState`) runs after `loginWithToken` has made its
+  requests (`/users/me`, perhaps `/auth/refresh`, permissions, profile), so
+  the tokens are in the address bar until then. The role refusal and "no
+  app access" paths call `logout()` (the session revoked), then after three
+  seconds push `/login`, so the dead tokens stay in the tab's back history.
+  The failure path (`.catch`) pushes `/login` after two seconds with no
+  revoke: a failure after a valid `/users/me` leaves live tokens in the back
+  history. `replaceState` cannot remove the visit the browser recorded when
+  the navigation committed, so the full URL is believed to stay in global
+  history and history sync (to confirm per browser). `/auth/iframe-callback`
+  never clears its URL (a hidden frame; whether a browser records it in
+  global history is to confirm).
+- **Leaks on the path.** Referer: no suite app sets a Referrer-Policy (the
+  shared Next config has no `headers()`, no page has a referrer meta tag,
+  the fleet Caddyfile sets HSTS and the edge headers only); only the realm's
+  `iframe-callback`, `check`, `profiles` and the form fallback send
+  `no-referrer`. Under the browsers' default (`strict-origin-when-cross-origin`)
+  same-origin requests carry the full URL: on the fleet, where `/api` is
+  same-origin, the callback page's own API calls and `/_next` chunk
+  requests send the tokens in `Referer` to the app's server and the core
+  (the core's logger does not record `Referer`, `api/core/src/http/logger.js`);
+  cross-origin requests carry the origin only, and no third-party resource
+  loads on the callback page. Logs: no Caddyfile has a `log` directive and
+  `next start` logs no requests; on the dev estate the consumer dev gateway
+  keeps the full URL, query included, as the sample for a 4xx or 5xx and in
+  upstream-error lines (`consumer/devkit/scripts/js/dev-errors.js:419-428`
+  from `dev-gateway.js:318`; `dev-gateway.js:330,355`). Not verified:
+  whether a server-rendered callback echoes the query (tokens) into
+  `__NEXT_DATA__`, and whether Caddy's error log carries the URI. The
+  feedback dialog sends `location.href` (`components/FeedbackDialog.js:135`)
+  but is not on the callback page.
+- **What a one-time code exchanged by POST at the core would need.** The
+  core already has the pieces for management's hub:
+  `consumer/console/api/auth/handoff.js`, `POST /api/auth/handoff` (mint,
+  behind management's service scope `session:handoff`) and
+  `POST /api/auth/handoff/redeem` - a 32-byte code kept as its SHA-256 in
+  `strapi_sessions` (type `handoff`, status `pending`), 120 seconds, spent
+  by a conditional delete, bound to the database, the `Origin` and the exact
+  `state`, one 401 for every failure, a brake of 60 attempts per five
+  minutes, and redemption minting a new session (`signInFromCode`).
+  Reusable as it is: the store, the hashing, the single-use delete, the
+  origin and state binding, the brake and the minting. Missing for a realm
+  to app hand-over: a mint door the realm calls with its own session
+  (today's mint is management's and names the person by `sub` and email);
+  the app's origin bound server-side against an exact list (the realm's
+  allowlist lives in its browser bundle and matches hosts, suffixes
+  included); a verifier the app's tab keeps and presents at redemption (the
+  PKCE shape management's own site hand-off already uses,
+  `management/auth/src/domain/session/handoff.service.js:53-149`), which is
+  what would also close the login forgery above; the database - redeem
+  needs `db`, which stage 5 keeps out of URLs: a tenant host can stand in
+  for it, a shared host (`pos.rutba.io`) cannot, so the code would carry it
+  sealed or a central store would; and a choice between handing over a
+  copy of the realm's session (today) and a child session per app (what
+  `signInFromCode` does naturally; it would need the realm session's
+  profile metadata copied and a parent link or per-app device id so the
+  realm's sign-out ends the children). In development the apps' origins
+  would need the core's CORS list. The code itself would still ride the
+  callback's query (single use, 120 seconds, useless without the tab's
+  verifier) - the owner's call against "nothing goes in the URL".
+
+### Not done
+
+- **`consumer/docs/one-sign-in-realm.md`** (outside this change's files)
+  still describes `revokeSession` as the plain call and `checked=1` as
+  believed from the URL (its decision 10 table, the `recheck` rows, and the
+  "`checked=1`" paragraph); `packages/ui/README.md` is current.
+- **Sign's landing** (`drive/apps/sign/pages/index.js:76-79`) writes no
+  pending note, so on a customer-domain realm a sign-in from it is followed
+  by one more round trip; outside this change's files.
+- **The realm's `/authorize` still passes `checked=1` from any link.** The
+  apps now ignore it without their own note, so it changes nothing; a
+  one-shot mark in the realm's own `sessionStorage` would make it mean what
+  it says at the realm too (defence in depth, not built).
+- **A sign-in slower than two minutes** loses its note and costs one more
+  round trip on a customer-domain realm; nothing else.
+- **After a successful save that stays on the same page** the typing mark
+  holds the round trip until the person goes to another page or loads one:
+  the check is postponed, never input lost.
+- **The logout retry** runs only if the page is still there a second later;
+  the first request is `keepalive`, the retry is best effort.
+- **Nothing live** (above); the server half is another builder's and was
+  not run against these calls.
