@@ -1127,3 +1127,163 @@ integration 328, perf 5. Nothing skipped.
   `POST /v1/auth/password/reset`, to Strapi's `resetPassword`, which sets it
   on the account it makes. No personal organisation is made. The hub then
   greets the person by that name.
+
+## Engineering tail (2026-09-25)
+
+From the lead, under the lead's recommendations for decisions 3, 5 and 11,
+which the owner has not confirmed yet. Three commits on management `dev`, one
+per item, each fast-forwarded to `main` and pushed. Tests ran against the
+suites' fakes, never the estate.
+
+| Commit | Item | What |
+|---|---|---|
+| `0a165e0` | D13 (decision 5) | Outside production, an interactive OIDC sign-in lands on auth's own front door, not the development form. |
+| `4facb23` | D14 (decision 3) | The last profile is kept on the person as well as on the session. |
+| `7321b80` | F7, the access-token half (decision 11) | Access tokens name their session by a derived value, never the session id. |
+
+### D13: the front door on the dev estate
+
+- **Config.** `OIDC_DEV_LOGIN` now defaults to false everywhere. Outside
+  production, an unset `PORTAL_LOGIN_URL` means `PUBLIC_URL/login`: the address
+  step, then the password or the realm that holds the person, then the second
+  factor.
+- **The development form** is served only when `OIDC_DEV_LOGIN=true` names it.
+  The suites that post to it already set that.
+- **Production config is unchanged.** `PORTAL_LOGIN_URL` is still required and
+  `OIDC_DEV_LOGIN=true` is still refused.
+- **The door** treats `<auth origin><mountPath>/interaction/<uid>` as its own
+  way back, whatever `RETURN_TO_ALLOWED_ORIGINS` lists. It mints no handoff
+  code for that return, because the cookie it just set is what the interaction
+  reads.
+- **What reaches production.** These two behaviours reach production only if
+  production's `PORTAL_LOGIN_URL` is auth's own `/login`. Before, that return
+  was refused unless the allow-list named auth's own origin. I could not read
+  production's value.
+- **Live on the dev estate.** An authorize for `portal-console` went 303 to
+  the interaction, then 302 to `http://localhost:4101/login?return_to=…`, which
+  served the address step (`AUTH-LOGIN-ADDRESS`) with the way back carried. No
+  password was typed, so the walk stopped there.
+- **Test:** `integration/oidc-front-door` (5 cases) covers:
+  - address, password, then back to the interaction, with a code and ID token
+    for the app;
+  - the second factor at the door;
+  - only the provider's own interaction is accepted beside the allow-list;
+  - the development form when it is asked for by name.
+
+### D14: the last profile outlives the sessions
+
+- **Where it is kept.** Strapi's `auth-state/sessions.js` writes every pin and
+  switch (`setLastOrg`) to one core-store entry per person,
+  `api_auth-state_last-org:<userId>` holding `{ orgId, at }`
+  (`auth-state/last-org.js`). No column was added and nothing on the person's
+  table changed. A clear (`orgId` null) leaves the entry alone.
+- **A new session starts pinned to it** (`sessions.start`), but only while the
+  person is an active member of that organisation and it is neither suspended
+  nor closed. Otherwise the session starts unpinned and auth's fallbacks
+  apply. Auth checks the pin again whenever it reads it.
+- **Failures never block a sign-in.** A read or write that fails is logged,
+  and the session starts unpinned.
+- **Auth needed no code change.** Its fake Strapi does the same as Strapi.
+- **Not handled:** nothing deletes the entry when a person is deleted, because
+  no deletion path exists today.
+- **Tests:**
+  - Strapi `auth-state/last-org.test.js` (6 cases, now in the test script):
+    the pin carried to a new session after every session ended; a deactivated,
+    invited, suspended or closed membership, and a stranger's entry, ignored; a
+    pin on an ended session not written; a clear keeps the entry; a failed
+    store read still signs in.
+  - Auth `integration/last-profile.test.js` (4 cases): sign out everywhere and
+    land in the organisation last chosen; a later switch replaces it; a
+    deactivated membership is not honoured.
+
+### F7: the value an access token carries
+
+- **The derived value** (`auth/src/domain/session/token-sid.js`):
+  - an HMAC under a key derived from `SESSION_TOKEN_KEY` with its own label,
+    written `ses_` and 40 hex characters;
+  - the same construction as the front-channel sid and the staff handle, but
+    with a separate label, so none of the three can be matched with another;
+  - the `ses_` shape keeps the platform contract's `session_id` pattern
+    (`^ses_[a-zA-Z0-9]{3,40}$`), which I did not change;
+  - a session id is `ses_` and 32 hex characters, so the two are told apart by
+    length, and the derived value presented as the cookie or `X-Rutba-Session`
+    is 401.
+- **Where it is minted:** the M2 minter and the OIDC claims (both the sign-in
+  and the resource tokens). Both refuse to be built without the derivation.
+- **Every reader of the claim, found first:**
+  - **The gateway** (`edge.ts`, `upgrade.ts`, through `portal-auth`'s
+    `isSessionRevoked`) reads `auth:revoked:<sid>` by the value in the token.
+    Auth now writes the marker under the derived value. The gateway needed no
+    code change. A test was added that the derived marker stops a derived
+    token and a raw-id marker does not.
+  - **`/internal/revocations`** lists the derived value.
+  - **`/internal/revocations/:sid?sub=`** answers a derived value among the
+    token subject's live sessions, and answers 400 without `sub`.
+  - **Strapi's gates** (`gates/verify.js`) now send the token's `sub` and cache
+    the answer per subject and session.
+  - **Readers that needed no change:**
+    - Strapi `gates/audit.js` and `relay/org.js` now record and answer the
+      derived value. Before, the relay console's "me" answer showed the raw
+      credential.
+    - `packages/portal-auth` passes the value through opaquely; no dist rebuild
+      is needed.
+    - `packages/session` reads no such claim.
+    - The legacy relay API does not read it.
+  - **Consumer: nothing touched.**
+    - `api/core/src/http/management-token.js` verifies service tokens, which
+      carry no `sid`.
+    - The realm's `console/api/auth/oidc.js` reads the ID token's front-channel
+      `sid`, which this change does not touch.
+    - `packages/ui/core/auth/oidc.js` passes an access token's `sid` through
+      as `session_id`; only a smoke script uses it.
+- **The window for tokens minted before this.** They carry the raw id and live
+  at most one access-token lifetime.
+  - **During the window**, which runs for `ACCESS_TOKEN_TTL_SECONDS` plus
+    `TOKEN_CLOCK_SKEW_SECONDS` (3660 s by default) from the start of the auth
+    process: the marker is also written under the raw id, the feed lists the
+    raw id as a second entry, and the point check answers a raw id as before.
+  - **After it**, nothing is written under a raw id and the point check answers
+    it as ended.
+  - **Counting.** Each process counts from its own start, so a restart only
+    lengthens the window. With several auth processes side by side, restart the
+    new ones once the old ones are gone.
+- **Tests:**
+  - unit `token-sid` (8 cases);
+  - `revocation-feed` (4 more cases);
+  - `token-flow` (the token's `sid` opens nothing as the header, the cookie or
+    for a switch; the point check with and without `sub`; the feed after
+    logout);
+  - `oidc-flow`, `oidc-claims` and `access-token-claims` now assert the
+    derived value;
+  - Strapi `gates/verify.test.js` (4 cases, now in the test script);
+  - the gateway test above.
+
+### Counts
+
+| Suite | Before | After `7321b80` |
+|---|---|---|
+| auth unit | 378 | 391 of 391 |
+| auth integration | 328 | 338 of 339 |
+| auth perf | 5 | 3 of 5 |
+| Strapi | 143 | 153 of 153 |
+| gateway | 89 | 90 of 90 |
+
+**The four failures are latency budgets**, the only failures at each
+commit's run:
+- **Integration** loses the mint p95 case (67.75 ms against 50 ms).
+- **Perf** loses its warm and cold p95 cases.
+- **The cause is load.** The machine's CPU was at 100% from other sessions
+  throughout. On the untouched baseline, before any change, perf failed three
+  cases (warm p95 142.8 ms) and integration failed the same p95 case.
+- **Alone it passes.** `token-flow` ran 20 of 20 at `7321b80`.
+- **Nothing else was skipped.**
+
+### Not done, or for others
+
+- **The perf budgets** need a re-run on a quiet machine.
+- **Production's `PORTAL_LOGIN_URL`:** I could not see its value (above).
+- **The contract wording.** The platform contract's `session_id` description
+  still says "Session id". The value fits its pattern. The wording is for the
+  contract's owner.
+- **Strapi's outbox** still records the raw id in `session.revoked`. That
+  stays inside Strapi; auth maps it for the feed.
