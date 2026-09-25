@@ -1460,3 +1460,83 @@ those to sign in), the storefront (its own NextAuth) and the desktop shells
   the first request is `keepalive`, the retry is best effort.
 - **Nothing live** (above); the server half is another builder's and was
   not run against these calls.
+
+### Follow-up: the tokens in the URL, interim hardening (2026-09-25)
+
+The coordinator's follow-up to the section above: five items, interim until a
+one-time code exchanged by POST at the core replaces the tokens in the
+callback's URL (that needs a core that boots, so it can be walked). One
+commit per item on consumer `dev`, `main` fast-forwarded and both pushed;
+nothing under `api/` or `console/api/`, no migration, database or estate.
+
+| Item | What | Commit |
+|---|---|---|
+| 1 | `/authorize` hands a session only to an app's own `/auth/callback` (no query, no fragment) on a listed host, or to this realm's own `/auth/iframe-callback?origin=<one value>`; any other page of an allowed host is refused like an unlisted host (`console/apps/auth/src/allowed-redirect.js`, rule 4). | `68abe799` |
+| 2 | `AuthCallback` reads the query, then at once `history.replaceState`s the bare path, the Next router's copy of the address in the entry's state cleaned too, before anything else runs, on every outcome; the failure path ends the session it was handed by its refresh token, one retry (`packages/ui/lib/callback-url.js`). | `9e2c1b4b` |
+| 3 | `Referrer-Policy: strict-origin` on the realm's `/authorize`, `/login` and `/auth/callback` (a `next.config.js` `headers()`, `src/handover-headers.cjs`), and `<meta name="referrer" content="strict-origin">` in `AuthCallback`'s head for every app's callback. | `60db7306` |
+| 4 | `consumer/docs/one-sign-in-realm.md` brought up to date for findings 2 to 6 and items 1 to 3 and 5. | `104a50b4` |
+| 5 | Sign's landing `signIn()` writes the tab's pending note before it leaves. | `e6c05a1f` |
+
+**The pinned paths, and where each entry point lands.** Two, and nothing else:
+`<listed host>/auth/callback` exactly, and `<this realm>/auth/iframe-callback?origin=<app>`.
+
+| Entry point | Lands on | Where it is built |
+|---|---|---|
+| An app's own sign-in: `ProtectedRoute`, the Login buttons, the session-ended dialog's way to sign in | `<app>/auth/callback` | `packages/ui/components/ProtectedRoute.js`, `TopbarActions.js`, `AccountMenu.js` (`authCallbackPath` defaults to `/auth/callback`; no app overrides it, the realm passes `loginHref="/login"`), `lib/session-ended.js` `signInHref` |
+| Decision 10's round trip and the silent check's replace | `<app>/auth/callback` (through the realm's `/login`) | `lib/session-check.js` `realmSignInUrl` |
+| The session-ended dialog's silent ask | `<realm>/auth/iframe-callback?origin=<app>` | `lib/session-ended.js` `relayFrameUrl` |
+| Sign's landing, and Sign's `/authorize` door (the hub's Sign tile, the prepare intent and `from=sign-site` reach it through `consoleSignInHref`, whose map names Sign's sign-in path `/authorize`) | `<sign>/auth/callback` | `drive/apps/sign/pages/index.js` `signIn`; `drive/apps/sign/lib/handoff.mjs` `authorizeHref` |
+| Management's hub tiles, `/hub/open/:orgId/:workspace`, the one-workspace sign-in | `<workspace origin>/auth/callback` (through the realm's `/login`) | management `auth/src/domain/hub/hub.js` `realmHref` |
+| "Open as operator" | `<instance origin>/auth/callback` (through `/authorize?...&code=`) | the same file, `workspaceHref` / `bridgedHref` |
+| Global auth's forward to a realm | the app's own `redirect_uri`, passed on unchanged (one of the above) | management `auth/src/http/routes/discovery.routes.js` `forwardTo` |
+| The realm's own launcher and its framed "Sign in" | `<realm>/auth/callback` | `ProtectedRoute` on the realm; `console/apps/auth/components/ManagementSignIn.js` |
+
+All 44 app callback pages are `pages/auth/callback.js` rendering
+`AuthCallback`; no app uses a base path. None of the entry points needed the
+rule widened. The allowlist test builds the apps' and Sign's links from their
+own modules and checks each passes; management's builders are in another
+repository, so their value is asserted by shape with the file named.
+
+**`strict-origin`, not `no-referrer`.** The origin alone goes as a `Referer`,
+never a path or a query, which is what the item asks. `no-referrer` would also
+do that, but under it a browser may send `Origin: null` on a POST that is not
+a CORS request, and the core binds a handoff code's redemption to the page's
+real origin (`console/api/auth/handoff.js`); management's doors also read the
+origin of a `Referer` when `Origin` is missing. Only the listed pages carry it;
+the realm's frame pages keep their own `no-referrer`.
+
+**Counts.**
+
+| Suite | Before the follow-up | After |
+|---|---|---|
+| `console/apps/auth/src/*.test.js` | 61 | 69 (`allowed-redirect.test.js` 14 to 20; `handover-headers.test.js` 2) |
+| `packages/ui` `test:session` | 59 | 65 (`callback-url.test.js` 5; `session-check.test.js` +1, every sign-in start writing the note) |
+| `packages/ui` `npm test`, the rest | unchanged | unchanged |
+| `packages/api-client` `npm test` | 47 | 47 |
+
+Items 3 and 5 landed in the other order from their messages' counts (the
+`test:session` steps are item 2 59 to 63, then item 3's one test and item 5's
+one test, 65 at the end). Nothing skipped. `AuthCallback` and the sign-in starts are React pages the
+tests do not render, so their order (the strip before every branch, the note
+before every departure, the meta on both branches) is read from their source.
+
+**Not proved live.** The dev core still did not serve. Not seen in a
+browser: the stripped address and Back, the meta ahead of Next's preloads
+(read from Next 16.2.12's document: `next/head` content comes before the CSS
+and script preloads), the header on the realm's three pages.
+
+**Still open, for the one-time code.** The query reaches the app's own server
+(the callbacks are server-rendered) and, being server-rendered, possibly its
+`__NEXT_DATA__` (not verified); the browser's global history records the
+visit before any script runs; `/auth/iframe-callback`'s own address keeps its
+tokens (a hidden frame, `no-referrer` already). On the failure path the
+revoke ends the realm's session too, since the app holds a copy of the same
+session chain: a failure that was only a network blip at the app's core then
+costs the person a sign-in at the realm.
+
+**A process fault on the way.** This builder's item 2 commit (`git commit -- <paths>`,
+pid 25996) was cut off at 19:12, when the session stopped at its usage limit,
+and left its `.git/index.lock` in the shared consumer checkout. No commit landed
+in the checkout from 19:09 to 20:53; by then the lock was gone (not removed by
+this builder, whose attempt was refused). Its empty
+`.git/next-index-25996.lock` is still there; git ignores it.
