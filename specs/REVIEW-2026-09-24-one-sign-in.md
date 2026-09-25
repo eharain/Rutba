@@ -133,7 +133,7 @@ question. Everything below is fixed unless marked.
 | WS-C | L3 a console's GET `/auth/signout` signs a person out everywhere without asking, from any site | low | **open**, decision 18 |
 | WS-C | L4 `/profile` tells an org-zero member the staff console exists | low | **open**, decision 19 |
 | WS-D | F1 a link on another site could sign somebody out, two ways (no provider session: a self-submitting form; any valid first-party hint confirmed, whoever it named) | medium | `c9f8e44`: the hint's `sub` must be the person signed in here; a request for nobody gets the question; only that account's session ends |
-| WS-D | F2 a realm on another site than auth cannot run the silent check (`SameSite=Lax`) | design | **open**, decision 10 |
+| WS-D | F2 a realm on another site than auth cannot run the silent check (`SameSite=Lax`) | design | consumer `61672195` under decision 10 option (c) (addendum 35); the server-side refresh check left |
 | WS-D | F3 "everywhere" needed no recent sign-in and no second factor | low to medium | `55f02fd`: 15 minutes and the factor, in the password service |
 | WS-D | F4 the plaintext was re-sent to rows already bound; http doors | low | `03db6ab`: known-bound rows skipped (in memory, a month); https only in production |
 | WS-D | F5 no database on the credential token | low | `7c6ef0d`: `db` required; the doors compare it, consumer `372ec44a` |
@@ -1773,3 +1773,55 @@ Opus, disjoint files:
 
 D5 was closed in round one. Each lands, is reviewed, and then walked,
 including the storefront half once the dev estate serves it.
+
+## Addendum 35: decision 10, customer-domain realms (round four)
+
+Consumer `61672195` on `dev` and `main`; the section "Decision 10,
+customer-domain realms" is in [one-sign-in-ws-b.md](one-sign-in-ws-b.md)
+(records `e7f2d5e`). `packages/ui` session tests 39 → 46, the realm pages
+55 → 61, the auth doors 125. Nothing needing a live session was walked:
+the dev core was down (below), and the dev estate has no realm on another
+site.
+
+**Found and fixed on the way:** on a realm on another site, the realm's
+`/login` did not re-check a live session at all: its D8 check used the
+same frame, which answers "cross-site" there, so it handed a stale session
+on unchecked, a hub tile for another organisation included; and its silent
+`prompt=none` frame could only ever answer `login_required`.
+
+**Built:** where the frame answers "cross-site", the suite app takes the
+whole window through the realm's `/login` and back to the same path,
+query and hash, only on page load and when the tab comes back into view,
+at most once per five minutes per app and never within a minute of the
+tab acting, never while a form is in use, and not at all unless both marks
+can be saved (so it cannot loop); a newer session another tab stored is
+adopted first; the frame is unchanged for `*.rutba.io`. The realm's
+`/login` with a live session checks top-level (`prompt=none` in the whole
+window), at most three times per tab per minute, and `/auth/callback` then
+keeps one session: the live one when nothing changed, the new one on
+another person or organisation, none when management signed the person
+out, the refusal on a definite refusal, and nothing changes when
+uncertain. When the realm's own session ends on such a realm, `/login`
+goes to management top-level at once. Two related fixes: the app's
+callback revokes its own old session when handed a different person's or
+organisation's (the core rotates refresh tokens into new rows and revokes
+only the row given), and the session bootstrap no longer wipes a
+just-stored session while it checks the old one.
+
+**Left:** the server-side check with a management refresh token (refresh
+tokens that die with management's session and carry the current
+organisation, kept per session in the core under the vault key, which is an
+open gap), or back-channel logout; either closes the idle page and the
+five-minute window. After a sign-out at management, an app that has
+refreshed since keeps its newer row until its next round trip or idle
+expiry, unless the core revokes a session's rotated rows together. Not
+covered on such realms: the switcher, the refusal pages' watch, Sign's
+landing. Production: management must register each such realm's
+`/auth/callback`.
+
+**The dev estate, 2026-09-25 16:12 onwards:** the consumer core does not
+boot. Another session's commit `76ab7251` added migration
+`118-talent-outcome-delivery-note`; the core, which reloads on file
+changes, applied a draft of it, and the committed file no longer matches
+the recorded checksum, which the migrator refuses by design. Raised with
+that session; not touched here.
