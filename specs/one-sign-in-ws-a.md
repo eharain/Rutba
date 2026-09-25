@@ -1300,6 +1300,7 @@ The "before" core figures are plain `node --test` on this machine, with no prelo
 - A rotated refresh token sent to logout ends nothing. Accepting it would be looser than the agreed "validates", although holding one already yields its successor through rotation's re-issue.
 - The tenants-door smoke was not run end to end, because it creates throwaway databases on the dev database server.
 - `npm run migrate:status` cannot run pooled. That is not this stream's, and is only noted here.
+- Legacy Strapi's own rotation (the plugin's `rotateRefreshToken` in `@strapi/core`, which shares `strapi_sessions`) can still revive a session the same way when legacy Strapi serves the refresh. Once the newest row is gone, a parent whose recorded child is missing mints a fresh child within its idle window. The core's fix does not reach it, and it is framework code, not repo code.
 
 **Follow-up, the resurrection gap closed at its root** (consumer `1ea6d37b`). In `api/core/src/auth/up.js`, `rotateRefreshToken` now answers `invalid_refresh_token` in three cases:
 
@@ -1311,7 +1312,7 @@ Re-issuing an existing child is unchanged, so tabs that share one session copy s
 
 Nothing legitimate is stranded. Both expiry clean-ups, the core's `maybeCleanupExpired` and Strapi's `deleteExpired`, delete by `absolute_expires_at` alone. A child copies that value from its parent, so the two rows go together. A parent past its absolute expiry already answers `max_window_elapsed`, and idle expiry deletes nothing. Every other delete of a child row ends a session on purpose: logout, the sessions DELETE, a password change or reset, the operator's block.
 
-The authenticated logout, `DELETE /api/auth/sessions/:id` and legacy Strapi's logout keep their contracts. Their one-row delete is now sufficient for every refresh that reaches the core. `revokeSessionChain` stays on the refresh-token path: it also removes the rotated parents, so an access token minted from one of them before its rotation stops at once (`http/auth.js` admits a `rotated` row until that token expires).
+The authenticated logout, `DELETE /api/auth/sessions/:id` and legacy Strapi's logout keep their contracts. Their one-row delete is now sufficient for every refresh that reaches the core. `revokeSessionChain` stays on the refresh-token path: it also removes the rotated parents, so an access token minted from one of them before its rotation stops at once (`http/auth.js` admits a `rotated` row until that token expires). The next follow-up takes the same chain into the other two core doors.
 
 Tests, `console/api/auth/tests/logout.test.js` (6 → 9):
 
@@ -1323,3 +1324,19 @@ Tests, `console/api/auth/tests/logout.test.js` (6 → 9):
 All three fail on the previous code (200 where 401 is due).
 
 Counts: `console/api/auth/tests` 135 of 135, `console/api/tenants/tests` 35 of 35, `handoff` 32 of 32, `up-builtin-models` 10 of 10, `new-user-role` 7 of 7, `npm run test:individual-mode` 64 of 64. Nothing was skipped.
+
+**Follow-up, a sign-out ends the whole sign-in** (consumer `f22fbccb`):
+
+- **The gap.** The middleware refuses an access token whose session row is gone (`http/auth.js`: no row, no user, then 401), but it admits a `rotated` one. A one-row sign-out therefore left the earlier rows, and an access token minted before the last rotation kept working for up to its lifespan (two hours by default). A sign-out made with such a token also deleted the old row it named and left the newer, live one.
+- **The fix.**
+  - `revokeSessionChain` now walks both ways: back through the parents, and on through the children. It stays within one sign-in: the same user and origin, never another device's chain.
+  - The authenticated logout's single-session path and `DELETE /api/auth/sessions/:id` now use it.
+  - `scope: 'all'`, `deviceId` and the DELETE's 404 for a session that is not the caller's are unchanged.
+- **Tests** (`logout.test.js` 9 → 11), through the real tenant and strict auth middleware:
+  - after the authenticated logout, all three access tokens of that sign-in are 401 while the phone's still works and refreshes;
+  - a sign-out made with the access token minted before the last rotation ends the newest access and refresh tokens too;
+  - after the sessions DELETE, the laptop's three are 401 while the caller's own and a second device's three still work;
+  - another user's session answers 404 and is untouched;
+  - the earlier chain test now counts three rows ended instead of one.
+  All three fail on the previous code.
+- **Counts:** `console/api/auth/tests` 137 of 137, `console/api/tenants/tests` 35 of 35, `handoff` 32 of 32, `up-builtin-models` 10 of 10, `new-user-role` 7 of 7, `npm run test:individual-mode` 64 of 64. Nothing was skipped.
