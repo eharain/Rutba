@@ -1920,3 +1920,93 @@ entry. For production: if `PORTAL_LOGIN_URL` there is auth's own
 `/login`, D13's door change reaches production (its own interaction
 accepted without `RETURN_TO_ALLOWED_ORIGINS` listing auth's origin, no
 handoff code minted). An Opus review is running.
+
+## Addendum 39: the release gate, brought up to date (round four)
+
+Management `dba90eb`, `4fe8999`, `fc5d9b3` on `dev` and `main`; the
+record is [release-gate-2026-09-25.md](release-gate-2026-09-25.md)
+(records `eb9ebac`). The preflight asks only for what the consolidated
+estate runs (management Strapi, auth, the gateway, the core, the realm),
+reads it from the dev gateway, and names a down row with its own last log
+line; the consoles and sites skip by profile; every check calls the Strapi
+gates and auth routes that replaced the retired services; the checks that
+reached only retired services, or a seeded account whose password was in
+the file, are dropped with a line each in the README.
+
+One sign-in is now checked end to end on every run: register and confirm
+through the log-mode mail; the pin and the switch, and a mint naming
+another organisation refused 409 `ORG_NOT_PINNED`; `/v1/auth/orgs` marking
+the current organisation; `/v1/auth/session` naming no session id; the
+members route for an owner; the hub's workspace route 303 with no session;
+a reset for an unknown address answered as a known one, with no mail and
+Strapi logging only the digest; auth's password-request line carrying the
+digest, never the address; a token minted before a sign-out refused by the
+portal gate within about 32 s.
+
+**The recorded run** (the dev estate, erp profile, no admin password,
+`E2E_CONTINUE_WITHOUT=erp-core`): 160 passed, 3 failed, 13 skipped. The
+failures:
+- **The core's health check**, blocked by the estate (the migration 118
+  drift, addendum 35).
+- **Access tokens never carry entitlements.** Auth's provider
+  (`auth/src/domain/org/entitlements.provider.js`) answers an empty list
+  when `LICENSE_SERVICE_URL` is unset, and its HTTP path calls the retired
+  licence service. No production gate reads the claim today:
+  - the Relay console asks the Relay's own `/v1/billing`;
+  - `requireEntitlement` has no caller;
+  - the gateway only forwards the claim, filtered.
+
+  This belongs to the licence, instance and users programme, not one sign-in.
+  It is for the owner, and not built.
+- **The staff console still reads organisations, suspensions,
+  announcements and feedback from retired services**
+  (`console/management-console/src/lib/console-api.ts`), the gap already
+  known from 2026-09-21. It lies outside one sign-in and is for the owner.
+
+Skipped, counted and named: five need `E2E_ADMIN_PASSWORD`, three need a
+team owner (a customer cannot create a team, decision 29), five open front
+ends the erp profile does not run. Found by reading, not tested: an
+accepted quote is tied to no organisation and checkout uses none, so a
+quoted discount is never applied (commerce, for the owner). Left in the dev
+estate: four `@rutba-e2e.test` customers and their dev records, named in
+the README. **To do:** re-run with no `E2E_CONTINUE_WITHOUT` once the core
+boots.
+
+## Addendum 40: the Opus review of round four's consumer commits
+
+Reviewed: `61672195`, `7339d70b`, `a2f740ca`, `61630a97`, `cfb318cd`.
+Every suite asked for passed with nothing skipped: tenants doors 35, auth
+doors 125, the realm pages 61, `packages/ui` all. The core's
+`up-builtin-models`, `handoff`, `operator` and `new-user-role` could not
+be run: on this machine they need a test-only preload that no repository
+holds.
+
+| # | Severity | Finding | Where it goes |
+|---|---|---|---|
+| R1 | medium | The legacy registration now honours a default role on a back-office type. Before `cfb318cd` the extension reset the default to `authenticated` before every registration; now `holdDefaultRole` keeps any existing type (a test even asserts `rutba_app_user` kept). The core's door refuses such a default, the legacy door does not, and the legacy server is the deploy's default backend. | server builder: rewrite a refused or back-office default; the legacy registration fails closed as the core's door does |
+| R2 | low | The old session is often not revoked in the idle-tab case: the core's logout needs a live access token before it reads the refresh token. | both builders: logout by refresh token alone (answering `{ ok: true }` either way), the callback using it |
+| R3 | low | `refreshAccessToken` writes unconditionally, so a late refresh of the old session can overwrite a session a hand-over just stored. | client builder: write only while storage holds the token sent |
+| R4 | low | A crafted top-level link to the realm's `/authorize` with `checked=1` makes the app skip its round trip, and a forged callback now also revokes the victim's own session. | client builder: a short-lived pending mark in the app's own `sessionStorage`, nothing in the URL |
+| R5 | low | The form rule keys on path and query and clears on submit, so a page that changes its query, or a failed submit, loses unsaved input. | client builder: pathname only, cleared on navigation |
+| R6 | info | "Cannot loop" relies on marks surviving same-origin navigations. | client builder: a read-back check if cheap |
+| R7 | info | The seed trims the default role, the core's door does not. | server builder: one normalisation |
+| R8 | info | Operator rows with no role or a role of no kind are refused and not moved by the deploy statement. | the deploy note |
+
+Also for the server builder: make the core's individual-mode harness
+hermetic, so those suites run without the uncommitted preload. And for
+the client builder, not built: a list of every entry point that reaches an
+app's callback without the app starting it (the pre-existing login-forgery
+exposure the reviewer noted), for the owner.
+
+Sound, by the review:
+- The return path cannot become an open redirect.
+- The limits hold, and the realm's three-a-minute cap holds.
+- The callback's choice mirrors the realm's.
+- The `*.rutba.io` frame path is unchanged.
+- No caller relied on the dropped `where`.
+- The holder finder moved faithfully.
+- Decision 38's "dangling" covers absent, empty, deleted and renamed.
+
+Two Opus builders are on it, on disjoint files: the server side (`api/**`,
+`console/api/**`) and the client side (`packages/ui`, `packages/api-client`,
+`console/apps/auth`).
