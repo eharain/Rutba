@@ -1747,3 +1747,29 @@ only on the owner's word; no new environment; the membership field added on
 boot; the usual order; the checks after, one of them a write only if the
 owner allows. The storefront registration fix (addendum 32) may go first on
 its own if the owner prefers.
+
+## Round four: the engineering tail (2026-09-25)
+
+On the owner's word ("kindly get this engineering done"), five builders on
+Opus, disjoint files:
+
+- **The release gate** (management/portal/tests/e2e): the preflight and
+  checks rewritten for the consolidated estate, and checks for one sign-in
+  added; run on the dev estate with the admin checks visibly skipped;
+  record in `specs/release-gate-2026-09-25.md`.
+- **The consumer core's tail:** the role lookup filtered by type that the
+  core silently ignores (at the root if small, else the three legacy
+  callers); the holder finder moved into the core; the operator path's
+  lookup by address held to the back-office rule.
+- **The dev estate serves a storefront tenant (D31)**, so the storefront
+  half of decision 35 can be walked locally.
+- **Management auth:** D13 (the dev estate's interaction on the real front
+  door, decision 5), D14 (the last profile kept on the person, decision 3),
+  F7's access-token half (a derived session value in tokens and the
+  revocation feed, decision 11).
+- **Decision 10, customer-domain realms (F2):** option (c), a throttled
+  top-level round trip through the realm's `/login` where the frame answers
+  unsupported; the server-side refresh check left and described.
+
+D5 was closed in round one. Each lands, is reviewed, and then walked,
+including the storefront half once the dev estate serves it.
