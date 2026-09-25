@@ -1698,5 +1698,22 @@ report per tenant database first (the tenant's default role; the count
 per role type; role-less rows; rows whose role type is NULL or empty;
 types on no list); then one move statement per type, `staff` onto
 `rutba_app_user` and `rutba_rider_user` only on the owner's word, `admin`
-never moved, no-kind rows reported and not moved. An Opus re-check of the
-round's last consumer batch is running.
+never moved, no-kind rows reported and not moved.
+
+**The re-check** (Opus; tenants doors 35, auth doors 121, the realm pages
+55, `packages/ui` 311, nothing skipped; the preload suites and live flows
+not run): nothing blocks the deploy. The registration drops the privileged
+fields and accepts only username, password, address and display name; the
+legacy extension wraps only the plugin's own register, now limited to the
+display name; a dropped-field attempt is audited the same whether the
+address exists or not, so it adds no probe. A merchant-made default role
+is a customer; a default role that is itself back-office or refused drops
+out of the customer set and registration refuses; no door still reads the
+old rule. The holder check runs before any address match. Four lows, being
+fixed before the deploy by one builder: verify's holder check still sees
+only customer rows, so its log names the wrong reason; a race between the
+holder check and the bind can still return the raw unique-index error at
+the callback and the hub; the operator path finds a row by subject with
+no role check, so an older binding on an admin, customer or no-kind row
+would be moved onto the back-office role and made an operator; a stale
+README sentence.
