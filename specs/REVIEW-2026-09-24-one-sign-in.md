@@ -164,7 +164,7 @@ WS-D as follow-up 4:
 | WS-A | Round three: M1 a reset started at the realm's break-glass form completes on the storefront's reset page, and a storefront code can be spent at the realm's; M2 both password sign-ins pick either kind of row; M3 W1 verify 500s with the SQL in the message when a customer row holds the subject; M4 address case compared exactly at the invite and forgot doors and lower-cased elsewhere; M5 the owner door can promote a customer row; M8 a second row's username may collide with a unique index | medium | consumer `4383f081` (M1), `a4808433` (M2, M4), `fb7073ef` (M3), `f7779a0b` (M5, M8: no unique index on username in three tenant databases, `#staff` anyway), `2e960a16` (bind_only), `cff42cb2` (the role type lower-cased); re-checked and holding; the three lows in `0b1d8e06` (a live row wins over a blocked or unconfirmed twin), `6df9e315` (the realm's reset link from `NEXT_PUBLIC_AUTH_URL`, `PUBLIC_URL` only on a directory core, else nothing), `aee646a8` (the re-bind log lines carry a digest); the operator link in `53d374d4` |
 | WS-B | Round three: the operator path takes over any row by address; operator rows on the authenticated role now count as customers | medium | consumer `b9cfcb0d`: a row is reused by address only when it already holds `platform_operator`, else 409; operator rows are created on, and moved to, the back-office role; operator actions being limited to operate sessions |
 | WS-D | Round three: H1 the set-password link makes the person a viewer at every live instance of the organisation, not only the one that recognised the address, and the asks include non-live instances; M2 a pending invitation at an instance is demoted to viewer by the re-invite; M3 an unbounded fan-out anyone can trigger; M4 the ordinary forgot answer's timing reveals whether an account exists (older) | **high** | management `39aa2e5` (H1: only live instances of active team organisations asked, only those that said yes told, the others in a new state `none`; M2 no roles sent, pending a bind-only shape on the invite door from WS-A; M3 eight asks in flight and 2000 an hour per process; M4 the account holder's mail after the answer; L5 a conditional delete; L6 one transaction with the code put back on failure, a suffixed username when an old account holds the address; L7 the organisation's kind and status), `44edf3f` (L8, L9, the info items). Re-check: H1 not fully closed (the sign-in repair and a later instance still tell an instance with no record, viewer role, since `none` is written only for instances running at link time and not at all when none is left) and the tell after the commit can throw, leaving no record; the in-flight cap can be exceeded in a tick. Second follow-up: management `0152fde` (a reset membership marked `joinedVia` reset, an unrecorded instance `none` for it on every path; a throwing tell caught and left pending; the gate hands its slot on; the tell bind-only, a 404 recorded `none`), `85d0f14` (the tile's wording for `none`, no carry to a `none` instance, the README). Re-checked and closed on every path (Strapi 139, auth 378 / 328 / 5); the two lows fixed in `5490684` (a `none` from a bind-only miss drops the flag, so a re-invite is an ordinary invitation with roles; a re-invite clears the reset mark, so later instances reach the person; Strapi 141) |
-| WS-A | **Found by reading during the D33 re-check, pre-existing:** the storefront's public registration accepts `app_roles` from the request body and links them, so on a tenant with registration open a stranger could give themselves admin-level app roles | **likely high** | WS-A (in progress, ahead of everything; the first builder was cut off by the model's weekly limit on 2026-09-25 with its role work uncommitted, and a second builder on another model continues from that diff) |
+| WS-A | **Found by reading during the D33 re-check, pre-existing:** the storefront's public registration accepts `app_roles` from the request body and links them, so on a tenant with registration open a stranger could give themselves admin-level app roles | **high, confirmed** | consumer `59a53a7b` (addendum 32); **live in production until deployed** |
 | WS-A | D33's rule "every other role is back-office" fails open for a customer role a merchant creates and sets as the storefront's default; an empty role type counts differently at the doors and in the shells | medium | WS-A: a named back-office list that fails closed (in progress) |
 | WS-B | D19's M1 the callback confirms a row without checking that management holds the address as verified and equal to the row's; M2 the refusal pages have no "Try again" at all; L3 the confirmation is not conditional on still-unconfirmed and not-blocked and not in one transaction with its audit; L4 test gaps; L5 the mailed set-password link survives (decision 33); L8 D25's baseline is the first answer, not the refused profile | medium | consumer `ebf6d41b` (M1, L3, L4, L5, I6), `4d9f2523` (M2), `9aa4d3e5` (L8), `1ed304ff` (the hub's handoff uses the same rule) |
 
@@ -1603,3 +1603,35 @@ access; an unused break-glass code on one of A's rows that will expire;
 everyone signed out; the instance console and the storefront woken by
 the walk and left under the gateway; no build or clean script, no
 `.next` deleted, no database written by hand.
+
+## Addendum 32: the storefront's public registration granted standing (security)
+
+Found by reading during the D33 re-check, confirmed by the builder with a
+test, fixed in consumer `59a53a7b` on `dev` and `main`. **Pre-existing,
+and live in production until this commit is deployed.**
+
+`POST /api/auth/local/register`, the storefront's door for a stranger on a
+tenant whose users-permissions settings allow registration, accepted
+`app_roles` in the body and linked them as sent, because the legacy
+configuration's `register.allowedFields` named the field. On any tenant
+with registration open, a stranger could give themselves an
+administrator's app roles.
+
+Now the door drops `app_roles`, `role`, `roles`, `confirmed`, `blocked`,
+`rutba_sub`, `confirmationToken`, `resetPasswordToken`, `provider` and
+`id` before the body is read, whatever they hold; the customer gets exactly
+the tenant's default role and the storefront's own app role; the attempt is
+written in the tenant's change audit (`auth:register`) and the log as the
+address's digest and the fields' names, never their values; any other
+unknown field is refused as before. The legacy plugin's configuration lists
+`displayName` alone. Read and found closed already: the confirmation links
+read the code alone; the individual-mode registration refuses every field
+it does not name; the storefront's API has no profile update; the route
+grants sit on the back-office role only. Tests: `register.test.js`. The
+realm's doc has a section on it.
+
+**For the owner:** whether any production tenant has registration open, and
+whether any customer row holds app roles it should not, is a production
+read that waits on your go in the Infra session, as the role-type count
+does. The commit can be deployed on its own ahead of the rest of round
+three.
