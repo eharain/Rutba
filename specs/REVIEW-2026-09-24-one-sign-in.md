@@ -472,6 +472,55 @@ under are decisions 20 to 22.
     registration extension; the setting holds a role type, so dangling means
     no role has that type any more; the deploy's seed run is the path that
     runs it every deploy).
+    Corrected after the review (consumer `6d22e089`): a default on a
+    refused or back-office type is never a customer's; the seed rewrites it
+    and the legacy registration refuses it, as the core's door does.
+39. **Tokens out of the URL: the realm's hand-over to an app.** Today the
+    realm's `/authorize` puts the access and refresh tokens in the query of
+    the app's `/auth/callback`. Nothing ties that callback to a request the
+    app made, so a crafted link can sign a browser in as someone else
+    (login forgery). Nine entry points reach it without the app starting
+    one; they are listed in [one-sign-in-ws-b.md](one-sign-in-ws-b.md),
+    "Pre-existing: callback without a request". The round-four follow-up
+    narrows the damage without changing the design:
+    - the realm hands tokens only to an app's own callback page;
+    - the callback clears them from the address bar first;
+    - the pages that carry them send no referrer.
+
+    The design itself goes against the owner's rule that nothing goes in
+    the URL. **Recommend:**
+    - **(a) A one-time code instead of tokens.** The realm asks the core for
+      a code with its own session. The code is bound on the server to the
+      app's exact origin (an exact list held by the core, not the realm's
+      browser allowlist), the exact `state`, and the hash of a verifier the
+      app's tab made when it started. It lasts 120 seconds and is spent
+      once. The app's tab redeems it by POST with the verifier. This reuses
+      the core's hub hand-off (`console/api/auth/handoff.js`: the hashed
+      store, the single-use delete, the origin and state binding, the
+      brake) and the PKCE shape management's own site hand-off uses.
+    - **(b) Every entry point opens the app, not the callback.** The hub
+      tiles, the single-workspace sign-in, the Sign tile, Sign's
+      `/authorize`, "Open as operator" and global auth's forwarding open the
+      app's page. The app then starts its own trip with its own verifier. A
+      callback without the tab's verifier is refused, which closes login
+      forgery. It costs one more redirect per entry.
+    - **(c) A session of the app's own, linked to the realm's.** Redemption
+      mints a new session per app, as the hub's redeem already does, with a
+      link to the realm's session. Signing out at the realm ends them all.
+      This also settles decision 10's rotated-rows gap, because a session's
+      family ends together.
+    - **(d) The database travels sealed inside the code** on shared hosts
+      (`pos.rutba.io`), where the host cannot name it. The code is opaque to
+      the browser, as the token is today.
+    - **(e) The silent relay frame gets a code too**, posted to the parent
+      as the tokens are today.
+
+    The code itself still rides the callback's query. It names nothing and
+    is useless after one use or without the tab's verifier. **The owner's
+    call:** accept that as outside the rule, or require a form POST
+    hand-over. A POST needs a server route in every app (about 45 callback
+    pages), which is more change for no gain in safety. Build after the dev
+    core boots, so it can be walked.
 ## 8. Round two
 
 Stages 4 and 5 of the plan are approved work and need no decision; the fixes
