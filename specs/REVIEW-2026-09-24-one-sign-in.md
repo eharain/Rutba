@@ -1730,3 +1730,18 @@ move is now required and limited to rows on `authenticated` (the
 statement in [one-sign-in-ws-b.md](one-sign-in-ws-b.md) corrected by the
 lead). Left for round four: a row found by address that already holds
 `platform_operator` is still reused whatever its role.
+
+## Round three: deploy requested (2026-09-25)
+
+The Infra session was asked to ship management `15b61d2` (round three ends
+at `426899b`; the top commit is another session's blog content for the
+rutba.io site) and consumer `cb08ffc3`, workers unchanged, asking the owner
+in its own session. The request: backups first; the per-tenant role report
+(read-only) before any move; the operator rows still on `authenticated`
+moved onto the back-office role (required, limited to that role, never
+`admin`); `staff` moved only after the report and the owner's word, riders
+only on the owner's word, `admin` never, no-kind rows reported; decision 36
+only on the owner's word; no new environment; the membership field added on
+boot; the usual order; the checks after, one of them a write only if the
+owner allows. The storefront registration fix (addendum 32) may go first on
+its own if the owner prefers.
