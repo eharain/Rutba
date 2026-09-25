@@ -138,7 +138,7 @@ question. Everything below is fixed unless marked.
 | WS-D | F4 the plaintext was re-sent to rows already bound; http doors | low | `03db6ab`: known-bound rows skipped (in memory, a month); https only in production |
 | WS-D | F5 no database on the credential token | low | `7c6ef0d`: `db` required; the doors compare it, consumer `372ec44a` |
 | WS-D | F6 a listed client with an old secret stayed confidential; a boot re-enabled a disabled one | low | `50367fd` |
-| WS-D | F7 access tokens carry the raw management session id, which `X-Rutba-Session` accepts | pre-existing | **open**, decision 11 |
+| WS-D | F7 access tokens carry the raw management session id, which `X-Rutba-Session` accepts | pre-existing | management `7321b80` under decision 11 (addendum 38) |
 
 A fourth reviewer read WS-D's follow-ups 2 and 3 (the D3 retry, the derived
 `sid`, the gate suites, F1 and F3 to F6): addendum 2. Its findings, sent to
@@ -236,8 +236,8 @@ The journey record's D1 to D15, with where each stands now.
 | D10 | medium | A suite app on a revoked session shows "Network Error" instead of the sign-in. | stage 4; decision 4 for the interim |
 | D11 | low | The "everywhere" report counts an instance where the person has no row as "will ask once"; nothing will ever ask. | management `cd5c673` reports `no_account`; the doors answer 404 `USER_UNKNOWN` since consumer `9f5d0c57` |
 | D12 | high | Between consumer `1622d80c` (12:25) and management `50d064a` (12:44) a sign-out left every realm tab signed in. | closed: re-walked at 13:36, the frames carry `sid`, the realm's frame answers 200 and clears the tab |
-| D13 | info | On the dev estate the interactive sign-in is the provider's development form, not the front door. | decision 5 |
-| D14 | medium | The last profile lives on sessions only; after signing out everywhere a fresh sign-in pins nothing. | decision 3 |
+| D13 | info | On the dev estate the interactive sign-in is the provider's development form, not the front door. | management `0a165e0` under decision 5 |
+| D14 | medium | The last profile lives on sessions only; after signing out everywhere a fresh sign-in pins nothing. | management `4facb23` under decision 3 |
 | D15 | high | The estate's build directories removed under the running apps. | cause found (section 5); rebuilt; a memory note for the lead |
 | D16 | medium | I9's "same password, never asked" rests on a race: the sign-in fan-out is fired and forgotten after the sign-in answers, and the realm's code exchange does not wait for it; C was spared the prompt by 0.4 s. A slow or dropped fan-out shows a same-password person the prompt for the password just typed. | decision 23; the realm-side wait is being built by WS-B |
 | D17 | info | An instance where the person has no row is asked again at every password sign-in and never remembered; each ask spends one of the W1 door's ten verifies per address per fifteen minutes. | management `cd5c673` skips it for an hour, on the same door answer as D11 |
@@ -1889,3 +1889,34 @@ proved yet: the home page's server render, and confirming and signing in
 that customer (the token's `db` claim), both waiting on the core. The
 gateway must be restarted to pick it up; held until the release gate's run
 ends.
+
+## Addendum 38: management auth's tail (round four)
+
+Three commits on management `dev` and `main`, `0a165e0`, `4facb23`,
+`7321b80`; the section "Engineering tail (2026-09-25)" is in
+[one-sign-in-ws-d.md](one-sign-in-ws-d.md) (records `41c5216`). Suites:
+auth unit 391, integration 338 of 339, perf 3 of 5, Strapi 153, the
+gateway 90. **The three failures are latency budgets only** (the perf
+suite's warm and cold p95 and the mint p95 case in `token-flow`), with the
+machine's processor saturated by other sessions throughout; they failed
+the same way before any change (warm p95 142.8 ms against 50 ms), and
+`token-flow` passed 20 of 20 alone. They need a re-run on a quiet machine
+before a deploy.
+
+| What | Commit |
+|---|---|
+| D13 (decision 5): the development sign-in form is off by default; outside production an unset `PORTAL_LOGIN_URL` sends the interaction to auth's own `/login` (address first, then the password or the person's realm, then the second factor); the form only with `OIDC_DEV_LOGIN=true`; the front door accepts the provider's own interaction page as its way back and mints no handoff code for it; production config unchanged (`PORTAL_LOGIN_URL` required, the dev form refused). Live: a console's authorize lands on the address step | `0a165e0` |
+| D14 (decision 3): every pin and switch written to one core-store entry per person; a new session starts pinned to it only while the person is an active member and the organisation neither suspended nor closed; a failed read or write logs and never blocks a sign-in; no column added | `4facb23` |
+| F7's access-token half (decision 11): tokens carry a derived value (the keyed construction of the front-channel value and the staff handle, with its own label, `ses_` plus 40 hex, as the platform contract's pattern requires; raw ids are `ses_` plus 32 hex); presented as the cookie or `X-Rutba-Session` it gets 401; revocation by the derived value (the gateway's marker, the feed, the point check with `?sub=`, Strapi's gate sending the subject); for one token lifetime plus the clock skew from the auth process's start the raw form is also honoured, then answered as ended; safe when old auth processes stop before new ones start | `7321b80` |
+
+Found on the way: the relay console's "me" answer exposed the raw session
+credential through Strapi; it now shows the derived value. No consumer
+verifier reads the access token's session claim (the core's
+management-token verifier checks service tokens; the realm reads the ID
+token's front-channel value). Left: the contract's description wording;
+Strapi's outbox records the raw id internally and auth converts it when
+serving the feed; no deletion path exists to remove the last-profile
+entry. For production: if `PORTAL_LOGIN_URL` there is auth's own
+`/login`, D13's door change reaches production (its own interaction
+accepted without `RETURN_TO_ALLOWED_ORIGINS` listing auth's origin, no
+handoff code minted). An Opus review is running.
