@@ -1716,4 +1716,17 @@ holder check and the bind can still return the raw unique-index error at
 the callback and the hub; the operator path finds a row by subject with
 no role check, so an older binding on an admin, customer or no-kind row
 would be moved onto the back-office role and made an operator; a stale
-README sentence.
+README sentence. Fixed in consumer `affb8f96` and `cb08ffc3` (records
+`67c67f5`; auth doors 125, tenants 35, the realm pages 55, the core's
+handoff 31 and operator 7 under the preload; the new tests fail on the old
+code): verify asks the same holder check as the callback and answers as
+the address does (a customer holding the subject with no back-office row
+now `USER_UNKNOWN`, as the callback already said); a unique-index hit in
+the bind is 409 `USER_BOUND_ELSEWHERE`, never the raw error; the operate
+path finds a row by subject among back-office rows only, 409
+`OPERATOR_SUBJECT_HELD` for any other holder. Consequence: an operator row
+still on `authenticated` is refused until the deploy moves it, so that
+move is now required and limited to rows on `authenticated` (the
+statement in [one-sign-in-ws-b.md](one-sign-in-ws-b.md) corrected by the
+lead). Left for round four: a row found by address that already holds
+`platform_operator` is still reused whatever its role.

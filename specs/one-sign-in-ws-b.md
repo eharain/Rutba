@@ -656,14 +656,30 @@ Consumer `c2987080`, on `dev`, `main` fast-forwarded, both pushed.
 ### For deployment (the Infra session)
 
 Consumer `b9cfcb0d` and `c2987080`: no new variables, no migration.
-Operator rows made before `b9cfcb0d` sit on the `authenticated` role; each
-moves onto `rutba_app_user` at its next operate. To move them at once, run
-in **each individual-mode database** (not run here):
+Operator rows made before `b9cfcb0d` sit on the `authenticated` role.
+**Corrected 2026-09-25 by the lead, after consumer `affb8f96`:** such a row
+no longer moves by itself at its next operate; the operate path now finds
+a row by subject among back-office rows only and answers 409
+`OPERATOR_SUBJECT_HELD` for any other holder, so this move is **required**
+before the deploy wherever such rows exist, and it is limited to rows on
+the `authenticated` role, never `admin` or any other type. Run in **each
+individual-mode database** (not run here):
 
 ```sql
+-- first, how many it would move
+SELECT COUNT(*) AS operator_rows_on_authenticated
+  FROM up_users_role_lnk ul
+ WHERE ul.role_id IN (SELECT id FROM up_roles WHERE lower(type) = 'authenticated')
+   AND ul.user_id IN (SELECT l.user_id FROM up_users_app_roles_lnk l
+                        JOIN api_pro_app_roles r ON r.id = l.app_role_id
+                       WHERE r.key = 'platform_operator');
+
+-- then the move: operator rows on authenticated only
 UPDATE up_users_role_lnk
    SET role_id = (SELECT id FROM up_roles WHERE type = 'rutba_app_user')
- WHERE user_id IN (SELECT l.user_id FROM up_users_app_roles_lnk l
+ WHERE EXISTS (SELECT 1 FROM up_roles WHERE type = 'rutba_app_user')
+   AND role_id IN (SELECT id FROM up_roles WHERE lower(type) = 'authenticated')
+   AND user_id IN (SELECT l.user_id FROM up_users_app_roles_lnk l
                      JOIN api_pro_app_roles r ON r.id = l.app_role_id
                     WHERE r.key = 'platform_operator');
 ```
