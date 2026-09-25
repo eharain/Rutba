@@ -847,3 +847,133 @@ The remaining failures in `api/core/tests` are the known machine traps:
 
 None of them touches these files. The consumer checkout is empty at
 `fd84caf0`, and no new dependency was added.
+
+### Round three, the registration hole and the fail-closed roles (2026-09-25)
+
+Two consumer commits on `dev`, each landed on `main` and pushed, in the
+order the lead gave. The first builder was cut off with its role work
+uncommitted (seven files, 245 lines: `admin` as a refused type, on top of
+the fail-open rule); this continues from that diff, kept and turned around
+rather than discarded. The dev estate was running; only the suites ran.
+
+**1. The registration hole (consumer `59a53a7b`, "security: ").** Found by
+reading during the D33 re-check, pre-existing: `POST /api/auth/local/register`
+(the storefront's public door, `console/api/auth/routes.js`) listed
+`app_roles` among its allowed keys - copied from the legacy config's
+`register.allowedFields` - and passed the body to `userService.add`, which
+linked them. Confirmed first with a test that posted the `console_admin`
+app role: the row came back holding `console_admin` beside
+`storefront_user`. The other privilege fields (`role`, `roles`,
+`confirmed`, `blocked`, `rutba_sub`) were already refused there as unknown
+keys (400 "Invalid parameters"), `role` and `confirmed` also overridden
+after the spread; so the hole was `app_roles` alone. Closed:
+
+- the core's register drops `app_roles`, `role`, `roles`, `confirmed`,
+  `blocked`, `rutba_sub`, `confirmationToken`, `resetPasswordToken`,
+  `provider` and `id` (`REGISTER_PRIVILEGE_FIELDS`) before the body is
+  read, whatever they hold, and makes the customer on exactly the tenant's
+  `advanced.default_role` with the storefront's own app role
+  (`ensureWebUserAppRole`); the attempt is written to the tenant's
+  `core_change_audits` (action `auth:register`, outcome
+  `privilege-fields-dropped`) and the log as the address's digest and the
+  fields' names, never their values; a plain registration writes no such
+  line; any other unknown field is still refused;
+- the legacy plugin's config (`api/legacy/strapi/config/plugins.js`) lists
+  `displayName` alone, so the plugin refuses the key outright (its own
+  behaviour for a key not listed: 400). The two doors differ on this - the
+  core drops and audits, the plugin refuses - because the plugin's
+  `register` is not repo code and the extension that wraps it
+  (`src/extensions/users-permissions/strapi-server.js`) was not in this
+  round's list.
+
+The other public doors, read: the confirmation links
+(`GET /api/auth/email-confirmation` and `/any`) validate `confirmation`
+alone and change `confirmed` alone; the storefront's forgot, reset and
+resend take their yup-validated fields alone; change-password is
+authenticated and writes the password alone; the social sign-ins are
+refused by the core ("This provider is disabled") and, in the plugin, take
+no body; the individual-mode door (`registerIndividual`) refuses every
+field it does not name, as it always has; there is no break-glass
+registration; the storefront's API (`packages/api-client/api/web`) has no
+profile update, and the users-permissions route grants
+(`up-permissions-seed.js`) are on `rutba_app_user` only, so the plugin's
+`PUT /api/users/:id` (which would pass a role through) is not reachable
+by a customer. Nothing else writes a role from a public body.
+
+Test: `console/api/auth/tests/register.test.js` (4): the fields dropped
+and audited, a plain registration not written down and an unknown field
+still refused, the two confirmation links with the fields on the query,
+the individual door. The auth harness gained the two app-role tables.
+
+**2. The role rule, turned around to fail closed (consumer `fc2de6ee`).**
+Three named lists in `api/core/src/auth/up.js`, each with a comment naming
+every type, and the kind of a row is the first that matches, compared
+lower-cased:
+
+| List | Types | Meaning |
+|---|---|---|
+| `REFUSED_ROLE_TYPES` | `admin` | "Probe Super", the legacy super-admin: `require-admin` reads the type as one, so a session on it would pass every app's legacy admin check. Neither the back office's nor a customer's to any door: verify and set `USER_UNKNOWN`, bound already or not; the exists door false; the invite door makes nothing beside it and answers `409 ROLE_REFUSED`; `bind_only` `404 USER_UNKNOWN`; the callback and the hub `USER_UNKNOWN`; both sign-ins "Invalid identifier or password"; both resets mail nothing and write no code; the owner door's grant never moves it (a new row beside it). Each miss logged: `[auth] row <id> (sha256:…) is on a refused users-permissions role (admin): no door takes it as the back office's or a customer's`. |
+| `BACK_OFFICE_ROLE_TYPES` | `rutba_app_user`, `staff`, `rutba_rider_user` | management's doors and the realm's own form and reset take these. `rutba_app_user` is the one the route grants are on and the shells admit; `staff` ("POS Staff User", nothing reads it) and `rutba_rider_user` (a rider's order messages) are found by every door and moved onto `rutba_app_user` by the owner door's grant; the shells tell such a person an administrator must set the role (decision 37). |
+| `CUSTOMER_ROLE_TYPES` | `authenticated`, `public`, `rutba_web_user`, `rutba_portal` - and, always, the tenant's `advanced.default_role`, whatever its type is called (`customerRoleTypesWith`, read from the tenant's settings per call) | the storefront's paths (sign-in, reset, resend, registration) take these and no other. A default role that names a back-office or refused type is not a customer's - those lists win - and the register door makes nobody on it (an error line, "Register action is currently disabled"). |
+| none | any other type; a type that is empty or NULL; no role at all | of no kind: refused by management's doors and by the storefront's paths alike, the same answers as a refused row except the invite door's code, `409 ROLE_UNKNOWN`. Each miss logged with the type: `… is on a users-permissions role of no known kind (type 'vip' \| a role with no type \| no role): neither the back office's nor a customer's, so no door takes it`. |
+
+`onBackOfficeRole` stays the shared EXISTS (now over the named list);
+`backOfficeRows(query)` is the doors' own narrowing (back-office and not
+refused), which the owner door's grant (`grant-full-access.js`,
+`backOfficeOnly`) now uses instead of its own; `customerRows` and
+`unplacedRows` are the other two. A miss costs one query more, for the
+log. `APP_ROLE_TYPE` stays `rutba_app_user`, and the test holding it equal
+to the console's stays. `findUnplacedByEmail` is what the invite door
+asks before making a row.
+
+**For the realm's builder (WS-B): `packages/ui/lib/back-office-role.js`
+must match.** Its `CUSTOMER_ROLE_TYPES` test already holds the four
+storefront types to the core's; it should now read the back-office list
+the same way. The shells' rule, from the lists: a role on
+`BACK_OFFICE_ROLE_TYPES` other than `rutba_app_user` (`staff`,
+`rutba_rider_user`) gets "an administrator must set the role"; anything
+else - a customer type, the tenant's default role, `admin`, an unknown
+type, no role - gets the plain refusal. Today `roleRefusal` tells `admin`
+and any unknown type to have the role set, which the doors no longer
+honour: the callback answers `USER_UNKNOWN` before any shell sees them, so
+the message would name a fix that does not apply. New User's picker
+(`newUserRoleChoices`) should stop offering `admin`.
+
+**For the deploy (the Infra session).** The count per role type in
+`specs/one-sign-in-ws-b.md` must also count rows with no role link
+(`SELECT COUNT(*) FROM up_users u WHERE NOT EXISTS (SELECT 1 FROM
+up_users_role_lnk l WHERE l.user_id = u.id)`) and rows on roles whose type
+is NULL or empty: New User made role-less people when no role was picked
+until decision 37, and such rows are now of no kind - invisible to every
+door, and a block on the address at the invite door until an administrator
+places them. The move statement there reaches neither; the guarded move
+onto `rutba_app_user` should exclude `admin` explicitly, since it is now
+refused rather than back-office.
+
+**Not done, and notes:**
+
+- `subjectHeldByCustomer` (`handoff.js`, used by the callback and the hub;
+  WS-B's) still asks `findCustomerUserRow({ rutba_sub })`, which is now
+  strict: a row of no kind that an older door bound to a subject is not
+  seen there, so those two paths fall through to the address and, with a
+  back-office row of the same address, would meet the unique index on
+  `rutba_sub` as a raw error rather than `USER_UNKNOWN`. The verify door
+  (mine) recognises that failure and answers `{ bound: false }`. A finder
+  for "any row outside the back office holding the subject" is the fix,
+  for the realm's builder; no dev tenant holds such a row.
+- The core's `handoff`, `operator`, `new-user-role` and `first-run` suites
+  refuse on this machine without the test-only preload (the env file
+  names the dev management auth and the tenant directory); under a
+  scratchpad preload that hides those four lines: handoff 30 of 30, operator 7 of 7, new-user-role 6 of 6, first-run 6 of 7 (the CLI child-process trap, as before).
+
+**Tests** (2026-09-26, 01:40 UTC):
+
+- `console/api/tenants/tests`: 35 of 35 (invites 21, owner 3, people-exists 11).
+- `console/api/auth/tests`: 119 of 119 (callback 65, credential doors 29, break-glass 18, hub-roles 3, register 4).
+- `console/apps/auth/src`: 55 of 55.
+- `packages/ui/lib/back-office-role.test.js` (the realm's; not mine, read
+  only): still holds the four storefront types to the core's.
+
+The consumer checkout after `fc2de6ee` holds another session's uncommitted
+README and ROADMAP edits, left alone; nothing of
+WS-A's.
