@@ -462,6 +462,12 @@ under are decisions 20 to 22.
     value check landed first (consumer `2a2c48be`: New User and the user
     edit take a role only when it is one of the instance's); its shells
     follow the list once the doors commit.
+38. **Seeds and the storefront's default role.** The users-permissions seed
+    and an extension reset the storefront's default customer role to
+    `authenticated` every time they run, which under decision 33's lists
+    turns a merchant's own default customer role into rows of no kind.
+    Recommend, and being built: they write the default role only when it
+    is absent or names a role that no longer exists, never over a choice.
 ## 8. Round two
 
 Stages 4 and 5 of the plan are approved work and need no decision; the fixes
@@ -1825,3 +1831,28 @@ boot. Another session's commit `76ab7251` added migration
 changes, applied a draft of it, and the committed file no longer matches
 the recorded checksum, which the migrator refuses by design. Raised with
 that session; not touched here.
+
+## Addendum 36: the consumer core's tail (round four)
+
+Three commits on consumer `dev` and `main`: `7339d70b`, `a2f740ca`,
+`61630a97`; the section "Engineering tail" is in
+[one-sign-in-ws-a.md](one-sign-in-ws-a.md) (records `769df66`). Suites:
+auth doors 125, tenants doors 35, the realm pages 61; the core under the
+test-only preload: handoff 32, operator 7, new-user-role 7, the new
+up-builtin-models 7 (all seven fail on the old code).
+
+| What | Commit |
+|---|---|
+| The role lookup trap, at its root: the core's schema registry declared no fields for the users-permissions role and permission tables, and the filter layer silently drops a condition on a field it does not know, so a lookup by role type returned the first role (normally `authenticated`), and the same for a user filtered by its role's type and for permission lookups by action and role. The registry now declares them as Strapi has them; the tables stay Strapi's, nothing generated or migrated. The three legacy callers read the roles whole and pick the type in code, correct on either server | `7339d70b` |
+| `findUnplacedBySubject` and the one digest helper live in the core beside `findUnplacedByEmail`; the realm's doors import them; behaviour unchanged | `a2f740ca` |
+| The operate path's lookup by address follows the same back-office rule as its lookup by subject: any other holder of the address is 409 `OPERATOR_ADDRESS_IN_USE`, logged by row id and digest, nothing moved, bound or granted; a back-office operator row is found even beside an older customer row with the same address; an old operator row on `authenticated` is refused until the deploy's move (which selects by the operator role, not the subject) | `61630a97` |
+
+What the legacy callers did until now: the one the core never runs was
+correct; the two the core runs from the seeder console took
+`authenticated` for the role asked, then failed at a write the core lacks
+(`strapi.store`, a query `create`), reporting false results rather than
+writing onto a wrong role. The core never wrote a grant onto the wrong
+role. Left: the seeder console's users-permissions entries still cannot
+write under the core (a separate change). Found, decision 38: the seed and
+an extension reset the storefront's default role every run; being fixed
+under the recommendation.
