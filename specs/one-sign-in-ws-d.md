@@ -1257,6 +1257,21 @@ suites' fakes, never the estate.
     derived value;
   - Strapi `gates/verify.test.js` (4 cases, now in the test script);
   - the gateway test above.
+- **Key rotation.** Every derived value comes from `SESSION_TOKEN_KEY`: the
+  token's `sid`, the front-channel sid, the staff handle and the signed open
+  links. Rotating the key changes all of them at once. So:
+  - **Live access tokens get 401 at Strapi's gates.** A token still carries
+    the old value, and the point check derives the new one from the
+    subject's live sessions, so nothing matches and the token reads as ended.
+  - **The gateway does not stop old tokens.** New revocation markers are
+    written under the new values, so a logout does not stop a token carrying
+    an old value at the gateway until it expires, for up to one access-token
+    lifetime.
+  - **Other things change as well.** The same key also seals each session's
+    Strapi token and the signing keys, so a rotation also ends every session
+    (`SESSION_REAUTH_REQUIRED`) and needs `npm run keys:rotate -- --force`.
+  - **Treat it as a planned outage**, not a routine rotation. If the key is
+    compromised, rotate it and accept both effects.
 
 ### Counts
 
@@ -1287,3 +1302,114 @@ commit's run:
   contract's owner.
 - **Strapi's outbox** still records the raw id in `session.revoked`. That
   stays inside Strapi; auth maps it for the feed.
+
+## Round four review: management (2026-09-25)
+
+An Opus review of the engineering tail (management `0a165e0` D13, `4facb23`
+D14, `7321b80` F7) found three lows and three infos. I checked each one
+against the code, and all six were right. There are six commits on management
+`dev`, one per item. Each was fast-forwarded to `main` and pushed. Tests ran
+against the suites' fakes, never the estate or a real database.
+
+| Finding | What | Commit |
+|---|---|---|
+| 1, low (D13): a sign-in loop | `chooseRealm` now returns null when the carried return is auth's own interaction (`ownInteraction`), before it looks at the return path, the address or the remembered realm. Before, the interaction stayed at the door only because auth's host is in the default `PORTAL_REALM_DOMAINS`. With a list set without that host, a customer address or a remembered customer realm forwarded the OIDC sign-in to a realm that cannot finish it. | `d460d75` |
+| 2, info (pre-existing): the password post was not gated | `POST /oidc/interaction/:uid/login` answers 404 `NOT_FOUND` without `OIDC_DEV_LOGIN`, like an unrouted path, before it reads a body or checks a password. The form's second page, `POST /:uid/mfa`, is gated the same way: only the development pages post there, and outside them a step-up is a 403 from `guardMembership`, done at `/v1/auth/mfa/step-up`. | `6d743c5` |
+| 3, low (D14): the last profile could go stale | A write now takes a per-person advisory lock (`auth-state:last-org:<userId>`, the `input.js` `lock`, as the signing keys use). It never replaces an entry whose `at` is newer, and it removes any other rows for the key. A read takes the newest `at`, and the highest id on a tie. The rows are still the core store's own; no table or column was added. | `510c9cd` |
+| 4, info: the cap of 200 memberships | `recall` now asks the database only for the active memberships in that organisation (`organization: { orgId }`). The suspended and closed check stays in code. | `fb30f70` |
+| 5, info (pre-existing): the refresh response carried the raw session id | `POST /v1/auth/token/refresh` now answers `session.sid` as the derived value, the same one the access tokens carry. | `90511fd` |
+| 6, info: a stale comment | The gateway's `RedisRevocationStore` comment now names `auth:revoked:<sid>`, with the derived value as `<sid>`. The class's own default prefix, which only its test used, is `auth:revoked:` to match. | `e01e98e` |
+
+### Finding 2: what the password post allowed before
+
+- **Who could use it.** Anybody holding an interaction. That is anybody who
+  starts an authorization for a first-party client, because the provider
+  hands them the interaction cookie. It worked in production too, because
+  only the page was gated.
+- **What it was.** A password check outside auth's own throttles.
+  `/v1/auth/login` has the stuffing guard and the per-address-and-IP `login`
+  limit, and `/login` has the `discovery` limit and the same-origin guard.
+  The interaction mount has neither, so only Strapi's per-address brake
+  applied.
+- **A right password for a person with no second factor finished the
+  sign-in.** The post answered 303 onward to the app, which the new test
+  shows on the old code. That is the same outcome as the front door, so it
+  was not a way around authentication.
+- **The second factor was honoured.** Without the flag, a person with a
+  factor got 401 `MFA_REQUIRED` and no challenge token, so no session
+  started.
+- **Nothing else relied on it.** The development pages are the only forms
+  that post there, and every suite that drives them sets `OIDC_DEV_LOGIN`.
+
+### Finding 5: who reads the refresh response's session field
+
+Nobody, so I changed it rather than stopping.
+
+- **The only callers of `/v1/auth/token/refresh` are auth's own tests**
+  (`token-flow`, `multi-app-journey`), and none of them read `session` from
+  the answer.
+- **Where I searched:** management's apps, consoles, `packages/portal-auth`,
+  `packages/session` and the portal end-to-end suite; and consumer,
+  native-apps, workers and office. None of them calls it.
+- **Consumer's `/api/auth/refresh`** is the core's own route.
+- **What stays as it was.** The login, step-up and handoff answers still give
+  the raw id to the caller that just authenticated, as the README says.
+
+### Counts
+
+Before is the untouched tree at `fc5d9b3`; after is at each item's commit.
+
+| Suite | Before | After |
+|---|---|---|
+| auth unit | 391 of 391 | 391 of 391 |
+| auth integration | 337 of 339 | 341 of 342 (at `90511fd`) |
+| Strapi | 153 of 153 | 157 of 157 |
+| gateway | 90 of 90 | 90 of 90 |
+
+- **New cases:**
+  - integration: `oidc-front-door` has 3 more (finding 1: two; finding 2:
+    one), and `token-flow`'s refresh case asserts the derived value
+    (finding 5);
+  - Strapi: `last-org.test.js` has 4 more (finding 3: three; finding 4: one).
+- **Each new case was run against the old code and failed there.**
+- **The failures are latency budgets under load.** Other sessions kept the
+  machine heavily loaded throughout.
+  - **The mint p95 case in `token-flow`** failed at every run, the baseline
+    included (p95 between 103 and 821 ms against a 50 ms budget).
+  - **`hub-slow-strapi`'s D3-review cases** have a 300 ms Strapi budget. One
+    failed on the untouched baseline, none at `d460d75`, and two at
+    `6d743c5`. The file passes 7 of 7 alone.
+  - **`token-flow` alone** ran 19 of 20 with finding 5 in place. The one
+    failure was the mint p95, at 54.6 ms.
+- **Nothing was skipped.** The perf suite was not run.
+
+### For deployment
+
+- **Order.** Deploy Strapi before auth or with it. Old and new auth processes
+  must not overlap in either direction.
+- **Strapi (findings 3 and 4)** needs nothing from auth. The advisory lock
+  needs Postgres, which the session families already need. Any duplicate
+  rows an earlier race left are read newest-first and tidied on the next
+  write, so there is nothing to migrate.
+- **Auth (findings 1, 2 and 5).** There is no configuration change.
+  - With `PORTAL_REALM_DOMAINS` set explicitly in production, the
+    interaction now stays at the door.
+  - A post to the development form answers 404 there, where production
+    already refuses `OIDC_DEV_LOGIN=true`.
+  - The refresh answer's `session.sid` is the derived value, which opens
+    nothing.
+- **Gateway (finding 6).** No behaviour change: `gateway.ts` passes
+  `SESSION_REVOCATION_PREFIX`.
+- **`SESSION_TOKEN_KEY`**: see "Key rotation" under F7 before rotating it.
+
+### Not done
+
+- **No live check.** The dev estate runs whatever it was started with, and I
+  did not restart it. Findings 1 and 2 were checked only against the fakes.
+- **The latency budgets** need a quiet machine: the mint p95, the
+  `hub-slow-strapi` D3-review cases, and the perf suite, which I did not run.
+- **The session's own pin is still last-write-wins.** The "newer `at` stays"
+  rule covers the person's entry (finding 3), not `lastOrgId` on a live
+  session (`patchFamily`). The review did not raise it.
+- **Nothing deletes a person's entry when the person is deleted.** This is
+  unchanged from D14.
