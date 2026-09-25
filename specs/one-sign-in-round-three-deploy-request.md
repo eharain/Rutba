@@ -1,5 +1,7 @@
 # One sign-in, round three: deploy request (2026-09-25)
 
+**Superseded** by [the rounds three and four request](one-sign-in-round-four-deploy-request.md), written the same evening; this one was never handed over.
+
 Written for the owner to hand to the "Infra: Rutba.io environment setup" session, which was not running when round three was ready. Paste the text below into that session; it asks the owner for the go in its own session.
 
 ---

@@ -2101,3 +2101,107 @@ before (`cfae8fc`) under the same load. Three before and after pairs of
 **Not checked:** production's `PORTAL_LOGIN_URL`, `PORTAL_REALM_DOMAINS` and number of auth processes (none is in the repo); the latency budgets on a quiet machine; a live walk.
 
 An Opus builder is on M3 to M5 and M7 to M9. M1 and M2 go into the round-four deploy request.
+
+## Addendum 42: the review findings fixed (round four)
+
+Every finding from addenda 40 and 41 is closed or recorded. All commits are
+on `dev` and `main` in origin. Nothing was walked live, because the dev
+core is still down (below).
+
+**Consumer, the server side** (section "Round four review: the server
+side" in [one-sign-in-ws-a.md](one-sign-in-ws-a.md), records `ed25b43`,
+`18a5314`, `9ada00e`):
+
+| Finding | What | Commit |
+|---|---|---|
+| R1 | A default role on a refused or back-office type is never a customer's: the seed rewrites it to `authenticated`, and the legacy registration (and its OAuth sign-up) refuses it, as the core's door does. The lists are copied into `up-role-kinds.js` with a test holding them equal, because the legacy image ships without the core. | `6d22e089` |
+| R2 | `POST /api/auth/logout` with only a refresh token (no valid access token) ends that sign-in, answering `{ ok: true }` either way; with neither, 401. | `9af8c9c4` |
+| R7 | The default role is trimmed at both ends. | `8502731a` |
+| Harness | The core suites no longer read the machine's `.env` files (a test-only `RUTBA_CORE_ENV_FILES=none`, never on a box). individual-mode 16 → 64 of 64; handoff, operator, new-user-role, permissions and up-builtin-models all pass. | `0a767906` |
+| Smokes | `smoke-catalog` loads the catalogue from where it lives; `smoke-tenants-door` takes free ports. | `daf98585` |
+| Found | **A session could be revived after sign-out.** A single-row sign-out left the older rows of the sign-in marked rotated, and `rotateRefreshToken` minted a fresh session from any of them whose child was gone. Now a parent whose child is gone is ended, and only active or rotated rows mint. | `1ea6d37b` |
+| Found | The authenticated logout and `DELETE /api/auth/sessions/:id` end the sign-in's whole rotation chain (one sign-in, never another device's), so no access token of it works after a sign-out. | `f22fbccb` |
+
+Auth doors 125 → 137, tenants 35, all core suites green. Left: legacy
+Strapi's own rotation can still revive a session when it serves a refresh.
+
+**Consumer, the client side** (section "Round four review: the client
+side" and its follow-up in [one-sign-in-ws-b.md](one-sign-in-ws-b.md),
+records `b5cea0e`, `175865c`, `ee31bb8`):
+
+| Finding | What | Commit |
+|---|---|---|
+| R3 | A refresh writes its answer only while storage still holds the token it sent. | `fb8f5594` |
+| R2 | Sign-out and the callback's revoke of an old session go by the refresh token with no `Authorization` header, one retry, never blocking. | `0535e90a` |
+| R4 | `checked=1`, and ending the old session, are believed only when this tab left for the realm itself (a mark in its own `sessionStorage`; nothing in the URL). | `17127861` |
+| R5 | The typing mark is keyed on the pathname and cleared on navigation. | `17bdb218` |
+| R6 | Marks are read back when written. | `6336f387` |
+| Tokens | The realm hands a session only to an app's exact `/auth/callback` (or its own relay). | `68abe799` |
+| Tokens | The callback strips its address first, on every outcome. | `9e2c1b4b`, `7a5b77cd` |
+| Tokens | `Referrer-Policy: strict-origin` where tokens can appear. | `60db7306` |
+| Sign | Sign's landing writes the pending mark. | `e6c05a1f` |
+| Docs | `docs/one-sign-in-realm.md` is current. | `104a50b4` |
+
+`packages/ui` session tests 46 → 65, the realm pages 61 → 69,
+`api-client` 42 → 47. Every entry point already landed on
+`/auth/callback`, so nothing was widened. Taken back on the lead's word
+(`7a5b77cd`): a failed callback no longer revokes the session it was
+handed. The address is already stripped, and the session is the realm's
+own, so a revoke there would sign the person out everywhere over a
+network blip.
+
+**Management** (section "Round four review: management" in
+[one-sign-in-ws-d.md](one-sign-in-ws-d.md), records `73b1f7e`):
+
+| Finding | What | Commit |
+|---|---|---|
+| M3 | The last profile is one entry per person: the newest `at` wins under a per-person lock, and duplicates are read newest-first and tidied on the next write. | `510c9cd` |
+| M9 | Membership recall filters by organisation in the query (no 200 cap). | `fb30f70` |
+| M9 | The revocation store's comment and default prefix name `auth:revoked:<sid>`. | `e01e98e` |
+| M4 | `chooseRealm` never forwards auth's own interaction, whatever `PORTAL_REALM_DOMAINS` says. | `d460d75` |
+| M5 | The development form's password and second-factor posts answer 404 without `OIDC_DEV_LOGIN`. | `6d743c5` |
+| M8 | The refresh response's `session.sid` is the derived value (nobody read the raw one). | `90511fd` |
+| M7 | A key-rotation note under F7. | records |
+
+Test counts:
+- auth unit 391, integration 341 of 342 (the mint p95 budget only);
+- Strapi 153 → 157;
+- the gateway 90.
+
+What the password post allowed before M5:
+- a password check outside auth's own throttles, open to anyone who started an authorization, in production too;
+- the second factor was honoured, so it bypassed no authentication.
+
+Left:
+- the session's own pin is still last-write-wins;
+- the latency budgets need a quiet machine.
+
+## Rounds three and four: deploy request written (2026-09-25)
+
+One request covers both rounds and replaces the round-three one, which was
+never handed over:
+[one-sign-in-round-four-deploy-request.md](one-sign-in-round-four-deploy-request.md).
+It names management `90511fd` and consumer's `dev` tip containing
+`7a5b77cd`. Beyond round three's steps it adds:
+- **Order.** Strapi goes before or with auth, and old and new auth
+  processes must not overlap in either direction.
+- **The seed's default-role rewrite**, to check against the role report.
+- **Operator rows of no kind are refused and not moved.**
+- **Read-only reports.** `PORTAL_LOGIN_URL`, `PORTAL_REALM_DOMAINS`, the
+  number of auth processes, any realm off `rutba.io`, and whether the
+  fleet's core holds `RUTBA_CRED_KEY`. Other sessions' migrations 115 and
+  116 seal credentials under that key, and where it is kept is the owner's
+  decision.
+- **New checks after the deploy.**
+
+**The dev estate at the end of 2026-09-25:**
+- It is running again. It stopped when this session restarted, and the
+  restart also put the storefront edge into effect (addendum 37).
+- The core still refuses to boot. Migration 118 was fixed by another
+  session (consumer `27916d35`). Migration 117 in `individual_dev` needs
+  the owner's one-row ledger command, which that session gave.
+- Until the core boots, these wait:
+  - the release gate's re-run without `E2E_CONTINUE_WITHOUT`;
+  - the storefront half of decision 35;
+  - a walk of round four (customer-domain realms cannot be walked here at
+    all).
