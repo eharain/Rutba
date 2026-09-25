@@ -1731,9 +1731,11 @@ statement in [one-sign-in-ws-b.md](one-sign-in-ws-b.md) corrected by the
 lead). Left for round four: a row found by address that already holds
 `platform_operator` is still reused whatever its role.
 
-## Round three: deploy requested (2026-09-25)
+## Round three: deploy request written (2026-09-25)
 
-The Infra session was asked to ship management `15b61d2` (round three ends
+The Infra session was not running when round three was ready, so the
+request is written in [one-sign-in-round-three-deploy-request.md](one-sign-in-round-three-deploy-request.md)
+for the owner to hand over. It asks that session to ship management `15b61d2` (round three ends
 at `426899b`; the top commit is another session's blog content for the
 rutba.io site) and consumer `cb08ffc3`, workers unchanged, asking the owner
 in its own session. The request: backups first; the per-tenant role report
