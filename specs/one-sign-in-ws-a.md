@@ -1076,3 +1076,140 @@ four estate lines from `.env.development` and lives in the session's
 scratchpad, not in a repository.
 
 The consumer checkout was clean before and after both commits.
+
+### Engineering tail (2026-09-25)
+
+Three consumer commits on `dev`, one per item, each landed on `main`:
+`7339d70b` (the role lookup trap), `a2f740ca` (the subject finder moved into
+the core), `61630a97` (operate by address). The dev estate was running and
+restarted the core on each commit; only the suites ran, nothing was walked.
+Other sessions' uncommitted work in the consumer checkout was left alone.
+
+**1. The role lookup trap (consumer `7339d70b`).** Root cause in the core's
+schema registry, under the compat query: `plugin::users-permissions.role`
+and `.permission` were built-in stubs with no attributes, and the filter
+layer (`documents/query.js`) drops a condition on an attribute a model does
+not declare, as Strapi strips an invalid REST filter. So under the core
+`strapi.query(role).findOne({ where: { type } })` answered the first
+`up_roles` row (`authenticated` in a database Strapi made) whatever was
+asked, a user filtered by `role: { type }` matched every user, and a
+permission looked up by `action` and `role` answered any grant at all. Not
+the drafts-only trap: neither table is draft-and-publish. The fix is in the
+registry, small and safe for every caller: `schema/loader.js`
+`BUILTIN_MODELS` declares the role's `name`, `description` and `type` and
+the permission's `action` and `role` link (Strapi's
+`up_permissions_role_lnk`: `permission_id`, `role_id`, `permission_ord`);
+both stay built-ins (never derived, validated or migrated), and the role's
+row mapper is unchanged. The callers through the core were read first: the
+three legacy files below, legacy user-admin's role list and
+`roleForNewPerson` (no `where`, unchanged); no REST route or core module
+filters users by role. A `where` that was dropped is now honoured; nothing
+else changes shape.
+
+The three callers now read the roles whole and match the type in code
+(`seed/core-singletons.js` `findRoleOfType`), so the answer no longer
+depends on the server; the permission lookups keep their `where`, now
+honoured by both.
+
+| File (under `api/legacy/strapi/src`) | Does the core run it | What it did until now |
+|---|---|---|
+| `extensions/users-permissions/strapi-server.js` | No: a Strapi plugin extension, loaded by the legacy server only; the core's register door is `console/api/auth/routes.js`. | Nothing wrong: the legacy server's query engine honours the `where`. Under the core its lookups would have taken the first row for `public` and never made a missing one. |
+| `seed/core-singletons.js` | Yes, from the seeder console (`POST /api/seed/run`, mounted by `inventory/api/catalog/routes.js`; entries `up-defaults`, `up-email-confirmation`, `up-public-seo-meta`). | Every lookup took `authenticated` (the first row) for the type asked. `up-defaults` found `authenticated` by accident and then failed at `strapi.store` (the core has none); had the first row been another role, its type would have become `advanced.default_role` - the seed took the found row's type, now the literal. `up-email-confirmation` failed at `strapi.store` before its lookup. `up-public-seo-meta` took `authenticated` for `public`, found an unrelated grant through the dropped permission `where`, and reported `{ created: 0 }` having checked nothing: the public role's seo-meta grants were never checked or written by the core. |
+| `seed/up-permissions-seed.js` | Yes, the same way (entry `up-permissions`). | Took `authenticated` for `rutba_app_user`; read every role's grants as that role's (with no `action` on the stub, as `undefined`); failed at its first query-engine `create`, which the core does not have. Nothing was seeded anywhere; with a create, every route grant would have gone onto `authenticated`, a storefront customer's role. |
+
+So the core never wrote a grant or a default role onto a wrong role; the
+harm was false reports and failures.
+
+Test: `api/core/tests/up-builtin-models.test.js` (7, new): the `where` on a
+role's type, name and `$in`, through `db.query`, `query` and `documents()`;
+a user by its role's type; a permission by action and role; the two seeds
+and the extension under the core with their writes recorded (the core has
+neither a store nor a create): the public role's grants written on
+`public`, the default role `authenticated` with the first row turned round,
+the route grants read from and written onto `rutba_app_user` only, a
+missing `public` role made. Against the previous code 7 of 7 fail; with the
+new registry and the old callers only the default-role case fails - the
+registry alone fixes the lookups.
+
+**2. The subject finder in the core (consumer `a2f740ca`).**
+`subjectHolderOutsideBackOffice` moved from `console/api/auth/handoff.js`
+into `api/core/src/auth/up.js` beside `findUnplacedByEmail`, as
+`findUnplacedBySubject`, unchanged. The one digest helper is the core's
+`digestOfAddress`, now exported; `handoff.js` imports it and re-exports it
+(the tests name it through the bridge), and `credential.js`'s `digestOf` is
+it (the doors hand it lower-cased addresses, so every logged value is the
+one logged before). `handoff.js` (open, operate), `oidc.js` (the callback)
+and `credential.js` (W1 verify) import the finder from the core; `oidc.js`
+no longer takes it through `handoff.js`. Tests unchanged and green.
+
+**3. Operate by address (consumer `61630a97`).** `resolveForOperate` took
+the first row with the address and, when it held `platform_operator`,
+bound it, moved it onto the back-office role and reused it whatever its
+role. It now asks `findAppUserByEmail`, as the lookup by subject asks
+`findAppUserRow`: a back-office row is reused only when it holds
+`platform_operator` and is bound to nobody (bound to another subject, still
+409 `USER_BOUND_ELSEWHERE`; not an operator's, still 409
+`OPERATOR_ADDRESS_IN_USE`); with no back-office row, any other row with the
+address is **409 `OPERATOR_ADDRESS_IN_USE`**, logged `operate refused: the
+address is held by row <id> (sha256:…) outside the back office; nothing
+moved, bound or granted`, and no row is made beside it. The move onto the
+back-office role is removed: the row reused is always there already. The
+two older refusal lines now log the row id and digest, not the address. A
+back-office operator row is also found beside an older customer's row with
+the same address, where the first row answered before and refused the
+operator.
+
+For the deploy: a pre-`b9cfcb0d` operator row on `authenticated` found by
+address with its subject cleared is now refused too, until the statement in
+[one-sign-in-ws-b.md](one-sign-in-ws-b.md) "For deployment" moves it. The
+statement already covers it (it selects by `platform_operator`, not by
+subject); no change to it.
+
+Test: `api/core/tests/handoff.test.js` - an operator row whose subject was
+cleared, on `authenticated`, `admin`, no role and an unnamed type: 409
+`OPERATOR_ADDRESS_IN_USE`, role, subject, password and grant untouched, no
+code, the line by row id and digest and never the address, no row beside
+it; a back-office operator row beside an older customer's with the address
+reused and re-bound, the customer's untouched. It fails on the previous
+`handoff.js`.
+
+Docs: `docs/identity-bridge.md` (the refusal table's
+`OPERATOR_ADDRESS_IN_USE`, operate, the finder's name) and
+`docs/one-sign-in-realm.md` (the finder's name, twice).
+
+**Tests** (2026-09-25, 15:00 to 16:10 UTC+5):
+
+| Suite | Result |
+|---|---|
+| `console/api/auth/tests` | 125 |
+| `console/api/tenants/tests` | 35 |
+| `console/apps/auth/src` | 61 (55 before; another session's tests added) |
+| `api/core/tests/handoff.test.js` | 32, under the test-only preload |
+| `api/core/tests/individual-mode/operator.test.js` | 7, under the preload |
+| `api/core/tests/individual-mode/new-user-role.test.js` | 7, under the preload |
+| `api/core/tests/up-builtin-models.test.js` | 7, under the preload |
+
+Every other core test file was run under the preload after item 1, with
+the same results as on the previous registry (guest-ticket 3 of 6,
+management-token 21 of 22, tenant-mode 6 of 7, drive 5 of 6 and first-run 6
+of 7 fail the same way before and after: environmental, not these
+changes). The preload hides the four estate lines from `.env.development`;
+it and the loader that ran the new tests against the previous files live
+in the session's scratchpad, not in a repository.
+
+**Not done, and notes:**
+
+- Under the core the seeder console's users-permissions entries still
+  cannot write: the compat has no `strapi.store` and its query adapter no
+  `create`, which only the legacy server provides. `up-defaults`,
+  `up-email-from` and `up-email-confirmation` fail at the store;
+  `up-public-seo-meta` and `up-permissions` now check the right role and
+  fail at their first write instead of reporting nothing to do. A tenant
+  that runs only the core gets these rows from the legacy server or not at
+  all; a store and a create in the compat are their own change.
+- `up-defaults` (and the extension, before every legacy registration)
+  resets `advanced.default_role` to `authenticated` on every run. Since
+  decision 33 a merchant-made default customer role is a customer's only
+  while it is the default, so a seed run would turn such a tenant's
+  customers into rows of no kind. Pre-existing and not changed: for the
+  owner.
