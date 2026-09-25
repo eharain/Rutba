@@ -253,7 +253,7 @@ The journey record's D1 to D15, with where each stands now.
 | D27 | low | Members told before the tell record existed show no told state, so "told" and "never told" look the same for them. | management `cace52f`: one line under the roster when a non-owner active or invited member has no workspace state |
 | D28 | low | "You are member in …" on the member's view of the organisation page. | management `cace52f` |
 | D30 | low | A reset for an address no instance knows leaves no line at management; only the core's "no" shows it. | management `426899b`: one line with the digest, "no instance knows it; nothing was mailed"; the mailed and asked-nobody lines carry the same digest |
-| D31 | low | The dev storefront serves no tenant (no edge in front of it), so its register answers a tenant-context error and shows the visitor nothing; decision 35's customer half cannot be walked on the dev estate. | estate gap, noted |
+| D31 | low | The dev storefront serves no tenant (no edge in front of it), so its register answers a tenant-context error and shows the visitor nothing; decision 35's customer half cannot be walked on the dev estate. | management `cfae8fc` (addendum 37): the dev gateway adds the fleet's edge headers for the storefront; effective after a gateway restart |
 | D32 | low | The core's log-mode mail prints only recipient and subject, so no link the core sends can be checked on the dev estate. | consumer `a995f399`: the body printed in log mode outside production |
 | D33 | low, **deploy-blocking** | The instance console's "New User" offers "Staff" and other roles beside "Rutba App User"; the round-three rule counts only the latter as back-office, so a person on another role, tenant 1's staff possibly included, is treated as a storefront customer: management's reset does not find them and the storefront's would mail them. | consumer `fd84caf0`: back-office is every role except the storefront's (`CUSTOMER_ROLE_TYPES`: authenticated, public, rutba_web_user, rutba_portal), one shared check in every door, the owner door's grant included; the console half in consumer `16f7711a` (New User on rutba_app_user by default, the customer roles shown as storefront, the shells naming the fix for another back-office role); the `admin` type being refused at management's doors (WS-A); a re-check running; the production count per role type waits on the owner's go in the Infra session |
 | D34 | low | The "Set your Rutba password" page for a new account still shows the authenticator field and the "Everywhere / Only here" choice. | management `426899b`: neither shown when `new=1` |
@@ -1860,3 +1860,32 @@ role. Left: the seeder console's users-permissions entries still cannot
 write under the core (a separate change). Found, decision 38: the seed and
 an extension reset the storefront's default role every run; being fixed
 under the recommendation.
+
+## Addendum 37: the dev estate serves a storefront tenant (D31, round four)
+
+Management `cfae8fc`, consumer `acdf2da6` (a note in
+`docs/tenancy-directory.md`); the section "Dev storefront tenant" is in
+[one-sign-in-ws-b.md](one-sign-in-ws-b.md) (records `bd7dab9`). The
+devkit's tests 48, the new `dev-edge` 13.
+
+The dev gateway now sets the two headers the fleet's edge sets
+(`X-Rutba-Domain` and `X-Rutba-Edge-Key`) for the storefront only: a
+request to the storefront's port gets the host the browser used and the
+key, and a call to the core made by a storefront page (found by its
+`Origin`, else `Referer`) gets the same pair, standing in for the fleet's
+same-origin `/api`. The pair replaces anything the client sent; every
+other request passes unchanged; the key is the one the core already boots
+with, read from the core's own launch environment and never printed; no
+other app gets the pair. Nothing changed in the core, the storefront or
+any environment file.
+
+Proved with the pair the module computes, before the gateway picks it up:
+the storefront's home-page read answered 200 with pos_db's page where it
+answered 400 `NoTenantContextError` without; the register form rendered;
+a registration for a throwaway `e2e-storefront-…@rutba.test` answered 200
+(an unconfirmed customer, its confirmation mail in the core's log) where
+it answered 400 without; the same address again, "already taken". Not
+proved yet: the home page's server render, and confirming and signing in
+that customer (the token's `db` claim), both waiting on the core. The
+gateway must be restarted to pick it up; held until the release gate's run
+ends.
