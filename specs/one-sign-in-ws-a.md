@@ -1208,8 +1208,20 @@ in the session's scratchpad, not in a repository.
   that runs only the core gets these rows from the legacy server or not at
   all; a store and a create in the compat are their own change.
 - `up-defaults` (and the extension, before every legacy registration)
-  resets `advanced.default_role` to `authenticated` on every run. Since
+  reset `advanced.default_role` to `authenticated` on every run. Since
   decision 33 a merchant-made default customer role is a customer's only
-  while it is the default, so a seed run would turn such a tenant's
-  customers into rows of no kind. Pre-existing and not changed: for the
-  owner.
+  while it is the default, so a seed run turned such a tenant's customers
+  into rows of no kind. **Fixed under decision 38 (the lead's assumption,
+  pending the owner), consumer `cfb318cd`:** both call `holdDefaultRole`
+  (`seed/core-singletons.js`), which writes the setting (as
+  `authenticated`, the other settings kept) only when it is unset, null or
+  empty, or names a role type no role has any more, and otherwise leaves it
+  unwritten. Paths: the deploy's essential seed run (`rutba_deploy.sh` →
+  `rutba_seed.sh` → `scripts/seed.js --essential`), `npm run seed`, the
+  seeder console on the legacy server and the core (the core still fails
+  at the missing store before writing), and the legacy registration via
+  the extension; the legacy server does not seed on boot. Test:
+  `up-builtin-models.test.js` 8 (absent, a merchant's role kept, a dangling
+  type repaired, for the seed and the extension; fails on the previous
+  callers); auth doors 125, tenants 35, the realm pages 61, handoff 32,
+  operator 7, new-user-role 7.
