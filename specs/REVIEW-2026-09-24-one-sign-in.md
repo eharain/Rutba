@@ -1628,7 +1628,13 @@ unknown field is refused as before. The legacy plugin's configuration lists
 read the code alone; the individual-mode registration refuses every field
 it does not name; the storefront's API has no profile update; the route
 grants sit on the back-office role only. Tests: `register.test.js`. The
-realm's doc has a section on it.
+realm's doc has a section on it. A later search of the live core and legacy
+trees confirmed that the only writers of a person's app roles are the user
+service's add and edit, and every caller other than the repaired door is
+gated: the individual registration (its offered list only), the invite
+door and the owner grant (management's token), the legacy user admin (an
+instance administrator), the operator path, and the storefront's own role
+assignment (`storefront_user` only).
 
 **For the owner:** whether any production tenant has registration open, and
 whether any customer row holds app roles it should not, is a production
