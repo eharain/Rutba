@@ -2059,3 +2059,45 @@ Sound, by the review:
 Two Opus builders are on it, on disjoint files: the server side (`api/**`,
 `console/api/**`) and the client side (`packages/ui`, `packages/api-client`,
 `console/apps/auth`).
+
+## Addendum 41: the Opus review of round four's management commits
+
+Reviewed: `0a165e0` (D13), `4facb23` (D14) and `7321b80` (F7). Nothing
+high. The counts match the builder's:
+
+| Suite | Passed |
+|---|---|
+| auth unit | 391 |
+| auth integration | 338 of 339 |
+| Strapi | 153 |
+| gateway | 90 |
+
+Only the latency budgets fail, and they fail the same way at the commit
+before (`cfae8fc`) under the same load. Three before and after pairs of
+`token-flow` show no regression from the added HMAC.
+
+| # | Severity | Finding | Where it goes |
+|---|---|---|---|
+| M1 | medium | Deploy order. A Strapi still on the old gate sends no `sub` and reads the new point check's 400 as auth unreachable (503 on every gate call carrying a new token). An old auth answers a derived value as revoked (new tokens 401). | The deploy request: Strapi before or with auth, and no old auth process overlapping a new one |
+| M2 | low | While old and new auth overlap, a sign-out handled by the old one writes only the raw-id marker, so a derived token stays valid at the gateway for up to an hour. | The same rule, stated for both directions |
+| M3 | low | Two first pins at once can make two core-store rows for one person (Strapi's `set` looks up then creates; the key has no unique constraint). `at` is never compared, so an older switch landing later wins. The membership check still applies. | Builder: newest `at` wins, deterministic read |
+| M4 | low | With `PORTAL_REALM_DOMAINS` set without auth's host, `chooseRealm` can forward an OIDC sign-in to a customer realm that cannot finish it (a loop). | Builder: stay at the front door for auth's own interaction |
+| M5 | info | The development form's password post (`POST /:uid/login`) still checks a password without `OIDC_DEV_LOGIN`, in production too (pre-existing; it needs the interaction cookie). | Builder: refused unless the flag is on |
+| M6 | info | The production claim in addendum 38 is slightly off: the interaction return is accepted whatever `PORTAL_LOGIN_URL` is. Only a hand-made link reaches it, and that dies without the interaction cookie. Minting no code there is safer than before. | Noted |
+| M7 | info | Rotating `SESSION_TOKEN_KEY` changes every derived value. | Builder: a rotation note |
+| M8 | info | The refresh response returns the raw session id to the refresh token's holder (pre-existing; the exposure F7 closed for access tokens). | Builder: find the readers, then derive or drop |
+| M9 | info | Membership recall reads at most 200 and filters in code; a stale comment names the wrong marker key. | Builder |
+
+**Sound, by the review:**
+- **D13.** Production still requires `PORTAL_LOGIN_URL` and refuses the dev form. `ownInteraction` needs an exact origin, prefix and id pattern, and has no path trick. There is no open redirect.
+- **D14.** The key comes from the stored session, never the caller. Only auth's service token reaches the entry. Failures never block a sign-in.
+- **F7.**
+  - Raw ids and derived values are told apart safely by length.
+  - Every revocation path writes both markers during the window.
+  - `?sub=` cannot be used to probe.
+  - The window covers OIDC access tokens too.
+  - The readers were all found, and none in consumer reads the access token's `sid`.
+
+**Not checked:** production's `PORTAL_LOGIN_URL`, `PORTAL_REALM_DOMAINS` and number of auth processes (none is in the repo); the latency budgets on a quiet machine; a live walk.
+
+An Opus builder is on M3 to M5 and M7 to M9. M1 and M2 go into the round-four deploy request.
