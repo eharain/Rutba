@@ -1225,3 +1225,78 @@ in the session's scratchpad, not in a repository.
   type repaired, for the seed and the extension; fails on the previous
   callers); auth doors 125, tenants 35, the realm pages 61, handoff 32,
   operator 7, new-user-role 7.
+
+## Round four review: the server side (2026-09-25)
+
+The review's server-side findings, each checked against the code before it
+was fixed; every one held. The client half of finding 2 is consumer
+`0535e90a` (another builder). The dev estate's core was down throughout
+(migration 117 in `individual_dev`), so nothing here was walked live.
+
+| Finding | What | Commit (consumer) |
+|---|---|---|
+| 1, medium: a back-office default role on the legacy server | `holdDefaultRole` also rewrites a default naming a refused or back-office type to `authenticated`, the other settings kept, a merchant's own customer role still kept (decision 38). The legacy register door, after the hold, refuses a default that is not a customer's in the core door's words: a refused or back-office type is `ApplicationError` "Register action is currently disabled" plus an error line naming the type, an empty one "Impossible to find the default role". OAuth sign-ups (the callback for any provider but `local`) are held and checked the same way, because the plugin's provider connect also makes people on the default role. A settings read that throws stops the registration. The lists are a copy in `legacy/strapi/src/utils/up-role-kinds.js`, because the legacy server cannot require `up.js` cleanly: it opens the core's configuration and database, and the Docker image's Strapi stage ships `api/legacy/strapi` without `api/core`. A test holds the copy equal to the core's lists and four functions over every pairing of fifteen types. The test at `up-builtin-models.test.js:259`, which asserted `rutba_app_user` is kept, now asserts it (and `staff`, `rutba_rider_user`, `admin`, `Rutba_App_User`) is rewritten. | `6d22e089` |
+| 7, info: the default role trimmed at one end only | The core trims the setting on read (`up.js` `defaultRoleOf`, used by `defaultRoleType` and the register door's lookup, check and log line). The seed writes a value that names an existing role only once trimmed back trimmed, so Strapi's own register (which reads it verbatim) finds the same role. `' shop_member '` now registers a customer on `shop_member`, whom the storefront's finder takes. | `8502731a` |
+| 2, low, the server half: revoking a session whose access token has lapsed | `POST /api/auth/logout` with no valid access token takes the body's refresh token as the credential (the contract is below). The rows rotated into that session end with it (`sessionManager.revokeSessionChain`). | `9af8c9c4` |
+| 4: the core suites need a preload | The cause is wider than the tenant directory. `config/env.js` lets `.env` and `.env.<ENVIRONMENT>` **outrank** the process environment, so blanking or setting a name before load cannot win against a file. On this machine the suites ran pooled against the file's directory, and took the file's issuer, audience, public URL and mail mode. `env.js` now honours `RUTBA_CORE_ENV_FILES=none`, read from the process alone, which keeps both files out. `api/core/tests/hermetic-env.js` sets it (children inherit it), clears every spelling of the names that decide data and trust, pins solo tenancy, and sets the suite's own values. The individual-mode harness and handoff, permissions, migration-114, individual-roles, tenant-mode, guest-ticket and management-token call it first. No `.env` file was touched. | `0a767906` |
+| 8, info: deploy note only | See "For deployment". | none |
+| Follow-up: the catalogue smoke | It now loads `inventory/api/catalog` (the old `api/modules/catalog` path is gone); 26 of 26 pass. | `daf98585` |
+| Follow-up: the tenants-door smoke's port | It takes free ports as the core's smokes do (4198 and 4197 were fixed fallbacks; the gateway holds 4198). `smoke-ports.test.js` now scans the console doors' scripts too. | `daf98585` |
+
+**The logout door as built** (`console/api/auth/routes.js`):
+
+- **A valid access token:** unchanged, the plugin's contract. `scope: 'all'` ends every session of the user, and a `deviceId` ends that device's. Otherwise the body `refreshToken`'s session ends when it validates (nothing ends when it is another user's). Otherwise the access token's own session ends, and failing that, all of them.
+- **No valid access token, and a non-empty string body `refreshToken`:**
+  - When the token validates, its session ends, under the user it belongs to, with the rows rotated into it. "Validates" means `validateRefreshToken`: signed here, this tenant's, its row active and unexpired, the same user.
+  - `scope` and `deviceId` are not read.
+  - The answer is `{ ok: true }` whether it validated or not, and whether or not the revoke itself failed (that is logged).
+- **Neither:** 401 "Missing authentication", as before.
+- **An expired or forged `Authorization` header** never answers 401 before the handler runs:
+  - the route is selfAuth, and its optional auth passes an unverifiable bearer through with no user;
+  - the tenant is taken from the body's refresh token when the bearer does not verify.
+
+The client's two calls are both answered. `{ refreshToken }` with no `Authorization` header is the second case, so it never gets a 401 on this core. The 401 retry with `Authorization: Bearer <jwt>` and the same body happens only against an older core. With a live bearer it takes the first case, which ends the body token's session as before; with a lapsed one it falls to the second case again.
+
+**Whether the existing calls cover rotated rows:** they do not.
+
+- `validateRefreshToken` accepts an **active** row only, so a token that was itself rotated validates as nothing and ends nothing. For example, an app that lost a rotation's response still holds the rotated token; the live successor then stays until its idle expiry.
+- `revokeSessionById` deletes one row, as Strapi's session manager does. The parents stay `rotated`. When `rotateRefreshToken` finds a parent's recorded child gone, it makes that parent a fresh child within the parent's idle window.
+- This was probed on the auth harness: after the leaf's revoke, the chain's first token minted a new child and an access token.
+
+So the refresh-token path ends the whole chain. It walks back by `child_id`, same user and origin, and deletes those rows only, nothing beside them. A test shows the first token can no longer mint.
+
+**Counts** (this machine, Node 22.21.1; nothing skipped, none cancelled):
+
+| Suite | Before | After |
+|---|---|---|
+| `console/api/auth/tests/*.test.js` | 125 of 125 | 132 of 132 (logout 6, register +1) |
+| `console/api/tenants/tests/*.test.js` | 35 of 35 | 35 of 35 |
+| `api/core` `npm run test:individual-mode` | 16 of 64 | 64 of 64 |
+| `api/core/tests/up-builtin-models.test.js` | 0 of 8 | 10 of 10 |
+| `api/core/tests/handoff.test.js` | 3 of 32 | 32 of 32 |
+| `api/core/tests/individual-mode/operator.test.js` | 0 of 7 | 7 of 7 |
+| `api/core/tests/individual-mode/new-user-role.test.js` | 0 of 7 | 7 of 7 |
+| `api/core/tests/permissions.test.js` | 0 of 9 | 9 of 9 |
+| other core files: guest-ticket, management-token, migration-114, tenant-mode | 3/6, 12/22, 1/4, 6/7 | 6/6, 22/22, 4/4, 7/7 |
+| `api/core/tests/smoke-ports.test.js` | 1 of 1 | 1 of 1 (now scans the console doors) |
+
+The "before" core figures are plain `node --test` on this machine, with no preload. Pinned to solo alone, individual-mode is 63 of 64. The 64th is `individual-mode/drive.test.js` "registration through the door grants the offered individual keys and nothing higher, and lands on the launcher": it expected `https://auth.individual.test/login` and got `http://localhost:4020/login`, because the file's `CORE__PUBLIC_URL` still outranked the harness's. Each new test was run against the previous code: logout 4 of 6 fail, the finding-1 cases 3 of 10, the finding-7 cases 1 in each file.
+
+**For deployment:**
+
+- Finding 8: the operate refusal in consumer `61630a97` covers more rows than the deploy statement moves. The statement moves `platform_operator` rows on `authenticated` whatever the subject. An operator row with no role, or on a role of no known kind, is now refused (409 `OPERATOR_ADDRESS_IN_USE`) and not moved, so an administrator must place it.
+- The next essential seed run (`up-defaults`) rewrites, per tenant:
+  - an `advanced.default_role` naming a refused or back-office type becomes `authenticated`;
+  - one that names a role only once trimmed is written back trimmed.
+  Each rewrite is one log line. Reading `plugin_users-permissions_advanced` in each tenant beforehand shows which tenants will change.
+- The legacy server now loads `src/utils/up-role-kinds.js`, which ships inside `api/legacy/strapi` and needs nothing from `api/core`.
+- `RUTBA_CORE_ENV_FILES` is for test processes only. It must never be set on a box: with it set, the core reads no `.env` file.
+
+**Not done:**
+
+- Nothing was proven live, because the dev core is down. That covers the logout door over the gateway, a legacy-server registration, and the seed rewriting a real store. The extension was tested through the core's compat, with the store stubbed; the legacy server was not booted.
+- The legacy server's own `/api/auth/logout` is the plugin's and still wants a valid access token. On a tenant served by Strapi the idle-tab revoke still fails (the client retries once and gives up quietly). The realm's round trip is served by the core.
+- The authenticated logout path, `DELETE /api/auth/sessions/:id`, and Strapi's own session manager (which shares `strapi_sessions`) still end one row. The rotated parents stay and can mint a fresh child. That is parity with the reference, and changing it alters the authenticated contract, so it is left for the lead. The options are to use `revokeSessionChain` there too, or to have `rotateRefreshToken` refuse to re-mint once the recorded child is gone.
+- A rotated refresh token sent to logout ends nothing. Accepting it would be looser than the agreed "validates", although holding one already yields its successor through rotation's re-issue.
+- The tenants-door smoke was not run end to end, because it creates throwaway databases on the dev database server.
+- `npm run migrate:status` cannot run pooled. That is not this stream's, and is only noted here.
