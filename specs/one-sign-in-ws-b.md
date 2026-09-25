@@ -776,32 +776,177 @@ this is built as the lead assumed it.
 
 ### For deployment (the Infra session): rows on another back-office role
 
-Not run here. The production count per role type (waiting on the owner)
-decides whether the move does anything. In **each tenant database**, first
-the count:
+Not run here. Rewritten on 2026-09-25 for the fail-closed lists (consumer
+`fc2de6ee`): `admin` is now a refused type, and a row with no role, or on a
+role whose type is NULL or empty, or on a type no list names, is of no
+kind - invisible to every door, and a block on its address at the invite
+door (`409 ROLE_UNKNOWN`) until an administrator places it. New User made
+role-less people when no role was picked, until decision 37. The
+production count (waiting on the owner) decides whether the move does
+anything. In **each tenant database**, first the report, all four parts:
 
 ```sql
+-- 0. the tenant's default customer role: a row on it is a customer's,
+--    whatever the type is called, and is NOT of no kind
+SELECT value FROM strapi_core_store_settings WHERE key = 'plugin_users-permissions_advanced';
+
+-- 1. people per role type (a role with no type shows as NULL or '')
 SELECT r.type, r.name, COUNT(l.user_id) AS people
   FROM up_roles r LEFT JOIN up_users_role_lnk l ON l.role_id = r.id
  GROUP BY r.type, r.name ORDER BY r.type;
+
+-- 2. people with no role link at all - part 1 cannot see them
+SELECT COUNT(*) AS role_less
+  FROM up_users u
+ WHERE NOT EXISTS (SELECT 1 FROM up_users_role_lnk l WHERE l.user_id = u.id);
+
+-- 3. people on a role whose type is NULL or empty, by row
+SELECT u.id, r.name AS role_name, r.type AS role_type
+  FROM up_users u
+  JOIN up_users_role_lnk l ON l.user_id = u.id
+  JOIN up_roles r ON r.id = l.role_id
+ WHERE r.type IS NULL OR trim(r.type) = ''
+ ORDER BY u.id;
+
+-- 4. people on a type no list names, by row (take out the default role
+--    part 0 answered: those are customers)
+SELECT u.id, r.name AS role_name, r.type AS role_type
+  FROM up_users u
+  JOIN up_users_role_lnk l ON l.user_id = u.id
+  JOIN up_roles r ON r.id = l.role_id
+ WHERE r.type IS NOT NULL AND trim(r.type) <> ''
+   AND lower(r.type) NOT IN ('authenticated', 'public', 'rutba_web_user', 'rutba_portal',
+                             'rutba_app_user', 'staff', 'rutba_rider_user', 'admin')
+ ORDER BY u.id;
 ```
 
-Then the move. It does nothing where `rutba_app_user` does not exist. It
-fails, and changes nothing, where two roles carry that type.
+Then the move, one statement per type, naming the type it moves. Each
+does nothing where `rutba_app_user` does not exist, and fails, changing
+nothing, where two roles carry that type.
 
 ```sql
+-- staff onto rutba_app_user: "POS Staff User", which nothing reads, so
+-- nothing is lost
 UPDATE up_users_role_lnk
    SET role_id = (SELECT id FROM up_roles WHERE type = 'rutba_app_user')
  WHERE EXISTS (SELECT 1 FROM up_roles WHERE type = 'rutba_app_user')
-   AND role_id IN (SELECT id FROM up_roles
-                    WHERE type IS NOT NULL
-                      AND lower(type) NOT IN ('authenticated', 'public', 'rutba_web_user',
-                                              'rutba_portal', 'rutba_app_user'));
+   AND role_id IN (SELECT id FROM up_roles WHERE lower(type) = 'staff');
+
+-- rutba_rider_user onto rutba_app_user: ONLY if the owner says so - a
+-- rider's order messages stop being marked as a rider's
+UPDATE up_users_role_lnk
+   SET role_id = (SELECT id FROM up_roles WHERE type = 'rutba_app_user')
+ WHERE EXISTS (SELECT 1 FROM up_roles WHERE type = 'rutba_app_user')
+   AND role_id IN (SELECT id FROM up_roles WHERE lower(type) = 'rutba_rider_user');
 ```
 
-It moves `admin` and `rutba_rider_user` rows too. They lose legacy
-super-admin and the rider marking on their order messages. If the count
-shows rows there that must keep either, add that type to the `NOT IN`
-list. Rows with no role, or on a role with no type, stay: they are
-customers' to every door. No new variables; the apps pick up the new
-module at their next build.
+Never moved by these, on purpose:
+
+- `admin` rows (part 1): a refused type, nobody's to any door, and a session
+  on it would pass every app's legacy admin check. Each such row is the
+  owner's to decide by hand - who it is, and whether it is deleted or set
+  to Rutba App User in the instance console (whose user edit refuses
+  `admin` since consumer `300ceb7f`, so the move off it is the only edit
+  that role takes).
+- rows of no kind (parts 2, 3 and 4): reported, not moved. A statement
+  cannot tell an abandoned New User draft from a person somebody meant to
+  make; an administrator places each through the instance console's user
+  edit, or the owner says which are deleted. While they stand, the invite
+  door refuses their addresses (`409 ROLE_UNKNOWN`).
+
+No new variables; the apps pick up the new module at their next build.
+
+## Round three, the realm and suite side of the fail-closed lists (2026-09-25)
+
+Three consumer commits on `dev`, one per item, after WS-A's `fc2de6ee`;
+each behind the four suites (the auth doors, the tenants doors, the realm
+pages, the ui package's script). The dev estate was running throughout;
+only the suites ran, nothing was walked. The consumer checkout held another
+session's README, ROADMAP and docs/todo edits, left alone; that session's
+commits landed between mine.
+
+1. **The subject held outside the back office (consumer `96671b85`).**
+   `subjectHeldByCustomer` in `console/api/auth/handoff.js` asked the strict
+   customer finder, which since `fc2de6ee` does not see a row of no kind
+   (an unknown, empty or NULL role type, or no role) or a refused one; so
+   with such a row holding a subject an older door bound, the callback and
+   the hub's `open` fell through to the address, found a back-office row
+   with the same address, and `bindSub` met the unique index on `rutba_sub`
+   as a raw error instead of `USER_UNKNOWN`. Now
+   `subjectHolderOutsideBackOffice(sub)`: the row holding the subject that
+   is not on a back-office role or is on a refused one (the core's exported
+   `onBackOfficeRole` and `onRefusedRole`, as its `backOfficeRows` applies
+   them), answered as `{ id, digest }`; both doors log `held by row <id>
+   (sha256:…) outside the back office; nothing bound` and answer
+   `USER_UNKNOWN` before any address match. The back-office row stays
+   unbound and the holder keeps the subject for an administrator. **Should
+   move:** the finder belongs beside `findUnplacedByEmail` in
+   `api/core/src/auth/up.js` (a `findUnplacedBySubject`), which was not this
+   stream's file; the digest helper (`digestOfAddress`, the core's format)
+   is repeated in handoff.js for the same reason. Tests: a role-less row, a
+   row on a role with no type and an admin row, each holding a subject
+   beside an unbound back-office row with the address, through the callback
+   (`oidc-callback.test.js`) and the hub (`hub-roles.test.js`): 404
+   `USER_UNKNOWN`, nothing bound, no session, the line by row id and
+   digest, never the address. Docs: the realm record's "Who" and
+   `identity-bridge.md`'s `open`.
+2. **The shells match the lists (consumer `ca8ec025`).**
+   `packages/ui/lib/back-office-role.js` carries `BACK_OFFICE_ROLE_TYPES`,
+   `REFUSED_ROLE_TYPES` and `CUSTOMER_ROLE_TYPES` as copies, and its test
+   loads `api/core/src/auth/up.js` (`createRequire`; the package cannot
+   import the core at run time, a test can - it does, and the process
+   exits) and holds each list, `APP_ROLE_TYPE` and the three predicates
+   equal to the core's exported constants over every named type and some
+   nobody named. `roleRefusal`: `rutba_app_user` signs in; `staff` and
+   `rutba_rider_user` get "an administrator needs to set your account's
+   role to Rutba App User"; everything else - `admin`, a customer's role, a
+   type nobody named, an empty type, no role - gets the plain refusal,
+   since the doors answer `USER_UNKNOWN` for those before any shell sees
+   them (before, `admin` and any unknown type were told to have the role
+   set). The three shells (the realm's `login.js` and `SignInOutcome.js`,
+   the suite's `AuthCallback.js`) read it unchanged. `newUserRoleChoices`
+   stops offering `admin`, keeps Rutba App User as the default, and offers
+   Staff and the rider under "Other back-office roles - Rutba's apps do not
+   sign these in", each labelled as what it is and that it cannot sign in.
+3. **New User's server route refuses `admin` (consumer `300ceb7f`).**
+   Legacy `user-admin`'s `pickedRole` - shared by `createUser`,
+   `createInvite` and `updateUser` - answers 400 for a role the instance
+   holds on a type in its own `REFUSED_ROLE_TYPES` (`admin`), sent as a
+   number or its digits; nobody is made or moved onto it. The list is the
+   controller's copy (it runs in the legacy server too);
+   `api/core/tests/individual-mode/new-user-role.test.js` holds it equal to
+   the core's, and runs an admin role through create, invitation and edit.
+   The page's hint names Staff and Rider as back-office roles the apps do
+   not sign in.
+
+**Tests** (2026-09-25, 08:05 to 08:10 UTC+5):
+
+| Suite | Result |
+|---|---|
+| `console/api/auth/tests` | 121 (callback 66, credential doors 29, break-glass 18, hub-roles 4, register 4) |
+| `console/api/tenants/tests` | 35 |
+| `console/apps/auth/src` | 55 |
+| ui `npm test` (`test:session` 39, `back-office-role` 6 of them) | all passing |
+| `api/core/tests/individual-mode/new-user-role.test.js` | 7 of 7, under the preload below |
+
+**Traps.** The core's individual-mode suites answer `NoTenantContextError`
+on this machine: the consumer's `.env.development` names the dev
+management auth (`CORE__MANAGEMENT_AUTH_ISSUER`,
+`CORE__MANAGEMENT_AUTH_JWKS_URL`, `CORE__INSTANCE_AUDIENCE`) and the tenant
+directory (`CORE__RUTBA_CORE_TENANTS`), file values win over `process.env`
+in the loader, and the harness's `''` override is falsy to it. A test-only
+`--require` preload that wraps `fs.readFileSync` and drops those four lines
+from `.env.development` (compare the basename, not a backslash pattern:
+the Bash tool halves double backslashes) makes the suite run; the file is
+not in the repo. `node --test <dir>` fails on Windows (no directory
+walk): pass the files. A pathspec `git stash` refused quietly while the
+other session's staged deletions stood, so the new tests were not run
+against the old finder; the harness's migration 112 does create the unique
+index the old address path hit.
+
+**For the deploy** (the section above, rewritten): the report is now four
+parts (the tenant's default role, people per type, role-less rows, rows on
+a NULL or empty type, rows on a type no list names), the move is one
+statement per type - `staff`, and `rutba_rider_user` only if the owner
+says - `admin` is named as never moved, and no-kind rows are reported, not
+moved.
