@@ -1128,3 +1128,68 @@ customer-domain realm is set up for the tester.
 `dev` and `main` both at `61672195` on `origin`. After the push,
 `docs/one-sign-in-realm.md` carried two uncommitted lines from another
 session (WS-A's `findUnplacedBySubject` wording), left as they are.
+
+## Dev storefront tenant (2026-09-25)
+
+**The gap (D31).** The dev core is a directory core
+(`CORE__RUTBA_CORE_TENANTS` in `consumer/.env.development`, naming the
+machine-local `consumer/.data/tenants.dev.json`, where `pos_db` owns
+`localhost` and `org.rutba.test`). A request with no token reaches a
+tenant only through the edge: `X-Rutba-Domain`, believed when
+`X-Rutba-Edge-Key` matches the core's `RUTBA_EDGE_KEY`
+(`api/core/src/http/edge.js`, `http/tenant-context.js`). On the fleet
+Caddy sets both on every storefront request (`fleet/Caddyfile`,
+`consumer-edge`), and the storefront's server passes them on when it calls
+core (`instrumentation.ts`, `forward-headers-server.js`). The dev gateway
+passed headers through as they came, and the dev storefront calls core on
+its own port (`NEXT_PUBLIC_API_URL=http://localhost:4020/api/`), not
+same-origin `/api`, so nothing carried the pair: every storefront read and
+the register answered 400 `NoTenantContextError`.
+
+**What changed.** Management `cfae8fc`: `devkit/dev-edge.mjs` makes the dev
+gateway play Caddy for the storefront alone. A request to :4000 gets
+`X-Rutba-Domain` (the host the browser used, as Caddy's `{host}`) and the
+key; a call to core's :4020 made by a :4000 page (told by `Origin`, else
+`Referer`) gets the same, standing in for the fleet's same-origin `/api`.
+Both are set over anything the client sent; every other request passes
+through untouched (a scripted call's own pair, the storefront server's
+forwarded pair). The key is the one core boots with, read from core's own
+launch environment, never printed; a core without one gets nothing (a
+domain without its key is a 403). `services.json` names the site, core and
+key under `edge`; the gateway's boot output says "edge: ..." or "edge off:
+<why>". No other app gets the pair: `localhost` is `pos_db`'s here, and the
+realm and back-office hosts own no tenant on the fleet either.
+`dev-edge.test.mjs` 13 tests, the devkit's `npm test` 48 of 48. Consumer
+`acdf2da6`: `docs/tenancy-directory.md`, "On the dev estate". Nothing in
+the core, the storefront or any environment file.
+
+**Reaching the storefront as `pos_db`.** After the gateway is restarted
+(`rutba stop`, then `dev.cmd erp`): `http://localhost:4000`. A hosts line
+for `org.rutba.test` gives `http://org.rutba.test:4000`, also `pos_db`;
+`individual.rutba.test` would be `individual_dev`. A scripted call to
+:4020 as the storefront sends `Origin: http://localhost:4000`.
+
+**What production does instead.** VPS 3's Caddy sets the pair on each
+storefront host (`rutba.pk`, `shop.rutba.io`, ...), with `/api` and
+`/uploads` same-origin to core; the key is `/etc/rutba/edge-key`, made by
+`redeploy.sh edge`. The dev gateway never runs there, and no production
+code changed.
+
+**Proved** through the running gateway, each request carrying the pair
+the committed module computes from the gateway's own services map (the
+running gateway sets it itself only after its restart):
+
+| Step | Without the pair (today) | With it |
+|---|---|---|
+| A :4000 page's read of `/api/cms-pages/public/by-slug/index` | 400 `NoTenantContextError` | 200, `pos_db`'s home page ("Premium Everyday Essentials – Rutba.pk") |
+| `GET /register` on :4000 | | 200, the form |
+| The register call (`POST /api/auth/local/register`, `Origin: http://localhost:4000`) for `e2e-storefront-202609251042@rutba.test`, a generated password | 400 `NoTenantContextError` | 200, user 301, unconfirmed; "Account confirmation" mailed in log mode, link `/api/auth/email-confirmation/any` |
+| The same address again | | 400 "Email or Username are already taken" |
+
+Not proved: the home page's server render reading `pos_db` (the forwarded
+pair). Its two renders came back with no page data because the core was
+restarting under them, and from about 10:50 UTC the core refused to boot
+("1 applied migration(s) no longer match their file
+(118-talent-outcome-delivery-note)", another builder's migration), so the
+render, the confirmation link and the customer's sign-in wait for a core
+that boots. The test customer stays unconfirmed in `pos_db`.
