@@ -1472,7 +1472,7 @@ nothing under `api/` or `console/api/`, no migration, database or estate.
 | Item | What | Commit |
 |---|---|---|
 | 1 | `/authorize` hands a session only to an app's own `/auth/callback` (no query, no fragment) on a listed host, or to this realm's own `/auth/iframe-callback?origin=<one value>`; any other page of an allowed host is refused like an unlisted host (`console/apps/auth/src/allowed-redirect.js`, rule 4). | `68abe799` |
-| 2 | `AuthCallback` reads the query, then at once `history.replaceState`s the bare path, the Next router's copy of the address in the entry's state cleaned too, before anything else runs, on every outcome; the failure path ends the session it was handed by its refresh token, one retry (`packages/ui/lib/callback-url.js`). | `9e2c1b4b` |
+| 2 | `AuthCallback` reads the query, then at once `history.replaceState`s the bare path, the Next router's copy of the address in the entry's state cleaned too, before anything else runs, on every outcome (`packages/ui/lib/callback-url.js`). It also revoked the session it was handed on the plain failure path; `7a5b77cd` took that back (below). | `9e2c1b4b`, `7a5b77cd` |
 | 3 | `Referrer-Policy: strict-origin` on the realm's `/authorize`, `/login` and `/auth/callback` (a `next.config.js` `headers()`, `src/handover-headers.cjs`), and `<meta name="referrer" content="strict-origin">` in `AuthCallback`'s head for every app's callback. | `60db7306` |
 | 4 | `consumer/docs/one-sign-in-realm.md` brought up to date for findings 2 to 6 and items 1 to 3 and 5. | `104a50b4` |
 | 5 | Sign's landing `signIn()` writes the tab's pending note before it leaves. | `e6c05a1f` |
@@ -1529,10 +1529,19 @@ and script preloads), the header on the realm's three pages.
 (the callbacks are server-rendered) and, being server-rendered, possibly its
 `__NEXT_DATA__` (not verified); the browser's global history records the
 visit before any script runs; `/auth/iframe-callback`'s own address keeps its
-tokens (a hidden frame, `no-referrer` already). On the failure path the
-revoke ends the realm's session too, since the app holds a copy of the same
-session chain: a failure that was only a network blip at the app's core then
-costs the person a sign-in at the realm.
+tokens (a hidden frame, `no-referrer` already).
+
+**The failure path's revoke, taken back** (`7a5b77cd`, the coordinator's
+call). The callback's plain failure (`.catch`, a network blip at the app's
+core among them) no longer ends the session it was handed. The history risk
+the revoke answered is gone with the strip, which runs first on every path;
+what remains (global history, the server-rendered request) applies to a
+success as much, where nothing is revoked; and the app holds a copy of the
+realm's session chain, so the revoke signed the person out of the realm and
+every app over a blip. The strip stays on every path, and the role refusal and
+"no app access" still call `logout()`. The callback-url test now asserts the
+failure path sends no revoke and both refusals sign out; `test:session` stays
+65. `docs/one-sign-in-realm.md` corrected in the same commit.
 
 **A process fault on the way.** This builder's item 2 commit (`git commit -- <paths>`,
 pid 25996) was cut off at 19:12, when the session stopped at its usage limit,
