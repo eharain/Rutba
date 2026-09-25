@@ -165,7 +165,7 @@ WS-D as follow-up 4:
 | WS-B | Round three: the operator path takes over any row by address; operator rows on the authenticated role now count as customers | medium | consumer `b9cfcb0d`: a row is reused by address only when it already holds `platform_operator`, else 409; operator rows are created on, and moved to, the back-office role; operator actions being limited to operate sessions |
 | WS-D | Round three: H1 the set-password link makes the person a viewer at every live instance of the organisation, not only the one that recognised the address, and the asks include non-live instances; M2 a pending invitation at an instance is demoted to viewer by the re-invite; M3 an unbounded fan-out anyone can trigger; M4 the ordinary forgot answer's timing reveals whether an account exists (older) | **high** | management `39aa2e5` (H1: only live instances of active team organisations asked, only those that said yes told, the others in a new state `none`; M2 no roles sent, pending a bind-only shape on the invite door from WS-A; M3 eight asks in flight and 2000 an hour per process; M4 the account holder's mail after the answer; L5 a conditional delete; L6 one transaction with the code put back on failure, a suffixed username when an old account holds the address; L7 the organisation's kind and status), `44edf3f` (L8, L9, the info items). Re-check: H1 not fully closed (the sign-in repair and a later instance still tell an instance with no record, viewer role, since `none` is written only for instances running at link time and not at all when none is left) and the tell after the commit can throw, leaving no record; the in-flight cap can be exceeded in a tick. Second follow-up: management `0152fde` (a reset membership marked `joinedVia` reset, an unrecorded instance `none` for it on every path; a throwing tell caught and left pending; the gate hands its slot on; the tell bind-only, a 404 recorded `none`), `85d0f14` (the tile's wording for `none`, no carry to a `none` instance, the README). Re-checked and closed on every path (Strapi 139, auth 378 / 328 / 5); the two lows fixed in `5490684` (a `none` from a bind-only miss drops the flag, so a re-invite is an ordinary invitation with roles; a re-invite clears the reset mark, so later instances reach the person; Strapi 141) |
 | WS-A | **Found by reading during the D33 re-check, pre-existing:** the storefront's public registration accepts `app_roles` from the request body and links them, so on a tenant with registration open a stranger could give themselves admin-level app roles | **high, confirmed** | consumer `59a53a7b` (addendum 32); **live in production until deployed** |
-| WS-A | D33's rule "every other role is back-office" fails open for a customer role a merchant creates and sets as the storefront's default; an empty role type counts differently at the doors and in the shells | medium | WS-A: a named back-office list that fails closed (in progress) |
+| WS-A | D33's rule "every other role is back-office" fails open for a customer role a merchant creates and sets as the storefront's default; an empty role type counts differently at the doors and in the shells | medium | consumer `fc2de6ee` (addendum 33); the shells and New User matching it with WS-B |
 | WS-B | D19's M1 the callback confirms a row without checking that management holds the address as verified and equal to the row's; M2 the refusal pages have no "Try again" at all; L3 the confirmation is not conditional on still-unconfirmed and not-blocked and not in one transaction with its audit; L4 test gaps; L5 the mailed set-password link survives (decision 33); L8 D25's baseline is the first answer, not the refused profile | medium | consumer `ebf6d41b` (M1, L3, L4, L5, I6), `4d9f2523` (M2), `9aa4d3e5` (L8), `1ed304ff` (the hub's handoff uses the same rule) |
 
 ## 4. The journeys
@@ -1635,3 +1635,37 @@ whether any customer row holds app roles it should not, is a production
 read that waits on your go in the Infra session, as the role-type count
 does. The commit can be deployed on its own ahead of the rest of round
 three.
+
+## Addendum 33: the fail-closed role rule (WS-A continued)
+
+Consumer `fc2de6ee` on `dev` and `main`, by a second builder on another
+model after the first was cut off by the model's weekly limit; the cut-off
+builder's uncommitted diff was kept and folded in. The section "Round
+three, the registration hole and the fail-closed roles" is in
+[one-sign-in-ws-a.md](one-sign-in-ws-a.md) (records `5c915e5`). Suites:
+tenants doors 35, auth doors 119 (callback 65, credential doors 29,
+break-glass 18, hub-roles 3, register 4), the realm pages 55; the core's
+handoff 30, operator 7, new-user-role 6 under the test-only preload.
+
+Three lists in `api/core/src/auth/up.js`, in order of precedence:
+`REFUSED_ROLE_TYPES` (`admin`, the legacy super-admin type), then
+`BACK_OFFICE_ROLE_TYPES` (`rutba_app_user`, `staff`, `rutba_rider_user`),
+then `CUSTOMER_ROLE_TYPES` (the storefront's four plus the tenant's
+`advanced.default_role`, read per call); anything else (an unknown, empty
+or NULL type, or no role) is of no kind and refused by management's doors
+and by the storefront's paths, each miss logged with the row id, a digest
+and the type. A merchant-made default customer role is therefore always a
+customer. Every door was run with a Staff row, a rider row, an admin row,
+a merchant-made default customer row, an empty-type row, an untyped row
+and a role-less row: verify, set, exists, bind_only, the invite door
+(`409 ROLE_REFUSED`, `409 ROLE_UNKNOWN`, nothing made beside), the
+callback, the hub, both sign-ins, both resets, the owner grant; the
+register door refuses a back-office or refused default role.
+
+With WS-B: the hub's and callback's check for a subject held outside the
+back office uses the strict customer finder, so a no-kind row an older
+door bound could reach the subject index as a raw error; the shells'
+shared module must read the back-office list (staff and rider told an
+administrator must set the role, everything else, admin included, the
+plain refusal); New User must stop offering `admin`; the deploy's count
+must include role-less and untyped rows and the move must exclude `admin`.
