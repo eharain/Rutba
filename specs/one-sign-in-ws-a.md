@@ -1296,7 +1296,30 @@ The "before" core figures are plain `node --test` on this machine, with no prelo
 
 - Nothing was proven live, because the dev core is down. That covers the logout door over the gateway, a legacy-server registration, and the seed rewriting a real store. The extension was tested through the core's compat, with the store stubbed; the legacy server was not booted.
 - The legacy server's own `/api/auth/logout` is the plugin's and still wants a valid access token. On a tenant served by Strapi the idle-tab revoke still fails (the client retries once and gives up quietly). The realm's round trip is served by the core.
-- The authenticated logout path, `DELETE /api/auth/sessions/:id`, and Strapi's own session manager (which shares `strapi_sessions`) still end one row. The rotated parents stay and can mint a fresh child. That is parity with the reference, and changing it alters the authenticated contract, so it is left for the lead. The options are to use `revokeSessionChain` there too, or to have `rotateRefreshToken` refuse to re-mint once the recorded child is gone.
+- ~~The authenticated logout path, `DELETE /api/auth/sessions/:id`, and Strapi's own session manager still end one row, and the rotated parents can mint a fresh child.~~ Closed at the root by the follow-up below (consumer `1ea6d37b`): those contracts are unchanged, and their one-row delete is now enough for every refresh the core serves. A refresh served by legacy Strapi still runs the plugin's own rotation and can still re-mint.
 - A rotated refresh token sent to logout ends nothing. Accepting it would be looser than the agreed "validates", although holding one already yields its successor through rotation's re-issue.
 - The tenants-door smoke was not run end to end, because it creates throwaway databases on the dev database server.
 - `npm run migrate:status` cannot run pooled. That is not this stream's, and is only noted here.
+
+**Follow-up, the resurrection gap closed at its root** (consumer `1ea6d37b`). In `api/core/src/auth/up.js`, `rotateRefreshToken` now answers `invalid_refresh_token` in three cases:
+
+- a parent whose recorded child row is gone (its session was ended);
+- a row whose status is neither `active` nor `rotated`, such as a pending handoff code or context ticket under the same origin;
+- a rotated row that records no child.
+
+Re-issuing an existing child is unchanged, so tabs that share one session copy still refresh together (decision 39 changes that later).
+
+Nothing legitimate is stranded. Both expiry clean-ups, the core's `maybeCleanupExpired` and Strapi's `deleteExpired`, delete by `absolute_expires_at` alone. A child copies that value from its parent, so the two rows go together. A parent past its absolute expiry already answers `max_window_elapsed`, and idle expiry deletes nothing. Every other delete of a child row ends a session on purpose: logout, the sessions DELETE, a password change or reset, the operator's block.
+
+The authenticated logout, `DELETE /api/auth/sessions/:id` and legacy Strapi's logout keep their contracts. Their one-row delete is now sufficient for every refresh that reaches the core. `revokeSessionChain` stays on the refresh-token path: it also removes the rotated parents, so an access token minted from one of them before its rotation stops at once (`http/auth.js` admits a `rotated` row until that token expires).
+
+Tests, `console/api/auth/tests/logout.test.js` (6 → 9):
+
+- after the authenticated logout, the chain's three tokens are refused at `/api/auth/refresh` and nothing is minted;
+- the same after `DELETE /api/auth/sessions/:id` from another device, whose own session still refreshes;
+- in both, before the sign-out, two tabs refreshing the first token together are re-issued the same child;
+- a correctly signed token naming a pending handoff row, a pending context ticket or a revoked row is refused.
+
+All three fail on the previous code (200 where 401 is due).
+
+Counts: `console/api/auth/tests` 135 of 135, `console/api/tenants/tests` 35 of 35, `handoff` 32 of 32, `up-builtin-models` 10 of 10, `new-user-role` 7 of 7, `npm run test:individual-mode` 64 of 64. Nothing was skipped.
