@@ -327,6 +327,100 @@ core migration this round.
 WS-B gates the Sign key and policy reads before WS-A offers Sign; WS-E lands
 C11's issue/verify before WS-C's worker writes a key.
 
+## The app catalogue an instance may install (2026-10-09)
+
+Asked for by the consumer session's roadmap reset (admin-console spec 01): the
+launcher should follow the tenant's own apps, and the consumer half was waiting
+to be told what management would send. This is that, and the two findings that
+came with it.
+
+**C13 — the app catalogue.** Management owns `installed`; the instance owns
+`enabled`. That line is the whole contract: whether a customer is entitled to
+an app is a commercial fact the control plane holds, and whether their
+administrator has switched it on is theirs and is never overwritten from here.
+
+The door is `PUT /api/tenants/:db/apps` on the instance's core, behind the
+management-token verifier and the `tenants:admin` scope the invite and
+platform-keys doors already use (C12 — no new scope, and the scope set in
+`auth/src/domain/tokens/service-token.js` is closed on purpose).
+
+```json
+{
+  "revision": 7,
+  "apps": [
+    { "key": "hr",  "installed": true,  "source": "licence",  "seats": 25,   "entitlements": ["erp.hr"] },
+    { "key": "crm", "installed": false, "source": "operator", "seats": null, "entitlements": ["erp.crm"] }
+  ]
+}
+```
+
+- **`revision`** rises by one per instance per send. The core applies a higher
+  revision and answers `409 STALE_REVISION` with its current one for anything
+  else, so a retry and an out-of-order delivery are both safe without the
+  sender having to reason about either.
+- **The list is complete.** An app absent from it is not installed. A partial
+  list cannot express uninstalling one, and a protocol that can only add is a
+  protocol where a withdrawn app stays on somebody's launcher for ever.
+- **`installed`** is computed from the licence, then from any operator
+  allowance (`estate.instance-app.allowed`), which wins in both directions.
+- **`source`** is `licence` or `operator`, so the instance can word its own
+  screen honestly rather than implying a purchase that was a favour.
+- **`seats`** is the licence cap or `null`. Null is no cap: unlimited is
+  expressed by the absence of one, never by a large number.
+- **`entitlements`** are the keys that grant the app, so the instance's own
+  entitlement gate keeps working off keys and needs no second vocabulary.
+
+Answered `200 { applied, installed }` or `409 { code: "STALE_REVISION", at }`.
+
+**When management sends it.** Four triggers, and the first three are the ones
+that matter:
+
+1. a licence is issued, changed or revoked — the `subscription.*` reaction
+   already runs on that event;
+2. an operator changes an allowance in the console
+   (`POST /api/console/estate/consumers/:orgId/apps/:appKey`);
+3. the instance asks, which a core that has just booted needs;
+4. the daily reconciliation, as a backstop for the three above.
+
+Told until acknowledged, recorded per instance the way `estate/instance-tell.js`
+records a member: a state, attempts and a next try, so an unreachable core is
+retried rather than logged and dropped.
+
+**What the instance must NOT infer.** An app that is installed is not an app
+anybody may open: entitlement keys still gate the request path, and roles still
+gate the person. `installed` decides whether an administrator can offer it at
+all.
+
+## The feedback channel: nothing serves it (2026-10-09)
+
+The consumer session asked which side serves `/v1/feedback`, `/v1/channel/pull`
+and `/v1/announcements` in production. The answer is neither, and it is worth
+recording because both halves look present:
+
+- management Strapi holds the **tables** — `support/feedback-request`,
+  `feedback-comment`, `feedback-event`, `feedback-vote`, `announcement`,
+  `announcement-delivery`, `announcement-response`, `notification*` — and has
+  **no routes for any of them**: `api/support/routes/` is `contact.js` and
+  `contact-staff.js`, nothing more;
+- the gateway maps only `/api` to management Strapi
+  (`devkit/services.json`, the `management-strapi` entry), so `/v1/feedback`,
+  `/v1/channel/pull` and `/v1/announcements` reach nothing at all;
+- the management console calls them through the gateway all the same
+  (`console-api.ts`, `asStaff` on `/v1/feedback/admin/*` and
+  `/v1/announcements/admin`), which is why those pages fail rather than
+  showing an empty list.
+
+So this is not a choice between Strapi and a legacy service: the legacy service
+is gone and the Strapi doors were never built. Whoever takes it adds the gates
+beside the tables that are already there.
+
+**FB-1 confirmed.** `portal:instance-relay` is minted by nothing. The scope set
+is closed at three — `session:handoff`, `tenants:admin`, `identity:credential`
+(`SERVICE_SCOPES`) — and the comment above it says nothing else is ever minted
+there. A feedback relay either takes a fourth scope added deliberately, or
+rides `tenants:admin` on the tenants door, which is the cheaper of the two and
+the one C13 uses.
+
 ## One sign-in, round one (2026-09-24)
 
 The owner's direction of 2026-09-24 and its plan are in
