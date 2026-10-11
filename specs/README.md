@@ -25,7 +25,7 @@ contract; it names it by its number here.
 4. **Role sets are exclusive by mode.** Individual mode never grants
    admin/manager/staff to a customer; an organisational instance never grants
    the individual level.
-5. **Rutba staff act as operators.** A person signed in at the management
+5. **Rutba staff act as operators.** (Traced 2026-10-11 in specs/DECISIONS.md D-2026-09-22-05: the owner's words were "management console user to have consumer consoles admin access to perform specific admin task for individuals"; "through the identity bridge" and "never through a password there" were added by the session and await the owner.) A person signed in at the management
    console may open the individual instance's console as an operator for
    specific administrative tasks, through the identity bridge, never through a
    password there.
