@@ -57,15 +57,18 @@ that created management accounts, the "claim".)
 
 At auth.rutba.io, address then password, exactly as today. On the password step:
 
-1. Management first. If the address has a management account, it is an ordinary
-   management sign-in: the password is checked there, with MFA and the hand-back.
-   A wrong password stays "That did not work", and the shop is never asked. This
-   way an instance password can never open a management account.
-2. Otherwise (Strapi reports, server to server only, that no account has the
-   address): auth asks the consumer core with the same check the realm form uses
-   today (`/api/auth/local/any`: back-office rows, every tenant or the one named,
-   the same brake and timing). It does so through a NEW server-to-server door,
-   `POST {CONSUMER_CORE}/api/auth/handoff/password`:
+1. Management first (owner, 2026-10-11: "in auth.rutba.io it should call
+   management console auth if fails it calls consumers auth"). If the management
+   sign-in succeeds, it is an ordinary management sign-in: MFA where a factor
+   exists, then the hand-back. A shop password never opens a management account;
+   it only ever opens that shop's session.
+2. If the management sign-in fails (no account, or a wrong password), auth asks
+   the consumer core with the same check the realm form uses today
+   (`/api/auth/local/any`: back-office rows, every tenant or the one named, the
+   same brake and timing). A management failure that needs the person to act
+   (unconfirmed address, blocked account) is still tried at the shop; if the shop
+   also refuses, the management message is the one shown. The call goes through
+   a NEW server-to-server door, `POST {CONSUMER_CORE}/api/auth/handoff/password`:
    - bearer: a management service token with scope `session:handoff`, minted by
      auth as for C5;
    - body: `{email, password, db?, authorize, state}`, where `authorize` is the
@@ -89,7 +92,14 @@ At auth.rutba.io, address then password, exactly as today. On the password step:
    - Signed in at auth.rutba.io directly: to the realm's
      `/authorize?code=<code>&tenant=<db>&state=`, which already redeems C5
      codes, landing on the realm's launcher.
-4. auth keeps no session for an instance-only person. They are not a management
+4. **The person can choose one kind only** (owner: "to make it exclusive it can
+   give a little is user a choice to try only one type of login as a fallback").
+   The password page carries a small, quiet choice under the button:
+   "Sign in with: Automatic (Rutba account, then shop account) / Rutba account
+   only / Shop account only". Automatic is the default. The choice is remembered
+   for that browser (a first-party cookie on auth.rutba.io, like the realm hint),
+   and it never shows which accounts an address has.
+5. auth keeps no session for an instance-only person. They are not a management
    user and get no hub, consoles or MFA. Signing out at the realm ends the core
    session as it does today.
 
@@ -155,8 +165,9 @@ demos' owners get one in theirs (the demo registry on VPS 2 names them).
 ## Testing
 
 Unit and integration tests in both repos for the shop-password sign-in: match, no
-match, an address in two shops, an address that has a management account (the shop
-is never asked), braking, timing parity, the code's single use and its binding to
+match, an address in two shops, management first then the shop on a management
+failure, the "Rutba account only" and "Shop account only" choices, braking, timing
+parity, the code's single use and its binding to
 the realm's origin and state. Also the door's 410s and the routing rules. Then a journey for each kind of person on dev,
 and on production after the release, by the two production testers:
 
