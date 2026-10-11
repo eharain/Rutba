@@ -147,6 +147,44 @@ demos' owners get one in theirs (the demo registry on VPS 2 names them).
 - The refusal pages stay in the realm (they need the realm's session), each with
   a way back to auth.rutba.io and to another identity.
 
+#### The consumer reset (D-2026-10-11-21, session-proposed)
+
+The owner reported that every consumer invite and reset email in production
+links to the realm's own set-password page (`/login?code=<instance
+code>&invited=1`), which goes at the release. The first build pointed the mails
+at auth.rutba.io's `/forgot` with no code, but that page's round-three reset
+makes a MANAGEMENT account for an address only an instance knows, which
+D-2026-10-11-10 rules out. So a consumer account sets and resets its own
+password at auth.rutba.io, and no management account is made:
+
+- The mails (the tenants door's invite and owner mail, the instance console's
+  own invitation, the operator's link) carry a code of the instance's own,
+  good for a week, to `<issuer>/consumer/reset?code=<code>&invited=1`, with
+  the "Sign in" link beside it. A reset mail's code is good for an hour. A
+  code mailed before the release has no expiry and works until used.
+- `/consumer/reset` ("Set your password" for an invitation, "Choose a new
+  password" otherwise; the password twice) hands the code and the password to
+  the core's `POST /api/auth/handoff/reset`, server to server with the
+  `session:handoff` token naming nobody. The core sets the password, confirms
+  the row and answers a one-use C5 code; the browser goes to
+  `<realm>/authorize?code=&tenant=&state=/` and lands on the launcher, signed
+  in. Expired, used and unknown codes are one answer; a refused password
+  leaves the code; a blocked row is refused; a password needs 8 characters.
+- auth.rutba.io's `/forgot` honours the "Sign in with" choice: management only
+  is today's reset; consumer only is the core's `POST
+  /api/auth/handoff/forgot` (the instance's own reset mail); automatic is
+  both. The page is the same whichever ran and for any address. Round three's
+  reset runs only under management only (Strapi is told `askInstances: false`
+  otherwise).
+- The realm's old `/login?code=<code>[&invited=1]` forwards to
+  `<issuer>/consumer/reset?code=<code>[&invited=1]`, and `?prompt=reset` to
+  `<issuer>/forgot?kind=consumer`, so links already sent keep working after the
+  release.
+
+Built on dev: consumer d7698ce7, c02065b4, cf6e953d, fad75574; management
+e2f5d61, 84cb050, 06bca8f. Release order: Strapi before or with auth (an older
+Strapi ignores `askInstances`), and the fleet's core and realm with them.
+
 ### D. The right console and the right instance
 
 - After sign-in at auth.rutba.io with no destination: one place goes straight
@@ -168,7 +206,7 @@ Unit and integration tests in both repos for the consumer-password sign-in: matc
 match, an address in two instances, management first then the consumer on a
 management failure, the "Management account only" and "Consumer account only" choices, braking, timing
 parity, the code's single use and its binding to
-the realm's origin and state. Also the door's 410s and the routing rules. Then a journey for each kind of person on dev,
+the realm's origin and state. Also the door's 410s and the routing rules, and the consumer reset: a password set from an invitation's code and signed in, a reset from a forgot mail, an expired and a reused code, the forgot answer the same across the three choices and for an unknown address, no management account for a consumer-only person, and old realm links forwarding. Then a journey for each kind of person on dev,
 and on production after the release, by the two production testers:
 
 - operator, partner, account holder
