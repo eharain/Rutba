@@ -36,46 +36,76 @@ What production showed (read-only, 2026-10-11):
    and reset pages). It stays until the release so staff are not locked out
    meanwhile.
 3. **Staff without a working email must still get in.** The owner asked for
-   passwords to be set for them; agents do not set or type passwords, so instead a
-   person's existing instance password sets up their Rutba sign-in on first use
-   (below). No email is needed at any point.
+   passwords to be set for them; agents do not set or type passwords. Then the
+   owner's own direction (later the same day): "to make the consumer login work
+   from auth.rutba.io all it needs to give same api a call as
+   auth.consumers.rutba.io is doing and generate the tokens". So shop staff keep
+   their shop (instance) accounts and passwords and need NO management account:
+   auth.rutba.io signs them in against their shop (section A). No email is needed
+   at any point.
 4. **Shop customers keep signing in on the shop** (decision 35 stands). The
    storefront's NextAuth is untouched.
 
 ## The design
 
-### A. First sign-in with an instance password ("claim")
+### A. Shop staff sign in at auth.rutba.io with their shop password
 
-At auth.rutba.io, address then password, exactly as today. When Strapi's sign-in
-finds **no management account** for the address:
+This is the owner's direction: auth.rutba.io makes the same sign-in call the
+consumer realm makes today, and the session it produces is handed to the apps. No
+management account is created for shop staff. (This replaces an earlier draft
+that created management accounts, the "claim".)
 
-1. Strapi asks the registered instances whether they know the address
-   (the existing `people/exists` door, the `askableInstances` set and brakes from
-   `estate/instance-reset.js`).
-2. For each that says yes, Strapi asks the instance whether the typed password is
-   that row's password: a NEW consumer door, `POST /api/auth/credential/check`
-   `{db, email, password}` -> `{match: true|false}`. Back-office rows only, braked
-   per address and database like `verify`, audited, no binding, no session. Scope
-   `identity:credential` on a service token that names no person (`check` is the
-   one W1 action that needs no `sub`).
-3. If at least one instance matches: in one transaction Strapi creates the
-   management account with the typed password (confirmed: the instance vouches for
-   the address, `joinedVia: 'claim'`) and a membership in each matching instance's
-   organisation. Then it binds the instance rows to the new subject with the
-   existing invite door, `bind_only: true` (`tellOnInvite`). Instances that did not
-   match are recorded `none` as round three does.
-4. The sign-in then continues as an ordinary management sign-in (MFA where a
-   factor exists, the session, the hand-back).
+At auth.rutba.io, address then password, exactly as today. On the password step:
 
-If no instance matches, the answer is the same "That did not work" as any wrong
-password, at the same pace. Claim is never offered for an address that already has
-a management account, so it cannot be used to take one over. The exposure equals
-today's realm form, which this removes.
+1. Management first. If the address has a management account, it is an ordinary
+   management sign-in: the password is checked there, with MFA and the hand-back.
+   A wrong password stays "That did not work", and the shop is never asked. This
+   way an instance password can never open a management account.
+2. Otherwise (Strapi reports, server to server only, that no account has the
+   address): auth asks the consumer core with the same check the realm form uses
+   today (`/api/auth/local/any`: back-office rows, every tenant or the one named,
+   the same brake and timing). It does so through a NEW server-to-server door,
+   `POST {CONSUMER_CORE}/api/auth/handoff/password`:
+   - bearer: a management service token with scope `session:handoff`, minted by
+     auth as for C5;
+   - body: `{email, password, db?, authorize, state}`, where `authorize` is the
+     realm origin and `state` is the realm's own state.
+   - Answers:
+     - 200 `{code, db}`: a C5 handoff code, one use, about 2 minutes, bound to
+       that authorize origin and state. No token ever travels in a URL.
+     - 409 `TenantChoiceRequired` `{tenants:[{db, name}]}`: auth shows "which
+       shop?" and posts again with `db`.
+     - 401: auth shows the same "That did not work", at the same pace as a wrong
+       management password.
+3. On 200, auth sends the browser to the realm:
+   - Signed in through the realm's OIDC round trip (the common case, from any suite
+     app): to the realm's `/auth/callback?handoff=<code>&tenant=<db>&state=<the
+     realm's state>`. auth reads the realm's redirect and state from the OIDC
+     interaction it is serving, then ends that interaction (abort).
+   - The realm's callback takes its pending transaction for that state (it knows
+     the app the person came from), redeems the code with the existing
+     `POST /api/auth/handoff/redeem {code, db, state}`, and continues to the app
+     exactly as after a management sign-in.
+   - Signed in at auth.rutba.io directly: to the realm's
+     `/authorize?code=<code>&tenant=<db>&state=`, which already redeems C5
+     codes, landing on the realm's launcher.
+4. auth keeps no session for an instance-only person. They are not a management
+   user and get no hub, consoles or MFA. Signing out at the realm ends the core
+   session as it does today.
+
+The exposure equals today's realm form, which this replaces: the same check
+behind the same brake, now reached only from auth.rutba.io's server.
+`/api/auth/local/any` itself then answers 410 for browsers (section C). The
+password door is the same check, reachable only with a `session:handoff`
+service token.
 
 ### B. Register what exists (data, at the release)
 
-A script in management (`api/legacy/strapi/scripts/`), dry run first, then apply.
-It creates, idempotently:
+Shop staff signing in with a shop password do not need this: the core searches its
+own tenants. It is needed for MANAGEMENT users who also work in a shop (the owner,
+the demo owners), so that auth and the hub know their workspaces and the realm can
+resolve their database. A script in management (`api/legacy/strapi/scripts/`), dry
+run first, then apply. It creates, idempotently:
 
 | Organisation (team) | Instance (`tenantRef`) | Domain claim |
 |---|---|---|
@@ -88,7 +118,7 @@ It creates, idempotently:
 Each instance gets the descriptors the fleet already serves: `url` and `api` =
 `https://auth.consumers.rutba.io` (the core), `authorize` = the realm origin,
 `handoff: true`, product = the suite's back-office product, status active, live.
-The rutba.pk domain claim stays off until claim is proven, because a claimed
+The rutba.pk domain claim stays off until the one door is proven, because a claimed
 domain changes discovery for every @rutba.pk address.
 
 The owner's own management account gets an owner membership in rutba-pk. The
@@ -124,14 +154,15 @@ demos' owners get one in theirs (the demo registry on VPS 2 names them).
 
 ## Testing
 
-Unit and integration tests in both repos for claim (match, no match, two
-instances, an already-existing account, braking, MFA on the new account), the
-door's 410s, and the routing rules. Then a journey for each kind of person on dev,
+Unit and integration tests in both repos for the shop-password sign-in: match, no
+match, an address in two shops, an address that has a management account (the shop
+is never asked), braking, timing parity, the code's single use and its binding to
+the realm's origin and state. Also the door's 410s and the routing rules. Then a journey for each kind of person on dev,
 and on production after the release, by the two production testers:
 
 - operator, partner, account holder
 - rutba.pk owner, rutba.pk cashier, rutba.pk staff without a working email
-  (claim), a person in two shops, a demo owner
+  (shop password at auth.rutba.io), a person in two shops, a demo owner
 - a storefront customer (unchanged), and a person with no access (refused
   everywhere)
 
