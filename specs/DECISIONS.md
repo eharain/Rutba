@@ -24,11 +24,17 @@ clause the owner never said. This register is the remedy.
 Status values: `owner` (the owner's own words), `session-proposed` (awaiting the
 owner), `superseded`.
 
+## 2026-10-12, session fd9367b5 (blog)
+
+| Id | Decision | The owner's words | Status | Recorded in |
+|---|---|---|---|---|
+| D-2026-10-12-03 | Settles the hold on D-2026-10-12-01: TrustList's URLs may go on the rutba.io blog only, and nowhere else on the sites. The blog posts written under D-2026-10-12-01 and -02 carry their links again; the rest of the 2026-09-02 rule stands (no other page, no About text, no other site). | About 19:14 UTC, unprompted, after the blog session reported the hold and asked whether rutba.io may link to TrustList's pages: "the trustlist url can go in blog only" | owner | rutba.io blog (the three posts restored from management e3b9781); memory tech-style-holding-and-brands |
+
 ## 2026-10-12, session 988ebd04 (portal content)
 
 | Id | Decision | The owner's words | Status | Recorded in |
 |---|---|---|---|---|
-| D-2026-10-12-01 | rutba.io may link to TrustList's pages about Rutba products. This amends the 2026-09 rule that the trade names reference each other only on tech-style.co ("we can use these separate trade names on their own... only the tech-style.co website has their references, we don't find it helpful at other places"). | About 14:30 UTC, answer to "Another session says you asked (12 Oct) for rutba.io articles that link to TrustList's pages about Rutba products. Your recorded rule is that the brands only reference each other on tech-style.co. Should rutba.io carry those links?": "Yes, write them" | owner, held | memory tech-style-holding-and-brands. **Held at 14:38 UTC:** session 08a71161 (TrustList) reports the owner answered there, the same day, to keep the 2026-09-02 rule (cross-references only on tech-style.co). The two answers conflict, so nothing linking TrustList is published until the owner settles it in one place. |
+| D-2026-10-12-01 | rutba.io may link to TrustList's pages about Rutba products. This amends the 2026-09 rule that the trade names reference each other only on tech-style.co ("we can use these separate trade names on their own... only the tech-style.co website has their references, we don't find it helpful at other places"). | About 14:30 UTC, answer to "Another session says you asked (12 Oct) for rutba.io articles that link to TrustList's pages about Rutba products. Your recorded rule is that the brands only reference each other on tech-style.co. Should rutba.io carry those links?": "Yes, write them" | owner, held, then settled by D-2026-10-12-03 (the blog only) | memory tech-style-holding-and-brands. **Held at 14:38 UTC:** session 08a71161 (TrustList) reports the owner answered there, the same day, to keep the 2026-09-02 rule (cross-references only on tech-style.co). The two answers conflict, so nothing linking TrustList is published until the owner settles it in one place. |
 | D-2026-10-12-02 | How the links are written: real articles first, two to four plain links each, no claim that TrustList is independent press or an independent review, no nofollow and no tracking parameters, no long dashes. The chosen option's text described two or three articles with two to four links and "nothing that calls TrustList independent". The rest came from the TrustList session's request. | (the option chosen in D-2026-10-12-01) | session-proposed | rutba.io posts of 2026-10-12 |
 
 ## 2026-10-11, session 140cc7e4 (Infra)
