@@ -37,6 +37,12 @@ owner), `superseded`.
 | D-2026-10-12-01 | rutba.io may link to TrustList's pages about Rutba products. This amends the 2026-09 rule that the trade names reference each other only on tech-style.co ("we can use these separate trade names on their own... only the tech-style.co website has their references, we don't find it helpful at other places"). | About 14:30 UTC, answer to "Another session says you asked (12 Oct) for rutba.io articles that link to TrustList's pages about Rutba products. Your recorded rule is that the brands only reference each other on tech-style.co. Should rutba.io carry those links?": "Yes, write them" | owner, held, then settled by D-2026-10-12-03 (the blog only) | memory tech-style-holding-and-brands. **Held at 14:38 UTC:** session 08a71161 (TrustList) reports the owner answered there, the same day, to keep the 2026-09-02 rule (cross-references only on tech-style.co). The two answers conflict, so nothing linking TrustList is published until the owner settles it in one place. |
 | D-2026-10-12-02 | How the links are written: real articles first, two to four plain links each, no claim that TrustList is independent press or an independent review, no nofollow and no tracking parameters, no long dashes. The chosen option's text described two or three articles with two to four links and "nothing that calls TrustList independent". The rest came from the TrustList session's request. | (the option chosen in D-2026-10-12-01) | session-proposed | rutba.io posts of 2026-10-12 |
 
+## 2026-10-13, session 140cc7e4 (Infra)
+
+| Id | Decision | The owner's words | Status | Recorded in |
+|---|---|---|---|---|
+| D-2026-10-13-01 | Republish rutba.io now from the current management tip, ahead of the release. Its pages describe the one-door sign-in, the Affiliate Program's sign-off and shop codes, the app catalogue and some Books and Sign items before they are live in production. | Message: "rutba.io contents are refreshed and need republishing as well". Answer to "How should rutba.io be republished, given some of its new content describes work that only goes live with the release?": "Publish now as is" | owner | control-plane-deploy-state |
+
 ## 2026-10-11, session 140cc7e4 (Infra)
 
 | Id | Decision | The owner's words | Status | Recorded in |
