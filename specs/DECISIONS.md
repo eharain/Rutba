@@ -42,6 +42,7 @@ owner), `superseded`.
 | Id | Decision | The owner's words | Status | Recorded in |
 |---|---|---|---|---|
 | D-2026-10-13-01 | Republish rutba.io now from the current management tip, ahead of the release. Its pages describe the one-door sign-in, the Affiliate Program's sign-off and shop codes, the app catalogue and some Books and Sign items before they are live in production. | Message: "rutba.io contents are refreshed and need republishing as well". Answer to "How should rutba.io be republished, given some of its new content describes work that only goes live with the release?": "Publish now as is" | owner | control-plane-deploy-state |
+| D-2026-10-13-02 | Office 1.47.0 (management 555510dd) is not deployed on its own. The whole release goes out once the two fix sessions started today from production test run 2 (consumer-run2-fixes, mgmt-run2-fixes) have finished, with the Office builds still coming carried in the same release. Session-proposed reading: the release then builds office.rutba.io from the management tip like every other site, not as an Office-only overlay, and starts after their commits are checked. | Answer to "The Office session asks to update office.rutba.io to Rutba Office 1.47.0 ... Deploy it now?" (options "Deploy, Office only" / "Not now"), given as free text at 12:41 UTC: "wait for your results and then deploy every thing. there are more builds on office that are coming . this can help move all together" | owner (reading session-proposed) | control-plane-deploy-state |
 
 ## 2026-10-11, session 140cc7e4 (Infra)
 
