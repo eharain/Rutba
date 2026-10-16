@@ -1,4 +1,6 @@
-# Estate rollout: the portal content's part of the deploy request (draft, waiting for the owner's go)
+# Estate rollout: the portal content's part of the deploy request (superseded, nothing left to send)
+
+**Superseded on 2026-10-16.** Everything below went out in the release of 2026-10-13 (management a355ff57, consumer e124a845, workers a1cfed7; D-2026-10-13-25) and in the site deploys after it, the latest at management fbe2815f on 2026-10-15 (D-2026-10-15-05 and -06). A go relayed on 2026-10-16 ("please pass go to every one waiting for the go") found nothing here still waiting. The owner decisions listed at the end are decisions, not deploys, and stay open where they are not settled in specs/DECISIONS.md (TrustList links: settled by D-2026-10-12-03).
 
 Written by the portal-content session. It covers three content rounds:
 - 2026-10-09, after the owner asked for "a proper review" of the portal content: "there are more apps that are now available in consumer space as well large scale upgrades in our free office suite";
