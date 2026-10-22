@@ -1,7 +1,8 @@
 # Data Files: people, protection and one database on many computers
 
-Status: design. The owner's choices of 2026-10-22 are in (the last section);
-the sections above are written to them.
+Status: design. The owner's choices of 2026-10-22 are in (the last section),
+with the owner's later change the same day: database engines, not Office
+computers, hold the records when a database is shared.
 Owner's direction, 2026-10-22: "the data files , user should be able password
 protect tables and other items so the admin and workers can see things
 differently. the feature will need better designing to make the system more
@@ -76,40 +77,46 @@ real, not a lock drawn over data that is on the disk anyway.
   on makes the admin save a recovery key, printed or kept as a file, and says
   plainly that without both, the database cannot be opened.
 
-## One database on many computers: servers and clients
+## Sharing through a database engine (replaces servers and clients)
 
-- **Set up by the admin.** On the computer that has the database: Database >
-  Serve this database. That computer becomes its server. The admin then adds
-  each client computer, by its name on the network or its address, and says
-  which people may use it. Nothing joins on its own.
-- **Every computer runs its own server.** Rutba Office on each computer
-  listens on the network (a TCP or HTTP port the admin can change), so the
-  server can reach a client to tell it what changed and a client can reach
-  the server, whichever side starts.
-- **Found by name or address.** Computers on the same network are found by
-  name; any computer can be given by its address (IP and port) instead.
-- **Each side knows who it is talking to.** When the admin adds a client,
-  the two computers exchange keys (shown as a short code on both screens to
-  compare, the way a phone pairs). From then on every connection is encrypted
-  and both ends check the other's key, so a computer that was not set up,
-  or one pretending to be the server, is refused. The server shows which
-  computers are connected and who is signed in on each; a client shows which
-  server it is on.
-- **Live.** Every save goes to the server, which applies it under the
-  person's role and tells every connected client what changed, so open
-  tables, forms and reports update in place. Two people changing the same
-  record: the second sees that it changed under them and what the first
-  person saved, and chooses.
-- **Not master and master.** There is one server for a database and every
-  change goes through it. Two computers each changing their own copy and
-  merging later (master to master) is not the design; the owner weighed it
-  and chose servers and clients set up by an admin.
-- **Across the internet.** A client away from the office reaches the server
-  by its address where the network allows it. Where it does not, the
-  connection can go through Rutba Talk's introducer and relays the way calls
-  do, still encrypted end to end so Rutba cannot read it, following
-  D-2026-10-20-11 (a participant's computer first, Rutba servers only when
-  neither can carry it). This is a later step.
+The owner, 2026-10-22, changed the way a database is shared: "as far the
+file distribution is concerned i have changed my mind and now we will build
+data sync support with database engines and other sources  and with live
+options and making database engine as  master record holder. if some one
+needs distribution they can setup a database engine centrally". Office
+computers no longer serve each other; the section that described that is
+replaced by this one.
+
+- **The engine holds the records.** A Data Files database can be connected
+  to a database engine (PostgreSQL, MySQL or MariaDB, Microsoft SQL Server,
+  to start). The engine is the master: what it holds is the truth, and every
+  computer that needs the records connects to it. An office that wants many
+  computers on one database sets an engine up centrally (on a server of its
+  own, or a hosted one) and points each copy of Data Files at it.
+- **Live.** Tables linked live are read from and written to the engine
+  directly: a record one person saves is in the engine at once, and the
+  others see it as their view refreshes (or at once, where the engine can
+  say what changed, such as PostgreSQL's LISTEN and NOTIFY).
+- **Synced.** A table can instead be kept as a copy in the .rbase file and
+  synced with the engine: changes made here go to the engine, the engine's
+  come back, and when both changed the same record the engine's version
+  wins and the person is shown what they had. A copy can be worked on while
+  the engine is out of reach.
+- **Other sources.** Beyond engines, a table can be fed from another source
+  (a spreadsheet or CSV file at a path or address, a Google Sheet, another
+  Data Files database, a web API returning JSON), read on a schedule or on
+  demand, the source being the master in the same way.
+- **Office's side stays the same.** Queries, forms, reports and print
+  templates work on linked and synced tables as on local ones; the design
+  of a linked table is the engine's, shown read only.
+- **Who may do what.** With an engine as master, the engine's own accounts
+  and grants are what protect the records; Data Files signs in to the
+  engine as the person (or as the database's connection with the person's
+  role applied, see the questions below). The roles of step 1 still narrow
+  what a person sees in the window.
+- **Connection details** (address, database, account) are kept with the
+  .rbase; the password in the operating system's credential store, never in
+  the file.
 
 ## Built in steps, each one shippable
 
@@ -124,11 +131,18 @@ as people come with step 3.
    Useful at once on a shared office PC.
 2. **Encryption on disk** as the admin's option, the recovery key, and
    change of password.
-3. **Servers and clients on the office network**: Serve this database, adding
-   clients by name or address, the key exchange, live updates, the
-   same-record rule. Rutba accounts as people, beside names in the database.
-4. **Across the internet**: by address, and through Talk's introducer and
-   relays where a direct connection cannot be made.
+3. **A table linked live to a database engine**: Connect to an engine
+   (PostgreSQL, MySQL or MariaDB, SQL Server), link its tables, read and
+   write them in place; the engine's design shown read only.
+4. **Synced copies**: a table kept in the file and synced with the engine,
+   the engine winning a clash, worked on while the engine is out of reach.
+5. **Other sources**: spreadsheets and CSV files at a path or address,
+   Google Sheets, other Data Files databases, and web APIs returning JSON,
+   read on a schedule or on demand.
+
+(Servers and clients between Office computers, and the route through Talk's
+relays, were the plan until the owner's change of 2026-10-22 above; they are
+not built.)
 
 Each step has its engine tests and window checks like the rest of Data Files,
 and the samples get roles in step 1.
@@ -153,3 +167,24 @@ and the samples get roles in step 1.
 Open, for the owner when step 3 is built: whether a client may keep working
 on its own records while the server is unreachable and send them when it is
 back (a narrow form of what the first answer described), or only wait.
+
+**Superseded the same day.** Choices 3 and 4 (servers and clients set up by
+an admin, each computer serving the others) gave way to the owner's change
+quoted in "Sharing through a database engine": the engine is the master
+record holder, with live and synced options, and distribution is an engine
+set up centrally. Choices 1 and 2 stand.
+
+**The owner's choices for engines (2026-10-22, later the same day):**
+
+1. **Engines first:** PostgreSQL, MySQL or MariaDB, and Microsoft SQL Server
+   (answers "PostgreSQL (Recommended)", "MySQL / MariaDB (Recommended)",
+   "Microsoft SQL Server").
+2. **Live first** ("Live first (Recommended)"): tables read and written
+   straight in the engine; synced copies follow.
+3. **Who decides what each person may do with an engine:** open. The owner:
+   "lets decide later but we will not change the data  file behaviour". So
+   a database that is not linked to an engine, and the protection of step 1,
+   work exactly as they do now; nothing about the .rbase file changes for
+   this.
+4. **Other sources, all four:** spreadsheets and CSV files, Google Sheets,
+   other Data Files databases, and web APIs returning JSON.
