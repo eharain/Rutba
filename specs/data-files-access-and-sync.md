@@ -131,6 +131,13 @@ as people come with step 3.
    Useful at once on a shared office PC.
 2. **Encryption on disk** as the admin's option, the recovery key, and
    change of password.
+(Step 3 for PostgreSQL is built on Office main for 2.17, 2026-10-22: engine
+and service 657c4cb, window 79a0df6, live re-reading every 15 seconds
+d07fef2. Records are read into a TEMP table per window, never the file;
+writes go to the engine by primary key; relationships with linked tables
+join queries without a foreign key. MySQL or MariaDB and SQL Server are
+listed as coming: they need test servers first.)
+
 3. **A table linked live to a database engine**: Connect to an engine
    (PostgreSQL, MySQL or MariaDB, SQL Server), link its tables, read and
    write them in place; the engine's design shown read only.
