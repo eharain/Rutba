@@ -113,6 +113,12 @@ real, not a lock drawn over data that is on the disk anyway.
 
 ## Built in steps, each one shippable
 
+Step 1 is built on Office main for 2.17 (2026-10-22): engine 13d5057
+(`packages/database/src/access.js`, temp views per role, checked writes to
+`main.`, the trail), window 073f3c8 (sign-in, Protect this database, People
+and roles, See as, Change my password), mail merge 36d00b4. Rutba accounts
+as people come with step 3.
+
 1. **People, roles and per-item permissions** inside one database on one
    computer: sign-in on open, the People and roles grid, See as, the trail.
    Useful at once on a shared office PC.
