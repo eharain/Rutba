@@ -134,6 +134,12 @@ that need them wait, as the Data Files ones do.
 8. **A tab in the header and footer box,** as its hint promises; "Page
    number" and "Of total" combining sensibly.
 9. **Home's template row** refreshed when it regains focus.
+10. **Page numbers from the header and footer box:** "Page number" and "Of
+    total" write "{PAGE} of {PAGES}" into the file as plain text, so no page,
+    print, PDF or Word ever shows a number, though the box says "Fields in
+    braces are resolved when the page is drawn and when it is printed."
+    Write real PAGE and NUMPAGES fields (fldSimple) for {PAGE} and {PAGES};
+    "Of total" adds no second space. Found filming episode 4.
 
 ## Part A4. Presentations faults the how-to scripts found (2026-10-24)
 
