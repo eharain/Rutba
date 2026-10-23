@@ -20,11 +20,12 @@ fixed, pushed or released until the middle of next week.
 | A4 | Presentations | 8 | presenter Pause ends the show; notes not typed under the slide; picture ideas cropped |
 | A5 | Worksheets | 9 | conditional formatting's Apply fails on every rule; no filter arrows; charts keep old values |
 | A6 | Mail, Calendar, Contacts | 10 | Mail's moves, deletes and marks never reach the server; Gmail and Outlook sign-in off |
-| A7 | PDF, Pictures, Image | 1 so far | the redaction list shows each "s" as a space (checks under way) |
+| A7 | PDF, Pictures, Image | 7 so far | Pictures' tile menu trashes the open picture, not the one clicked; Image's Export offers the original's name |
 | A | the gate | 5 | tooling, not a fault people see |
 
 Fix first, when fixing starts: anything that loses or changes a person's
-work (A6.1 Mail's server sync, A3.0 the freeze, A3.1 Markdown), then what
+work (A6.1 Mail's server sync, A3.0 the freeze, A3.1 Markdown, A7.0
+Pictures trashing the wrong file), then what
 is broken outright (A5.1 conditional formatting, A3.10 page numbers).
 
 ## Part A. The gate and its checks (first, about a day)
@@ -273,6 +274,29 @@ that need them wait, as the Data Files ones do.
 
 ## Part A7. PDF, Pictures and Image (2026-10-24, checks under way)
 
+0. **Pictures' tile menu trashes the wrong file** (checked in pictures.js):
+   right-click a tile, "Move to trash", and the picture on show is moved to
+   the trash, not the tile clicked (`tileMenu` opens the commands, which act
+   on `current`); with nothing on show, "Edit this picture" and "Move to
+   trash" do nothing. Each item acts on the tile right-clicked. First in
+   this part: it removes the wrong file.
+2. **Image: Export offers the original's own name and folder,** so one Enter
+   and Windows' replace prompt are all that stand before the photo is
+   replaced; offer "{name} edited" beside it. From an Edit in Image window,
+   Export offers "scratch.png" in a temp folder.
+3. **Image: closing loses unexported edits with no question,** on a picture
+   without layers and in every Edit in Image window (which has no autosave).
+4. **Image: Alt on the picture leaves the ribbon's KeyTips armed** (read in
+   the code, to confirm in a window): the canvas cancels pointerdown, so the
+   mousedown that disarms them never comes; after an Alt+click (Clone Stamp,
+   Healing Brush, a subtract drag) the letters show and "[", "]", "J" are
+   swallowed. Disarm on pointerdown.
+5. **Image: Undo without layers skips slider changes** (Ctrl+Z after Auto
+   enhance takes back the crop instead); Levels' "Auto" also resets
+   Temperature and Tint; Move picks the top full-canvas layer wherever you
+   click.
+6. **Pictures shows a file written while it is open** (no folder watch;
+   Back does not list the folder again).
 1. **Apply Redactions lists the marked words with every "s" as a space:**
    packages/pdf/src/redact.js:691 has `/s+/g` where `/\s+/g` was meant. Only
    the list shown in the dialog; what is redacted is matched on the
