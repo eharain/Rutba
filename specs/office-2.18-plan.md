@@ -7,6 +7,26 @@ out no build until next week"). Decisions it follows: D-2026-10-23-01
 builds), -03 (2.18.0 holds synced copies and the other sources; no
 encryption; SQL Server later).
 
+## The fix list at a glance (kept up to date; nothing fixed before next week)
+
+The owner, 2026-10-24 (D-2026-10-24-01): "or just keep track what needs to
+fix". Each fault below says how to see it and where in the code; nothing is
+fixed, pushed or released until the middle of next week.
+
+| Part | App | Items | The worst of them |
+| --- | --- | --- | --- |
+| A2 | Data Files | 17 | a criterion naming a field returns every record; imported IDs and money |
+| A3 | Documents | 11 | a freeze that loses work; the Markdown round trip changes a file; page numbers never drawn |
+| A4 | Presentations | 8 | presenter Pause ends the show; notes not typed under the slide; picture ideas cropped |
+| A5 | Worksheets | 9 | conditional formatting's Apply fails on every rule; no filter arrows; charts keep old values |
+| A6 | Mail, Calendar, Contacts | 10 | Mail's moves, deletes and marks never reach the server; Gmail and Outlook sign-in off |
+| A7 | PDF, Pictures, Image | 1 so far | the redaction list shows each "s" as a space (checks under way) |
+| A | the gate | 5 | tooling, not a fault people see |
+
+Fix first, when fixing starts: anything that loses or changes a person's
+work (A6.1 Mail's server sync, A3.0 the freeze, A3.1 Markdown), then what
+is broken outright (A5.1 conditional formatting, A3.10 page numbers).
+
 ## Part A. The gate and its checks (first, about a day)
 
 None of this changes what a person sees, so it needs no release. It ships
