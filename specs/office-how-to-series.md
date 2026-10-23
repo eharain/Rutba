@@ -13,7 +13,10 @@ to finish, at the pace of someone doing it for the first time.
   changes and accept them", not "Review tab").
 - **Shot on the released version,** on sample files and invented people
   only, as the other films are. No real account, address or screen appears.
-- **Narrated** with the same voice as the app films (bm_fable), with .srt
+- **Narrated** in the English voices the film tools have, varied across the
+  episodes and the apps for some diversity (the owner: "we use different
+  voices that are available for English to bring some diversity"), one
+  voice through an episode, with .srt
   captions, chapters in the description, and the sample file the episode
   uses downloadable from office.rutba.io where there is one.
 - **One playlist per app** on @RutbaOffice, plus the Data Files series as
@@ -174,10 +177,9 @@ Synced copies and the other sources (2.18.0) add episodes once released.
    Calendar and Contacts, then PDF, Pictures and Image, then Video,
    Recorder and Talk, then the suite playlist.
 
-## For the owner
+## The owner's answers (2026-10-23)
 
-- Episode length: 3 to 6 minutes is proposed.
-- Narration: the bm_fable voice of the app films, or your own read-aloud
-  voice as for the intro (memory: the owner wants the read-aloud voice for
-  the intro).
-- Languages: English first; Urdu versions of the Data Files series later?
+- Episode length: "3 to 6 minutes (Recommended)".
+- Narration: "we use different voices that are available for English to
+  bring some diversity".
+- Languages: "English only".
