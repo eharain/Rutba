@@ -161,6 +161,34 @@ that need them wait, as the Data Files ones do.
    out of date; shape fill and outline offer quick swatches; a shape can be
    drawn by dragging; Design Ideas' names are translated.
 
+## Part A5. Worksheets faults the how-to scripts found (2026-10-24)
+
+1. **Conditional formatting's Apply fails on every rule:** the dialog sends
+   { type, format } where the engine reads { kind, look }, so each rule is
+   refused ('"" is not a rule this dialog writes') and nothing is added.
+   'Not equal to' and 'Unique values' are offered but the engine refuses
+   them. A released feature that does not work: first in this part. Offer
+   colour scales and data bars too, which the engine writes already.
+2. **Filter arrows and the value list** in the header row; the engine's
+   filterOptions, openFilterPanel and applyFilter are ready, the grid does
+   not call them.
+3. **Charts follow edited cells,** and their cached values are written on
+   save; today a chart keeps the values it was opened with.
+4. **A chart's title,** and its other parts (axes, legend), set from a
+   Chart Design tab; a chart made from the selection when there is one.
+5. **A table grows** to take a row typed directly under it.
+6. **Sort** names columns from the list's heading row, not the row above
+   the active cell, and never sorts the heading row into the data; the
+   Data tab's "A → Z" tip says which column it sorts by.
+7. **A new PivotTable** is shown once made (scrolled to, its Fields pane
+   open), with a Filters area and a Refresh of its own; months from a date
+   field.
+8. **Save As in Worksheets' app menu;** Ctrl+S on a converted old file
+   offers Save As instead of an error.
+9. **Error cells** carry a mark with the reason on hover; Error Checking's
+   reasons translated. **Insert function** shows each function's arguments
+   and what it does.
+
 ## Part B. Rutba Office 2.18.0: Data Files' synced copies and other sources
 
 A minor release, so the full gate. Both steps of
@@ -250,8 +278,8 @@ change the file, Refresh, see the change.
 ## Order next week
 
 1. Part A, the gate (about a day); Part A2, Data Files' rough edges, and
-   Part A3, Documents' faults, and Part A4, Presentations' (about three
-   days).
+   Part A3, Documents' faults, Part A4, Presentations' and Part A5,
+   Worksheets' (about four days).
 2. B1, synced copies (about three days).
 3. B2.1 to B2.3, files, other Data Files and JSON (about two days).
 4. B2.4, Google Sheets (about a day, once the client id is added).
