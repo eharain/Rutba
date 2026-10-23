@@ -108,6 +108,33 @@ Each with its engine tests and Data Files window checks. They go into
 2.18.0 if it is next week's only release, or a 2.17.2 at the start of the
 week (Data Files only, a gate of about 25 minutes) so the films can go on.
 
+## Part A3. Documents faults the how-to scripts found (2026-10-24)
+
+Found checking the Documents how-to scripts against 2.17.1; the episodes
+that need them wait, as the Data Files ones do.
+
+1. **Markdown round trip damages a file:** a raw HTML block directly above
+   a code block loses the blank line between them, and the code block breaks
+   on GitHub. Also kept as written: table padding, reference links,
+   definition lists. Task boxes clickable, the "- " marker hidden. First:
+   it changes a person's file.
+2. **Tab and Shift+Tab** wired to the engine's tabCell: a list item's level,
+   the next or previous cell, a new row from the last cell. Today Tab moves
+   focus off the page.
+3. **Headings in a Word file that has not used them:** offer Word's latent
+   built-in styles (Heading 1 to 3, Title) when styles.xml lacks them; today
+   only "Normal" shows and Add Text's levels fail.
+4. **Change a style:** Modify Style, and Update Heading 1 to Match Selection.
+5. **Comments:** anchored to the selected words, as the dialog says, marked
+   on the page, and signed with the author tracked changes use (empty today).
+6. **Tracked changes per change:** Next and Previous select each change;
+   Accept and Reject This Change act on that change, not the paragraph;
+   Accept All and Reject All work wherever the caret is.
+7. **Save As in the app menu,** beside Open and Save as Template.
+8. **A tab in the header and footer box,** as its hint promises; "Page
+   number" and "Of total" combining sensibly.
+9. **Home's template row** refreshed when it regains focus.
+
 ## Part B. Rutba Office 2.18.0: Data Files' synced copies and other sources
 
 A minor release, so the full gate. Both steps of
@@ -196,7 +223,8 @@ change the file, Refresh, see the change.
 
 ## Order next week
 
-1. Part A, the gate (about a day), and Part A2, the rough edges (about a day).
+1. Part A, the gate (about a day); Part A2, Data Files' rough edges, and
+   Part A3, Documents' faults (about two days).
 2. B1, synced copies (about three days).
 3. B2.1 to B2.3, files, other Data Files and JSON (about two days).
 4. B2.4, Google Sheets (about a day, once the client id is added).
