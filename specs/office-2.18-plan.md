@@ -189,6 +189,44 @@ that need them wait, as the Data Files ones do.
    reasons translated. **Insert function** shows each function's arguments
    and what it does.
 
+## Part A6. Mail, Calendar and Contacts faults the how-to scripts found (2026-10-24)
+
+1. **Mail's changes never reach the server** (checked in main/mail.js):
+   `flag`, `move` and `delete` change only the local store, and Get mail
+   fetches the newest messages again by position, so a message deleted or
+   filed here can come back, and a phone sees none of it. Read and flagged
+   marks, moves, deletes, junk and the Sent copy go to the server (IMAP
+   STORE, MOVE or COPY and EXPUNGE, APPEND), and fetching goes by UID from
+   what was last seen. The largest item in this plan: a mail client's core.
+2. **Mail fetches by itself:** on opening and every few minutes (a setting),
+   so rules and Rutba Office's own automatic replies run without Get mail.
+3. **Gmail and Outlook sign-in in released builds:** a Google and a
+   Microsoft client id registered and built in (docs/OAUTH.md says how; the
+   owner registers them, as for YouTube). Until then the disabled card says
+   it in a person's words, not "See docs/OAUTH.md", and a typed Gmail
+   address does not promise Google's page.
+4. **Folders:** make, rename and delete a folder, at the server; drag
+   messages onto folders.
+5. **One-click Unsubscribe** sends the one request it says it sends,
+   instead of opening the browser.
+6. **Out of office on hosted mail without ManageSieve** (Gmail, Outlook,
+   Yahoo, iCloud with an app password) says at once that the server cannot
+   send them and offers Rutba Office's own, not "could not be reached" after
+   ten seconds.
+7. **Calendar:** Invite offers to send on save, as its hint says; editing
+   one occurrence defaults to that occurrence; a repeating event keeps its
+   Reminder; an event's time zone can be chosen and another zone shown; the
+   small month's arrows move the main view too.
+8. **Accounts for calendars and contacts** named by the person (not the
+   host), renamed later; "New cards go to" defaults to the account's book
+   once there is one.
+9. **Contacts CSV import:** reads ANSI as well as UTF-8 (Outlook writes
+   ANSI), shows a preview with the columns it matched and lets one be
+   changed, and says what it left out.
+10. **Minor:** the Microsoft tile's note ("Outlook, Hotmail and Microsoft
+    365's servers"); Signature and Out of office say why they are greyed in
+    All accounts.
+
 ## Part B. Rutba Office 2.18.0: Data Files' synced copies and other sources
 
 A minor release, so the full gate. Both steps of
@@ -278,8 +316,9 @@ change the file, Refresh, see the change.
 ## Order next week
 
 1. Part A, the gate (about a day); Part A2, Data Files' rough edges, and
-   Part A3, Documents' faults, Part A4, Presentations' and Part A5,
-   Worksheets' (about four days).
+   Part A3, Documents' faults, Part A4, Presentations', Part A5,
+   Worksheets' and Part A6, Mail, Calendar and Contacts' (more than a
+   week together: see the note below).
 2. B1, synced copies (about three days).
 3. B2.1 to B2.3, files, other Data Files and JSON (about two days).
 4. B2.4, Google Sheets (about a day, once the client id is added).
@@ -287,6 +326,11 @@ change the file, Refresh, see the change.
 6. The Data Files how-to scripts, parts 1 to 4 (D:\videos\_how-to\data-files-part-1.md
    and data-files-parts-2-4.md, 14 steps marked "pending fix"), checked
    against the release that carries the fixes, then the video session's go.
+
+**Size, 2026-10-24:** Parts A2 to A6 together, about 60 items, are more
+than a week's work, and A6.1 (Mail's changes at the server) alone is
+several days. They are ordered for the owner to choose what comes first;
+the how-to episodes that need each wait for it.
 
 ## For the owner
 
