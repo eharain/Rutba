@@ -135,6 +135,32 @@ that need them wait, as the Data Files ones do.
    number" and "Of total" combining sensibly.
 9. **Home's template row** refreshed when it regains focus.
 
+## Part A4. Presentations faults the how-to scripts found (2026-10-24)
+
+1. **The presenter view's Pause ends the show** (and zeroes the clock), and
+   Reset sends it back to slide 1. Pause should pause the clock only; Reset
+   restart the clock, not the slides.
+2. **Notes typed under the slide in Normal view** ("Click to add notes"),
+   as PowerPoint users expect; today the strip is read only and hidden when
+   empty. The presenter's no-notes hint names the right place (it says the
+   Home tab, which has no notes control).
+3. **New Slide applies the layout chosen,** from the deck's own layouts, not
+   a fixed three; the two buttons both called "Layout" (Home, Design) named
+   apart.
+4. **Use Presenter View** says it starts the show; with one screen, the
+   presenter window is not covered without a word. Esc in the show tells the
+   presenter window the show ended.
+5. **Design Ideas replace each other:** a second pick takes the first one's
+   shapes off before adding its own.
+6. **Clear Narration clears the slide's timing too,** as the code says it
+   should, and says so only when there was narration.
+7. **An exported video** plays each cameo's recording, not a still, and does
+   not draw the narration speaker icon; in the editor the icon does not sit
+   on the default cameo's corner.
+8. **Minor:** "Play Narrations"' tooltip ("as this suite records none") is
+   out of date; shape fill and outline offer quick swatches; a shape can be
+   drawn by dragging; Design Ideas' names are translated.
+
 ## Part B. Rutba Office 2.18.0: Data Files' synced copies and other sources
 
 A minor release, so the full gate. Both steps of
@@ -224,7 +250,8 @@ change the file, Refresh, see the change.
 ## Order next week
 
 1. Part A, the gate (about a day); Part A2, Data Files' rough edges, and
-   Part A3, Documents' faults (about two days).
+   Part A3, Documents' faults, and Part A4, Presentations' (about three
+   days).
 2. B1, synced copies (about three days).
 3. B2.1 to B2.3, files, other Data Files and JSON (about two days).
 4. B2.4, Google Sheets (about a day, once the client id is added).
