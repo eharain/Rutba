@@ -20,7 +20,7 @@ fixed, pushed or released until the middle of next week.
 | A4 | Presentations | 8 | presenter Pause ends the show; notes not typed under the slide; picture ideas cropped |
 | A5 | Worksheets | 9 | conditional formatting's Apply fails on every rule; no filter arrows; charts keep old values |
 | A6 | Mail, Calendar, Contacts | 10 | Mail's moves, deletes and marks never reach the server; Gmail and Outlook sign-in off |
-| A7 | PDF, Pictures, Image | 7 so far | Pictures' tile menu trashes the open picture, not the one clicked; Image's Export offers the original's name |
+| A7 | PDF, Pictures, Image | 12 | Pictures' tile menu trashes the open picture, not the one clicked; Image's Export offers the original's name |
 | A | the gate | 5 | tooling, not a fault people see |
 
 Fix first, when fixing starts: anything that loses or changes a person's
@@ -272,7 +272,7 @@ that need them wait, as the Data Files ones do.
     365's servers"); Signature and Out of office say why they are greyed in
     All accounts.
 
-## Part A7. PDF, Pictures and Image (2026-10-24, checks under way)
+## Part A7. PDF, Pictures and Image (2026-10-24)
 
 0. **Pictures' tile menu trashes the wrong file** (checked in pictures.js):
    right-click a tile, "Move to trash", and the picture on show is moved to
@@ -297,6 +297,24 @@ that need them wait, as the Data Files ones do.
    click.
 6. **Pictures shows a file written while it is open** (no folder watch;
    Back does not list the folder again).
+7. **PDF: Apply Redactions drops the marked-up original unsaved:** the
+   window switches to the redacted copy without asking about the marks.
+   Ask, or keep the original open beside it.
+8. **PDF: the words list also holds an area mark's glyph runs, spaces not
+   collapsed** (with item 1, redact.js:691), and "1 mark on 1 pages" is not
+   made singular (redact.js:138).
+9. **PDF: page moves and marks.** Dragging one of several selected pages
+   to a place inside the selection does nothing and says nothing; Date and
+   Checkmark stay in hand, each click adding another; a placed signature,
+   tick or date cannot be moved or resized; clicking a mark's card puts
+   Mark Area down without a word; Split's files are named only in a toast
+   (no Open or Show in folder).
+10. **Pictures: ratings and tags lost on rename or move** (kept by full
+    path); Batch edit forgets every setting each time; the slideshow takes
+    the whole display full screen; with Copy Text shown a zoomed picture
+    cannot be panned.
+11. **Copy Text misreads heavy bold figures** ("£1.65" as "£ / 41 65").
+    Noted for the OCR work, not a quick fix.
 1. **Apply Redactions lists the marked words with every "s" as a space:**
    packages/pdf/src/redact.js:691 has `/s+/g` where `/\s+/g` was meant. Only
    the list shown in the dialog; what is redacted is matched on the
