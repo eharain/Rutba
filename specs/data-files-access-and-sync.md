@@ -147,6 +147,10 @@ listed as coming: they need test servers first.)
    Google Sheets, other Data Files databases, and web APIs returning JSON,
    read on a schedule or on demand.
 
+**2.18.0 (owner, 2026-10-23, D-2026-10-23-03):** steps 4 and 5 together,
+Google Sheets last among the sources. Step 2, encryption on disk, is not in
+2.18.0; SQL Server is left for later.
+
 (Servers and clients between Office computers, and the route through Talk's
 relays, were the plan until the owner's change of 2026-10-22 above; they are
 not built.)
