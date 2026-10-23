@@ -67,6 +67,43 @@ owner: fix next week (answer "Fix next week"); part 1 is filmed after them.
 6. **The default in the new row.** The new-record row shows a field's
    default (1.50) where it now shows only its type.
 
+Found checking parts 2 to 4 (episodes 8 to 17), the same day:
+
+7. **A criterion naming another field** (`<= [Reorder Level]`) is taken as
+   the text "[Reorder Level]" and returns every record, with no error.
+   Compare with the field, or refuse in plain words.
+8. **An average rounded in the designer.** The engine's per-column
+   decimals are not offered in the window, and an expression cannot hold
+   Avg or Sum; offer the decimals beside Total, and say so when Avg is typed
+   into an expression. The heading "Avg of Total" should read "Average of
+   Total", as the Total list says.
+9. **Import keeps a CSV's own ID.** A column named ID becomes "ID
+   (imported)" beside a new AutoNumber, so relating by the file's own
+   numbers fails ("pointing at nothing", "must be unique"). Use the file's
+   IDs as the key when they are whole numbers, unique and present.
+10. **Money imported as Currency** when a column's values have two decimal
+    places, so receipts show 1.10 and the template wizard adds its Amount
+    and Total.
+11. **A query saved from the SQL view,** and its text kept when the view is
+    left.
+12. **A form's layout changed:** fields moved, resized and taken off, and a
+    label renamed, saved with the form.
+13. **Lines added and changed in a subform,** a new row at its foot, as
+    the datasheet has.
+14. **A form's Delete asks first.**
+15. **A report's totals chosen:** Sum, Average, Count or none for each
+    number field, Whole numbers included; a report made from a query gets
+    them too.
+16. **A record named by nothing** (a sale with only a payment) named by its
+    number and date in lists ("Sale 17, 21/10/2026"), not "Cash".
+17. **A form with no print template** says how to make one where its Print
+    buttons would be; the template's record chooser names records, not
+    "Record 17"; Letterhead says what it is for when no Business table
+    exists.
+
+Items 12, 13 and 15 are features rather than fixes (a form designer, an
+editable subform, report totals); they may go into 2.18.0 with the rest.
+
 Each with its engine tests and Data Files window checks. They go into
 2.18.0 if it is next week's only release, or a 2.17.2 at the start of the
 week (Data Files only, a gate of about 25 minutes) so the films can go on.
