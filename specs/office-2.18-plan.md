@@ -252,7 +252,13 @@ that need them wait, as the Data Files ones do.
     its base, so a mixed-rate invoice whose subtotal and tax do add up to
     the total is marked as not agreeing (packages/ocr/src/fields.js about
     751); and the currency comes only from the amounts' own text, so "TOTAL
-    GBP 89.40" gives none (about 862).
+    GBP 89.40" gives none (about 862). Not a corner case: UK grocery and
+    supplier receipts mix zero-rated food (milk, bread, tea, coded Z) with
+    standard-rated goods (S), so most of a shop's receipts would be marked
+    to check though they add up (the video session's receipt: subtotal
+    86.40, VAT 3.00 as 20% of 15.00, total 89.40). Read the Z and S codes
+    and the stated VAT base where printed; let "subtotal plus tax is the
+    total" stand when no single rate fits.
 12. **Template gallery search** covers only the list chosen on the rail, and
     personal templates show only in a search from All templates; Word's
     search covers everything.
