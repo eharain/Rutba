@@ -170,7 +170,12 @@ that need them wait, as the Data Files ones do.
    presenter window is not covered without a word. Esc in the show tells the
    presenter window the show ended.
 5. **Design Ideas replace each other:** a second pick takes the first one's
-   shapes off before adding its own.
+   shapes off before adding its own. **And a picture idea applied matches
+   its preview** (found filming episode 3, 2026-10-24): "The picture on the
+   right, the words beside it" with a 1200×760 picture shows it whole in the
+   pane, but applied, the picture's box takes the right half at full height
+   and the picture is cropped to fill it ("spur Corner Store"), in the deck
+   too. Fit the picture inside its new box, as the preview draws it.
 6. **Clear Narration clears the slide's timing too,** as the code says it
    should, and says so only when there was narration.
 7. **An exported video** plays each cameo's recording, not a still, and does
