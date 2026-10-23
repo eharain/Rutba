@@ -251,6 +251,13 @@ that need them wait, as the Data Files ones do.
     365's servers"); Signature and Out of office say why they are greyed in
     All accounts.
 
+## Part A7. PDF, Pictures and Image (2026-10-24, checks under way)
+
+1. **Apply Redactions lists the marked words with every "s" as a space:**
+   packages/pdf/src/redact.js:691 has `/s+/g` where `/\s+/g` was meant. Only
+   the list shown in the dialog; what is redacted is matched on the
+   normalised words. Found by the video session reading the source.
+
 ## Part B. Rutba Office 2.18.0: Data Files' synced copies and other sources
 
 A minor release, so the full gate. Both steps of
