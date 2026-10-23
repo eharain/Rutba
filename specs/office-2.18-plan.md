@@ -16,9 +16,9 @@ fixed, pushed or released until the middle of next week.
 | Part | App | Items | The worst of them |
 | --- | --- | --- | --- |
 | A2 | Data Files | 17 | a criterion naming a field returns every record; imported IDs and money |
-| A3 | Documents | 11 | a freeze that loses work; the Markdown round trip changes a file; page numbers never drawn |
+| A3 | Documents | 11 | a tab added per keystroke and saved (the likely cause of the freeze); the Markdown round trip changes a file; page numbers never drawn |
 | A4 | Presentations | 8 | presenter Pause ends the show; notes not typed under the slide; picture ideas cropped |
-| A5 | Worksheets | 9 | conditional formatting's Apply fails on every rule; no filter arrows; charts keep old values |
+| A5 | Worksheets | 12 | conditional formatting's Apply fails on every rule; no filter arrows; charts keep old values |
 | A6 | Mail, Calendar, Contacts | 10 | Mail's moves, deletes and marks never reach the server; Gmail and Outlook sign-in off |
 | A7 | PDF, Pictures, Image | 12 | Pictures' tile menu trashes the open picture, not the one clicked; Image's Export offers the original's name |
 | A | the gate | 5 | tooling, not a fault people see |
@@ -147,6 +147,17 @@ that need them wait, as the Data Files ones do.
    the layout. First in this part: it loses a person's work. Reproduce on the
    engine (doc-view) before the window; keep an edit that hangs from
    freezing the window (a time limit on layout, the document kept).
+   **Likely cause, found 2026-10-24 and checked in the code:** typing in a
+   paragraph that holds a tab adds another tab with every keystroke, and
+   they are saved (a .dotx made in the Templates episode carries 72
+   `<w:tab/>` after its address line). In packages/ooxml/src/document.js
+   `_keptFragments` (about line 5995) a run holding only `<w:tab/>` has no
+   `<w:t>`, so it is kept verbatim, and `renderRuns` writes the tab again
+   from the model's "	" on every rebuild (`_setRuns`). Backspace does not
+   clear them. Treat `<w:tab/>` (and `<w:br/>`, `<w:cr/>`) as text the model
+   owns. The Letter template's address line is text, a tab, then more text:
+   the line the freeze was found on. Fix this first, then see whether the
+   freeze still happens.
 1. **Markdown round trip damages a file:** a raw HTML block directly above
    a code block loses the blank line between them, and the code block breaks
    on GitHub. Also kept as written: table padding, reference links,
@@ -230,6 +241,21 @@ that need them wait, as the Data Files ones do.
    field.
 8. **Save As in Worksheets' app menu;** Ctrl+S on a converted old file
    offers Save As instead of an error.
+10. **Data from Picture misreads ruled tables** (packages/ocr/src/layout.js):
+    two or more horizontal rules become the only row edges, so a price
+    list with a rule above and below its headings and one at the foot reads
+    as 2 rows (about line 139); and a title or footer line crossing the
+    column gutters merges the columns (about line 152). Use rules as rows
+    only when they separate every line; allow a few crossings, as columns()
+    does.
+11. **Receipt or Invoice:** the tax-rate check always takes the subtotal as
+    its base, so a mixed-rate invoice whose subtotal and tax do add up to
+    the total is marked as not agreeing (packages/ocr/src/fields.js about
+    751); and the currency comes only from the amounts' own text, so "TOTAL
+    GBP 89.40" gives none (about 862).
+12. **Template gallery search** covers only the list chosen on the rail, and
+    personal templates show only in a search from All templates; Word's
+    search covers everything.
 9. **Error cells** carry a mark with the reason on hover; Error Checking's
    reasons translated. **Insert function** shows each function's arguments
    and what it does.
