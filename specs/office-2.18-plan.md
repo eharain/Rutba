@@ -113,11 +113,24 @@ week (Data Files only, a gate of about 25 minutes) so the films can go on.
 Found checking the Documents how-to scripts against 2.17.1; the episodes
 that need them wait, as the Data Files ones do.
 
+0. **A freeze that loses work** (found filming episode 6, 2026-10-24,
+   three times in three on 2.17.1): in a new document from the Letter
+   template, triple-click the first "Your Name" line, type "L", "arkspur",
+   then a space; the renderer goes to 100% CPU and never answers, and
+   nothing can be saved. Two faults: a triple-click's selection runs to the
+   start of the next paragraph ("Your Name
+
+"), so typing over it joins
+   the two lines (Word keeps the paragraph mark); and a space typed into the
+   joined line (text, then a tab, then "phone  |  you@example.com") hangs
+   the layout. First in this part: it loses a person's work. Reproduce on the
+   engine (doc-view) before the window; keep an edit that hangs from
+   freezing the window (a time limit on layout, the document kept).
 1. **Markdown round trip damages a file:** a raw HTML block directly above
    a code block loses the blank line between them, and the code block breaks
    on GitHub. Also kept as written: table padding, reference links,
-   definition lists. Task boxes clickable, the "- " marker hidden. First:
-   it changes a person's file.
+   definition lists. Task boxes clickable, the "- " marker hidden. Next
+   after the freeze: it changes a person's file.
 2. **Tab and Shift+Tab** wired to the engine's tabCell: a list item's level,
    the next or previous cell, a new row from the last cell. Today Tab moves
    focus off the page.
