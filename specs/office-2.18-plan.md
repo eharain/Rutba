@@ -201,6 +201,9 @@ change the file, Refresh, see the change.
 3. B2.1 to B2.3, files, other Data Files and JSON (about two days).
 4. B2.4, Google Sheets (about a day, once the client id is added).
 5. The 2.18.0 gate and release.
+6. The Data Files how-to scripts, parts 1 to 4 (D:ideos\_how-to\data-files-part-1.md
+   and data-files-parts-2-4.md, 14 steps marked "pending fix"), checked
+   against the release that carries the fixes, then the video session's go.
 
 ## For the owner
 
