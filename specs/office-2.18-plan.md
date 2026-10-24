@@ -28,6 +28,38 @@ work (A6.1 Mail's server sync, A3.0 the freeze, A3.1 Markdown, A7.0
 Pictures trashing the wrong file), then what
 is broken outright (A5.1 conditional formatting, A3.10 page numbers).
 
+## What 2.18.0 carries (proposed 2026-10-24; D-2026-10-25-01)
+
+1. **The gate,** Part A.
+2. **Faults that lose or change work:** A3.0 (a tab per keystroke, the
+   freeze), A3.1 (Markdown), A7.0 (Pictures trashes the wrong file), A7.2
+   and A7.3 (Image's Export name, closing without asking), A7.7 (PDF's
+   Apply Redactions drops the original).
+3. **Released features that don't work:** A5.1 (conditional formatting),
+   A3.10 (page numbers), A4.1 (presenter Pause), A3.7 and A5.8 (Save As in
+   the app menus), A6.16 (Mail's selection after a delete), A6.13 (Sent
+   after a reload), A6.12 (Import mail's paths), A7.1 (the redaction list).
+4. **Data Files' fixes,** A2.1 to A2.11, A2.14, A2.16, A2.17, so the Data
+   Files how-to parts 1 to 4 can be filmed after the release.
+5. **The bigger features, moved up by the owner (2026-10-25: "Bigger
+   features: move up to 2.18"):**
+   - Data Files: a form's layout changed and saved (A2.12), lines added in a
+     subform (A2.13), a report's totals chosen (A2.15);
+   - Worksheets: filter arrows and the value list (A5.2), charts that follow
+     edited cells (A5.3), a new PivotTable shown, with Filters and its own
+     Refresh (A5.7);
+   - Documents: Tab and Shift+Tab (A3.2), Modify Style (A3.4), comments on
+     the selected words (A3.5), tracked changes one at a time (A3.6).
+6. **Synced copies and sources,** B1 and B2.1 to B2.3 (D-2026-10-23-03).
+
+**For 2.19:** A6.1 Mail's changes at the server, first; A6.3 Gmail and
+Outlook sign-in and B2.4 Google Sheets (they wait on client ids); the rest of
+A3 to A7.
+
+**Size:** with item 5, 2.18.0 is about two weeks' work, not one, so it is
+ready near the end of the week after next rather than mid next week, unless
+it is split (a 2.17.2 of items 2 to 4 first, gated by the apps it changes).
+
 ## Part A. The gate and its checks (first, about a day)
 
 None of this changes what a person sees, so it needs no release. It ships
