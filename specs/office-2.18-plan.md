@@ -19,7 +19,7 @@ fixed, pushed or released until the middle of next week.
 | A3 | Documents | 11 | a tab added per keystroke and saved (the likely cause of the freeze); the Markdown round trip changes a file; page numbers never drawn |
 | A4 | Presentations | 8 | presenter Pause ends the show; notes not typed under the slide; picture ideas cropped |
 | A5 | Worksheets | 12 | conditional formatting's Apply fails on every rule; no filter arrows; charts keep old values |
-| A6 | Mail, Calendar, Contacts | 15 | Mail's moves, deletes and marks never reach the server; Gmail and Outlook sign-in off |
+| A6 | Mail, Calendar, Contacts | 16 | Mail's moves, deletes and marks never reach the server; Gmail and Outlook sign-in off |
 | A7 | PDF, Pictures, Image | 12 | Pictures' tile menu trashes the open picture, not the one clicked; Image's Export offers the original's name |
 | A | the gate | 5 | tooling, not a fault people see |
 
@@ -330,6 +330,18 @@ that need them wait, as the Data Files ones do.
     (main/contacts.js about 103); a vCard TEL;TYPE=CELL shows as "cell", not
     "mobile", and the editor then shows "mobile" while the card keeps
     "cell".
+16. **Deleting a message loses the place in the list** (the owner,
+    2026-10-24: "the email deletion with delete button or delete from list
+    reset the selection back to first email, while it should be selecting
+    the next rather than first"). Delete, by the ribbon button or the
+    list's own menu, clears the selection (renderer mail.js about 565,
+    `setSelected(null)` for every action in LEAVES), so the reading pane
+    empties and the next Down or j starts again from the first message
+    (about 1235-1238, `at < 0`). The same holds for Archive, Junk, Move,
+    Not junk and Block. Select the message after the last one removed (or
+    the one before it at the foot of the list) and open it, as Outlook
+    does; a check in verify-mail-window.js deletes the middle of three and
+    sees the third selected and shown.
 
 ## Part A7. PDF, Pictures and Image (2026-10-24)
 
