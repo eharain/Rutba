@@ -19,7 +19,7 @@ fixed, pushed or released until the middle of next week.
 | A3 | Documents | 11 | a tab added per keystroke and saved (the likely cause of the freeze); the Markdown round trip changes a file; page numbers never drawn |
 | A4 | Presentations | 8 | presenter Pause ends the show; notes not typed under the slide; picture ideas cropped |
 | A5 | Worksheets | 12 | conditional formatting's Apply fails on every rule; no filter arrows; charts keep old values |
-| A6 | Mail, Calendar, Contacts | 10 | Mail's moves, deletes and marks never reach the server; Gmail and Outlook sign-in off |
+| A6 | Mail, Calendar, Contacts | 15 | Mail's moves, deletes and marks never reach the server; Gmail and Outlook sign-in off |
 | A7 | PDF, Pictures, Image | 12 | Pictures' tile menu trashes the open picture, not the one clicked; Image's Export offers the original's name |
 | A | the gate | 5 | tooling, not a fault people see |
 
@@ -303,6 +303,33 @@ that need them wait, as the Data Files ones do.
 10. **Minor:** the Microsoft tile's note ("Outlook, Hotmail and Microsoft
     365's servers"); Signature and Out of office say why they are greyed in
     All accounts.
+11. **Out of office sent by Rutba Office** runs only as mail arrives, and
+    nothing fetches on its own (A6.2), so the dialog's "While Rutba Office
+    is running" (mail/dialogs.js about 290 and 306) is untrue today. In
+    server mode the Subject hint promises "Automatic reply: " and the
+    original subject, but no subject is written into the server's script
+    (packages/mailbox/src/managesieve.js about 41).
+12. **Import mail shows a person's own details:** the scan reads the real
+    Thunderbird, Outlook and Windows Live Mail folders and the Outlook
+    registry, and the Importing box prints each file's full path, which
+    Outlook names after the account's address (mail/dialogs.js about 1216).
+    Show the file's name, not its path; and give the scan a seam a check or
+    a film can point at an empty folder.
+13. **Sent appears only after a reload:** the first send makes Sent
+    (main/mail.js about 1369), and the window's mail:sent handler does not
+    read the folders again (renderer mail.js about 389).
+14. **Mail's invitation strip forgets the answer** when the message is
+    opened again (it reads the file, which still says NEEDS-ACTION;
+    main/calendar.js about 251); the reply.ics attachment shows "0 B"; the
+    unsubscribe question shows the raw List-Id with its angle-bracket id.
+15. **Contacts import:** today's Google CSV headings (Organization Name,
+    Organization Title, "E-mail 1 - Label", "Phone 1 - Label") are not read,
+    so companies, job titles and every type are lost, and Labels' "*
+    myContacts" becomes a tag (packages/contacts/src/csv.js about 51-53,
+    93-97); a contact with no email address is added again on every import
+    (main/contacts.js about 103); a vCard TEL;TYPE=CELL shows as "cell", not
+    "mobile", and the editor then shows "mobile" while the card keeps
+    "cell".
 
 ## Part A7. PDF, Pictures and Image (2026-10-24)
 
