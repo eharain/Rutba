@@ -28,7 +28,7 @@ work (A6.1 Mail's server sync, A3.0 the freeze, A3.1 Markdown, A7.0
 Pictures trashing the wrong file), then what
 is broken outright (A5.1 conditional formatting, A3.10 page numbers).
 
-## What 2.18.0 carries (proposed 2026-10-24; D-2026-10-25-01)
+## What 2.18.0 carries (D-2026-10-25-01; being built since 2026-10-25, D-2026-10-25-02)
 
 1. **The gate,** Part A.
 2. **Faults that lose or change work:** A3.0 (a tab per keystroke, the
