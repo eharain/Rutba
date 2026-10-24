@@ -20,7 +20,7 @@ fixed, pushed or released until the middle of next week.
 | A4 | Presentations | 8 | presenter Pause ends the show; notes not typed under the slide; picture ideas cropped |
 | A5 | Worksheets | 12 | conditional formatting's Apply fails on every rule; no filter arrows; charts keep old values |
 | A6 | Mail, Calendar, Contacts | 16 | Mail's moves, deletes and marks never reach the server; Gmail and Outlook sign-in off |
-| A7 | PDF, Pictures, Image | 12 | Pictures' tile menu trashes the open picture, not the one clicked; Image's Export offers the original's name |
+| A7 | PDF, Pictures, Image | 13 | Pictures' tile menu trashes the open picture, not the one clicked; Image's Export offers the original's name |
 | A | the gate | 5 | tooling, not a fault people see |
 
 Fix first, when fixing starts: anything that loses or changes a person's
@@ -422,6 +422,9 @@ that need them wait, as the Data Files ones do.
    packages/pdf/src/redact.js:691 has `/s+/g` where `/\s+/g` was meant. Only
    the list shown in the dialog; what is redacted is matched on the
    normalised words. Found by the video session reading the source.
+12. **PDF: Fields finds a tick box in a scanned address line.** In PDF 5's
+    Fields pane, the scanned invoice's address line is detected as "1 tick
+    box". Found by the video session shooting PDF 5 on 2.17.1. For 2.19.
 
 ## Part B. Rutba Office 2.18.0: Data Files' synced copies and other sources
 
