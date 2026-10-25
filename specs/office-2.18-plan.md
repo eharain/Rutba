@@ -19,7 +19,7 @@ fixed, pushed or released until the middle of next week.
 | A3 | Documents | 11 | a tab added per keystroke and saved (the likely cause of the freeze); the Markdown round trip changes a file; page numbers never drawn |
 | A4 | Presentations | 8 | presenter Pause ends the show; notes not typed under the slide; picture ideas cropped |
 | A5 | Worksheets | 12 | conditional formatting's Apply fails on every rule; no filter arrows; charts keep old values |
-| A6 | Mail, Calendar, Contacts | 16 | Mail's moves, deletes and marks never reach the server; Gmail and Outlook sign-in off |
+| A6 | Mail, Calendar, Contacts | 17 | Mail's moves, deletes and marks never reach the server; Gmail and Outlook sign-in off |
 | A7 | PDF, Pictures, Image | 13 | Pictures' tile menu trashes the open picture, not the one clicked; Image's Export offers the original's name |
 | A | the gate | 5 | tooling, not a fault people see |
 
@@ -374,6 +374,14 @@ that need them wait, as the Data Files ones do.
     the one before it at the foot of the list) and open it, as Outlook
     does; a check in verify-mail-window.js deletes the middle of three and
     sees the third selected and shown.
+17. **Importing the same file twice makes a second mailbox** (found checking
+    the video session's Mail 4 script against 2.18.0). Import mail calls
+    `mail.import` with no account (renderer mail.js about 1021), so main
+    mail.js about 1420 makes a new local mailbox each time, and every
+    message is copied again into it; "adds nothing" holds only within one
+    mailbox. Import into the mailbox already made from that file (its
+    `imported` path), or ask which. For 2.19.
+
 
 ## Part A7. PDF, Pictures and Image (2026-10-24)
 
