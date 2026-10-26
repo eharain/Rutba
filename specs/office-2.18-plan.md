@@ -78,8 +78,11 @@ start building the next as well". 2.18.0 was released on 2026-10-25
    re-matched by Message-ID, an older store adopted on its first fetch,
    fetching on opening, every 5 minutes and by IDLE, folders at the
    server, one-click unsubscribe sent from Mail, a test IMAP server.
-   Next for the same builder: mail sealed with the profile password,
-   then A6.17 and Mail's parts of A6.10.
+   Then merged (2784e867, 9a899ec4; translations 1ec3f91c): mail sealed
+   with the profile password (messages, index lines, folders, sync state,
+   queue, outgoing, attachments; resealed resumably, about 5 ms a file),
+   A6.17 (the same file imported again adds only what is new) and Mail's
+   parts of A6.10.
 5. **Gmail and Outlook,** A6.3 and B2.4 Google Sheets, once the owner's
    client ids arrive (next week); oauth.js sends the Google Desktop
    client's secret, read from the build's settings, never the repo.
