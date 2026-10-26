@@ -548,7 +548,20 @@ keys, thumbnails, AI Tools, errors.log).
    another person at the same Windows account cannot read them; the
    password is never stored, and a forgotten one cannot be recovered
    (said plainly when it is set). Change and remove the password.
-5. **Checks:** engine tests for the profile list and the folders; window
+6. **The AI Tools command names a file that is not there** (the owner,
+   2026-10-26: "when i passed this mcp cli the tool complained its not
+   there"). The command AI Tools shows (ai-tools.js `mcpCommand`) runs
+   Rutba Office.exe as Node on `resources\app.asar\main\mcp\node.js`.
+   That file exists only inside the app.asar archive, which only Electron
+   reads: run that way it answers (checked 2026-10-26 against the installed
+   2.18.0), but an AI app or command line that checks the path first finds
+   nothing. Ship a small real file outside the archive (electron-builder
+   extraResources, e.g. `resources\mcp\rutba-office-mcp.js`) that loads the
+   archive's mcp/node.js, show that path, and say in AI Tools that older
+   settings should be copied again. With profiles, the command names its
+   profile (`--profile <id>`), so an AI app works in the profile it was set
+   up from.
+7. **Checks:** engine tests for the profile list and the folders; window
    checks that make a second profile, open both side by side, see each
    window's badge and keep their settings and mail apart, and open a
    protected profile with a wrong then the right password.
