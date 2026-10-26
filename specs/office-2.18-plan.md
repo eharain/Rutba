@@ -28,6 +28,79 @@ work (A6.1 Mail's server sync, A3.0 the freeze, A3.1 Markdown, A7.0
 Pictures trashing the wrong file), then what
 is broken outright (A5.1 conditional formatting, A3.10 page numbers).
 
+## The last two releases: 2.19 and 2.20 (D-2026-10-26-07)
+
+The owner, 2026-10-26: "in that can we will only ship these two version
+including the one already build no more so properly plan this out and
+start building the next as well". 2.18.0 was released on 2026-10-25
+(D-2026-10-25-03). Nothing else is released until 2.19, and nothing between
+2.19 and 2.20.
+
+### 2.19: every open fault and the features planned for it
+
+1. **Already built and merged on Office main (2026-10-26, not pushed):**
+   A7.13 PDF passwords; A2.18 a database asks before reading its sources;
+   A2.19 a kept password goes only where it was typed for; C1 the Data
+   Files format published; their Urdu, Arabic and Hindi.
+2. **Profiles,** Part D items 1 to 7, with the AI Tools command fixed
+   (item 6). Being built (clone office-profiles).
+3. **AI Tools across the board,** Part E items 1 to 4, 6 and 7 (item 5,
+   a choice per AI app, is later). After profiles, as it keeps its
+   settings per profile and per account.
+4. **Mail at the server,** A6.1 first, then A6.2 (fetching by itself),
+   A6.4 (folders), A6.11 (out of office as mail arrives), A6.5 and A6.6.
+5. **Gmail and Outlook,** A6.3 and B2.4 Google Sheets, once the owner's
+   client ids arrive (next week); oauth.js sends the Google Desktop
+   client's secret, read from the build's settings, never the repo.
+6. **Calendar, Contacts and the rest of Mail:** A6.7 to A6.10, A6.14,
+   A6.15, A6.17. After profiles, which changes calendar.js and
+   contacts.js.
+7. **Open formats:** A2.20 (files made elsewhere: opened read only when
+   foreign, newer versions refused, unknown keys kept, DESIGN_VERSION 7
+   and the spec with it); C2 Strict OOXML; C4 docs/OOXML-NOTES.md from
+   what C2 finds. C3's real documents: the builder lists candidates with
+   their source and licence, and the owner approves the list before any
+   is fetched; the measuring follows.
+8. **The other faults:** A3.3, A3.8, A3.9 (Documents); A4.2 to A4.8
+   (Presentations); A5.9 to A5.12 (Worksheets); A7.4 to A7.6, A7.8 to
+   A7.12 (PDF, Pictures, Image).
+9. **The release:** translations of every new message, the full gate
+   (a minor release, D-2026-10-23-01), the release note, the packaged
+   checks, install and update tests, the pre-release, office.rutba.io's
+   facts, release timeline and privacy page (profiles, AI Tools' send
+   with confirmation), then the how-to scripts that waited on these
+   fixes, and the films after them (content-coordination-chain).
+
+Builders, each in its own clone, never two on the same files: profiles
+(running); mail at the server (item 4); open formats (item 7); the 2.20
+groundwork (below). When profiles is merged: AI Tools (item 3), then
+Calendar and Contacts (item 6), and the other faults (item 8) in the
+freed clone. Gmail and Outlook (item 5) when the ids arrive. Size: about
+three weeks with the builders side by side; the gate and release about
+two days.
+
+### 2.20: only the apps a person chose (Part F)
+
+1. **Now, beside 2.19 (it moves no app code, so it does not collide):**
+   the map of what each app imports from another and from the shared
+   engines (F7); the pack format (a manifest naming the app, its version,
+   the packs it needs, its files and their SHA-512, signed with Ed25519);
+   the tool that makes and signs packs from a build; the core's loader
+   that verifies packs and refuses a wrong version or signature; their
+   tests, with a key made for the tests. The real signing key is made
+   once and kept with the other release secrets, never in the
+   repository.
+2. **After 2.19 is tagged:** each app's main-process code moves into
+   its own folder and registers through the loader; the build makes the
+   core and the packs; the installer asks which apps; Add or remove apps
+   in the launcher; packs updated with the core.
+3. **Updating from 2.19:** a person updating keeps every app they had,
+   and removes any they like afterwards; nothing they use goes missing.
+4. **The release:** the full gate with every pack, the check that a
+   core with one pack holds no other app's code, file type or tool, the
+   install test with a short list of apps, and the update test from
+   2.19.0. Size: about two weeks after 2.19.
+
 ## What 2.18.0 carries (D-2026-10-25-01; being built since 2026-10-25, D-2026-10-25-02)
 
 1. **The gate,** Part A.
@@ -613,7 +686,7 @@ picture. The person chooses off, this session or always, and the folders.
    used, never what it read.
 7. **With profiles (Part D):** every choice is kept per profile.
 
-## Part F. Only the apps a person chose are on their computer (proposed)
+## Part F. Only the apps a person chose are on their computer, for 2.20 (D-2026-10-26-07)
 
 The owner, 2026-10-26: "how do we ensure that the code only is deployed on
 customers computer when the user has chosen the app.  so the code should
@@ -655,8 +728,8 @@ starts every app's service at launch.
    biggest packs (text recognition, video, PDF's viewer) save the most.
 7. **First step:** a map of what each app imports from another and from
    the shared engines, so the core's line is drawn where the code
-   already divides. Size: about two weeks after the map. After profiles
-   and AI Tools (Parts D and E).
+   already divides. Size: about two weeks after the map. The map and the
+   pack format are built beside 2.19; the app code moves after 2.19.
 
 ## Part B. Rutba Office 2.18.0: Data Files' synced copies and other sources
 
