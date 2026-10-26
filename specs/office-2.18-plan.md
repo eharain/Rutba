@@ -59,6 +59,14 @@ start building the next as well". 2.18.0 was released on 2026-10-25
    settings per profile and per account.
 4. **Mail at the server,** A6.1 first, then A6.2 (fetching by itself),
    A6.4 (folders), A6.11 (out of office as mail arrives), A6.5 and A6.6.
+   Merged on Office main 2026-10-26 (da27c3e1 to 25ea1195; Urdu, Arabic
+   and Hindi 8d0d20a0): a durable queue of changes replayed by UID,
+   fetching by UID with CONDSTORE or a bounded flags check, UIDVALIDITY
+   re-matched by Message-ID, an older store adopted on its first fetch,
+   fetching on opening, every 5 minutes and by IDLE, folders at the
+   server, one-click unsubscribe sent from Mail, a test IMAP server.
+   Next for the same builder: mail sealed with the profile password,
+   then A6.17 and Mail's parts of A6.10.
 5. **Gmail and Outlook,** A6.3 and B2.4 Google Sheets, once the owner's
    client ids arrive (next week); oauth.js sends the Google Desktop
    client's secret, read from the build's settings, never the repo.
