@@ -15,7 +15,7 @@ fixed, pushed or released until the middle of next week.
 
 | Part | App | Items | The worst of them |
 | --- | --- | --- | --- |
-| A2 | Data Files | 17 | a criterion naming a field returns every record; imported IDs and money |
+| A2 | Data Files | 18 | a criterion naming a field returns every record; imported IDs and money |
 | A3 | Documents | 11 | a tab added per keystroke and saved (the likely cause of the freeze); the Markdown round trip changes a file; page numbers never drawn |
 | A4 | Presentations | 8 | presenter Pause ends the show; notes not typed under the slide; picture ideas cropped |
 | A5 | Worksheets | 12 | conditional formatting's Apply fails on every rule; no filter arrows; charts keep old values |
@@ -153,6 +153,21 @@ Found checking parts 2 to 4 (episodes 8 to 17), the same day:
     buttons would be; the template's record chooser names records, not
     "Record 17"; Letterhead says what it is for when no Business table
     exists.
+18. **A database from someone else reads its sources without asking**
+    (found 2026-10-26 reading LibreOffice's CVE-2026-63277: a spreadsheet
+    whose database range refreshes itself on open fetched an outside file
+    and ran its driver with no warning). Office runs no code from a source,
+    but a .rbase file sent by someone else, with a table linked to a web
+    address or a file path, is read again as soon as it is opened and due
+    (renderer base.js about 677, `refreshDue`; main base-sync.js 204). That
+    tells the address's owner the file was opened and from where; a
+    `\\server\share` path makes Windows offer the person's sign-in hash to
+    that server; a path on this computer reads the person's own file into
+    the database, which goes back with it if it is sent on. A database
+    opened from a file this computer did not make (or, simpler, the first
+    time any database is opened here) asks before it reads any source,
+    naming each address and path, as a document asks before its macros;
+    the answer is kept for that file. Before 2.19's release, with A7.13.
 
 Items 12, 13 and 15 are features rather than fixes (a form designer, an
 editable subform, report totals); they may go into 2.18.0 with the rest.
