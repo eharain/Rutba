@@ -514,6 +514,45 @@ limiting factor we should help these regulators out too."
    in docs/OOXML-NOTES.md for other implementers and for regulators, plain
    and factual, naming no one unkindly.
 
+## Part D. Profiles (D-2026-10-26-02), for 2.19
+
+The owner, 2026-10-26: "we should offer multiple profiles in office so user
+can switch between  them and manage them as well." Side by side, with an
+optional password.
+
+Today everything a person has is in one folder, %APPDATA%\Rutba Office
+(template-set-choice.js PROFILE_NAME; office-shell store.js keeps
+settings.json, secrets.json and recent.json there, and every app keeps its
+own files beside them: mail and its index, calendars, contacts, Talk's
+keys, thumbnails, AI Tools, errors.log).
+
+1. **Profiles kept apart.** Each profile is a folder of its own; the
+   folder people have now becomes the first profile, "Default", left where
+   it is so nothing is moved. A small profiles list beside it names each
+   profile, its colour and folder, and the one that opens first. What is
+   shared by every profile: the installed program and its updates, the
+   downloaded template sets, the spelling dictionaries.
+2. **Side by side.** Each profile runs as its own Rutba Office (one single
+   instance lock per profile), so two profiles can be open together; a
+   file opened from Explorer goes to the profile last used, and a person
+   can choose Open in Profile. Every window shows its profile's name and
+   colour in the title bar when more than one profile exists.
+3. **Switching and managing.** The launcher's account menu lists the
+   profiles (open, or switch to, each), with Manage profiles: make one,
+   rename, choose a colour and picture, choose the one that opens first,
+   remove one (asking first, saying what goes with it). A desktop shortcut
+   can open a chosen profile.
+4. **An optional password.** A profile with a password asks for it before
+   anything of it opens. Its saved passwords, mail, calendars and contacts
+   are kept encrypted with a key made from the password (scrypt), so
+   another person at the same Windows account cannot read them; the
+   password is never stored, and a forgotten one cannot be recovered
+   (said plainly when it is set). Change and remove the password.
+5. **Checks:** engine tests for the profile list and the folders; window
+   checks that make a second profile, open both side by side, see each
+   window's badge and keep their settings and mail apart, and open a
+   protected profile with a wrong then the right password.
+
 ## Part B. Rutba Office 2.18.0: Data Files' synced copies and other sources
 
 A minor release, so the full gate. Both steps of
