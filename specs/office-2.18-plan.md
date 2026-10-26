@@ -122,7 +122,14 @@ two days.
    out of the installed build (after making sure the packaged checks
    do not need them, and that the mail builder did not start using
    mailparser).
-2. **After 2.19 is tagged:** each app's main-process code moves into
+   **Now, too (D-2026-10-26-08):** the core's pack machinery (the IPC
+   contract and the preload per pack, apps registered through the
+   loader, the build making core and packs, the installer's choice, Add
+   or remove apps, the update path, tools/check-packs.mjs), on the local
+   branch next-2.20 of Office, which takes in main as 2.19 work lands.
+2. **Each app as soon as its 2.19 work is merged** (D-2026-10-26-08), not
+   after the tag, in the order docs/APP-PACKS.md gives where it can:
+   each app's main-process code moves into
    its own folder and registers through the loader; the build makes the
    core and the packs; the installer asks which apps; Add or remove apps
    in the launcher; packs updated with the core.
