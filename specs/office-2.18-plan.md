@@ -566,6 +566,42 @@ keys, thumbnails, AI Tools, errors.log).
    window's badge and keep their settings and mail apart, and open a
    protected profile with a wrong then the right password.
 
+## Part E. AI Tools: the person chooses what each app and account allows, for 2.19
+
+The owner, 2026-10-26: "the mcp tool should also let the user choose what
+to allow from apps, what emails accounts to allow to all etc."
+
+Today (apps/desktop/main/mcp/tools.js) the tools reach files only: list
+and read files in the folders given, make documents, workbooks and
+presentations, templates, PDF export and combining, and reading text in a
+picture. The person chooses off, this session or always, and the folders.
+
+1. **A choice per app.** The AI Tools window lists each app with Off, Read,
+   or Read and make: Documents, Worksheets, Presentations, PDF, Pictures
+   (text in pictures), Mail, Calendar, Contacts and Data Files. Off by
+   default for every app not reachable today, so nothing widens on its
+   own; the file apps keep what they allow now. Each refusal names the
+   switch that would allow it.
+2. **Mail, by account.** Each mail account is ticked or not, none ticked
+   at first; an archive opened in place counts as an account. Read lets
+   the tools search and read messages of the ticked accounts (folders
+   chosen per account if simple); Read and make lets them write a draft,
+   which waits in Drafts for the person to send. The tools never send a
+   message, delete one or move one (proposed; the owner may widen it).
+   Attachments are read only from the ticked accounts.
+3. **Calendar and Contacts, by calendar and address book.** Read lists
+   events and people of the ticked ones; Read and make adds an event or a
+   contact, never deletes.
+4. **Data Files, by database.** Each database the person names, read or
+   read and change records (never its design), within its roles when it
+   is protected, signed in as the role the person chose for the tools.
+5. **Per AI app, later.** The window already lists the AI apps that
+   connected; a choice per AI app (one AI app may read mail, another not)
+   comes after items 1 to 4.
+6. **The log** names the app, the account, calendar or database each call
+   used, never what it read.
+7. **With profiles (Part D):** every choice is kept per profile.
+
 ## Part B. Rutba Office 2.18.0: Data Files' synced copies and other sources
 
 A minor release, so the full gate. Both steps of
