@@ -67,6 +67,15 @@ start building the next as well". 2.18.0 was released on 2026-10-25
    that saved passwords must be typed again, and asks for each as it is
    needed. Every password stored before, under Windows protection or
    plain, is moved in once and the old copy removed.
+   Merged 2026-10-26 (1dafe658, 9d5382a2, c62bd1e8; translations
+   d36a6378): @tech-style/secure-keystore 3.0.0 at 10,000 iterations (the
+   key is random; opening 135 ms), the store key derived from the random
+   key with the profile id as salt, entry names hashed, a store from
+   elsewhere set aside and never deleted, Mail and Calendar and Contacts
+   asking for a missing password. Found on the way and fixed: a password
+   change stopped by a crash, opened with the old password, gave Mail the
+   new key twice and could leave mail unreadable. Not prompted for yet: a
+   lost Google or Microsoft sign-in (the person signs in again).
 3. **AI Tools across the board,** Part E items 1 to 4, 6 and 7 (item 5,
    a choice per AI app, is later). After profiles, as it keeps its
    settings per profile and per account.
@@ -91,9 +100,10 @@ start building the next as well". 2.18.0 was released on 2026-10-25
    contacts.js. Merged 2026-10-26 (8ac317e7 to 04f09b40): CSV import with
    a preview, ANSI and Google's headings; accounts named and renamed;
    invitation answers remembered; time zones and a second zone; one
-   occurrence edited; Invite on save. Being fixed before translation: an
-   older setup's new cards must stay on this computer, not move to the
-   account's book on update.
+   occurrence edited; Invite on save. Then 481a018a: a setup from before
+   2.19 keeps new cards on this computer until a book is chosen, and
+   Accounts says where new cards go (window checks 19 of 19);
+   translations d36a6378.
    The 2.20 core is built (clone office-next: per-pack IPC, register
    modules, the installer's app page, Add or remove apps, check-packs, 18
    window checks); it is merging main in, then moves Talk as the first
@@ -116,7 +126,10 @@ start building the next as well". 2.18.0 was released on 2026-10-25
    specs/office-c3-candidates.md, waiting for the owner.
 8. **The other faults:** A3.3, A3.8, A3.9 (Documents); A4.2 to A4.8
    (Presentations); A5.9 to A5.12 (Worksheets); A7.4 to A7.6, A7.8 to
-   A7.12 (PDF, Pictures, Image).
+   A7.12 (PDF, Pictures, Image). Merged 2026-10-26 (80adb99e to 12870a39;
+   translations d36a6378). Left: A7.11 (Copy Text and heavy bold figures,
+   with the text recognition work) and A7.12 (needs the scanned invoice
+   sample).
 9. **The release:** translations of every new message, the full gate
    (a minor release, D-2026-10-23-01), the release note, the packaged
    checks, install and update tests, the pre-release, office.rutba.io's
