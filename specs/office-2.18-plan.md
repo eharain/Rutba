@@ -613,6 +613,51 @@ picture. The person chooses off, this session or always, and the folders.
    used, never what it read.
 7. **With profiles (Part D):** every choice is kept per profile.
 
+## Part F. Only the apps a person chose are on their computer (proposed)
+
+The owner, 2026-10-26: "how do we ensure that the code only is deployed on
+customers computer when the user has chosen the app.  so the code should
+not be disabled but actual is there or not depending on user choices".
+
+Today every app is in the one archive (resources\app.asar, 74 MB, plus 15
+MB unpacked; the Electron runtime is most of the 457 MB installed). The
+windows already load each app's code only when it opens
+(renderer/index.js imports apps/<app>.js on demand); the main process
+starts every app's service at launch.
+
+1. **Core and app packs.** The core is the runtime, the shell, the
+   launcher, settings, profiles, the updater and the engines several apps
+   share (reading and writing Office files, drawing pages). Each app is a
+   pack: its window code, its main-process service and IPC handlers, its
+   own heavy parts (text recognition's data, video's codecs, Talk's
+   calling, AI Tools' server), its tiles, file types and checks. Packs:
+   Documents, Worksheets, Presentations, PDF, Pictures, Image, Video,
+   Recorder, Mail, Calendar, Contacts, Data Files, Talk, AI Tools.
+2. **Absent, not off.** A pack not chosen is not on the disk: no file of
+   it, no IPC channel, no file type, no tile, no AI tool. The core finds
+   the installed packs at start and loads only those.
+3. **Choosing.** The installer asks which apps (all ticked, or a short
+   list of common sets), and the launcher's Add or remove apps adds a pack
+   (downloaded from the release, or from the full installer kept on the
+   computer for offline use) and removes one (its program files go; the
+   person's own files and settings stay unless they ask). An app that
+   needs another names it (for example Mail's invitations open Calendar).
+4. **Trust.** Every pack is signed (an Ed25519 key whose public half is
+   in the core) and carries its SHA-512; the core refuses a pack that does
+   not match its own version or its signature. Packs update with the core
+   in one step, only the ones installed.
+5. **Build and checks.** The build makes the core and one archive per
+   pack from the same commit; the gate runs with every pack, and a check
+   installs the core with one pack and finds no code, file type or tool of
+   any other.
+6. **What it saves.** Mostly trust and attack surface rather than disk:
+   the runtime is fixed, and the app code is about 90 MB in all. The
+   biggest packs (text recognition, video, PDF's viewer) save the most.
+7. **First step:** a map of what each app imports from another and from
+   the shared engines, so the core's line is drawn where the code
+   already divides. Size: about two weeks after the map. After profiles
+   and AI Tools (Parts D and E).
+
 ## Part B. Rutba Office 2.18.0: Data Files' synced copies and other sources
 
 A minor release, so the full gate. Both steps of
