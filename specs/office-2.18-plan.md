@@ -204,6 +204,18 @@ two days.
    core with one pack holds no other app's code, file type or tool, the
    install test with a short list of apps, and the update test from
    2.19.0. Size: about two weeks after 2.19.
+5. **State 2026-10-27:** items 1 and 2 are built on next-2.20 (51531072,
+   with main c283e553 merged in). All 15 apps carry their own code; the
+   core keeps only AI Tools' start file and five check files. Unit
+   tests pass apart from the 2 known catalogue failures; the packs check
+   passes 17/17 on the first start and 9/9 on the second; the release
+   build's tools/check-packs.mjs reports no failures (installer 124.9 MB,
+   portable 111.2 MB, the 15 packs 12.4 MB together). Two full window
+   runs each failed 2 of 2391 checks, a different 2 each time, and all
+   four passed when rerun alone, so they look like timing under load.
+   Left for the release (item 4): the install test with a short list,
+   the update test from 2.19.0, and the packs signed with the release
+   key rather than the dev key.
 
 ### Then: a week of testing and the first public release (D-2026-10-26-10)
 
