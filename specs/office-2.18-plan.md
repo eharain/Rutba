@@ -88,7 +88,17 @@ start building the next as well". 2.18.0 was released on 2026-10-25
    client's secret, read from the build's settings, never the repo.
 6. **Calendar, Contacts and the rest of Mail:** A6.7 to A6.10, A6.14,
    A6.15, A6.17. After profiles, which changes calendar.js and
-   contacts.js.
+   contacts.js. Merged 2026-10-26 (8ac317e7 to 04f09b40): CSV import with
+   a preview, ANSI and Google's headings; accounts named and renamed;
+   invitation answers remembered; time zones and a second zone; one
+   occurrence edited; Invite on save. Being fixed before translation: an
+   older setup's new cards must stay on this computer, not move to the
+   account's book on update.
+   The 2.20 core is built (clone office-next: per-pack IPC, register
+   modules, the installer's app page, Add or remove apps, check-packs, 18
+   window checks); it is merging main in, then moves Talk as the first
+   real pack. The installer is not run here (same app id as the owner's
+   copy): install, uninstall and update wait for a clean machine.
 7. **Open formats:** A2.20 (files made elsewhere: opened read only when
    foreign, newer versions refused, unknown keys kept, DESIGN_VERSION 7
    and the spec with it); C2 Strict OOXML; C4 docs/OOXML-NOTES.md from
