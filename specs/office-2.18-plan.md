@@ -462,6 +462,40 @@ that need them wait, as the Data Files ones do.
     and a save keeps the password or, asked, saves without it. Files with
     only an owner password (permissions) are checked too. For 2.19.
 
+## Part C. Open formats (D-2026-10-26-01)
+
+The owner, 2026-10-26: "the data files format we are implementing we will
+make these transparent for the world .  strict if it is coming up as a
+limiting factor we should help these regulators out too."
+
+1. **The Data Files format, published.** docs/DATA-FILES-FORMAT.md in the
+   Office repository: a .rbase file is one SQLite file whose data sits in
+   ordinary tables; the spec gives every rutba_* design table (meta, tables,
+   fields, relations, steps, queries, forms, reports, documents, links,
+   linked, roles, people, trail, sync, clashes), each JSON layout a column
+   holds (a query's design, a form's and a report's layout, a print
+   template), what each DESIGN_VERSION added, how a protected database is
+   kept, and what a reader must do with what it does not know. Free to
+   implement, no patent claim, the text under CC BY 4.0. With sample files
+   and `tools/check-rbase.mjs`, which says whether a file follows it. A test
+   fails when the design tables change and the spec does not.
+2. **Strict OOXML.** Documents, Worksheets and Presentations open files in
+   ISO/IEC 29500 Strict (the purl.oclc.org/ooxml namespaces, dates as ISO
+   8601 in Worksheets, no VML), and Save As offers Strict beside the usual
+   form. Today a Strict file does not open properly: packages/ooxml knows
+   only the Transitional namespaces. Round-trip tests with Strict files
+   saved by Word, Excel and PowerPoint.
+3. **Real documents, measured.** A test set of public documents (government
+   forms, council spreadsheets, published reports and decks, kept with
+   their sources and licences), each opened and checked for blank pages,
+   missing text, pictures and charts, and layout drift against Word's and
+   Excel's own rendering (tools/compare-word.ps1, compare-excel.ps1). The
+   figure goes on office.rutba.io only as measured.
+4. **Where files depart from the standard.** What item 3 and the Strict
+   work find in real files that ISO/IEC 29500 does not describe, written up
+   in docs/OOXML-NOTES.md for other implementers and for regulators, plain
+   and factual, naming no one unkindly.
+
 ## Part B. Rutba Office 2.18.0: Data Files' synced copies and other sources
 
 A minor release, so the full gate. Both steps of
