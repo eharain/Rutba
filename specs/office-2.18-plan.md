@@ -173,6 +173,45 @@ two days.
    install test with a short list of apps, and the update test from
    2.19.0. Size: about two weeks after 2.19.
 
+### Then: a week of testing and the first public release (D-2026-10-26-10)
+
+The owner, 2026-10-26: "we will first complete the know things, then
+perform a complete week of testing to create a first public release and
+remove beta and will have it signed. i assume we are month away from
+that." About four weeks: the rest of 2.19's work (about a week), the apps
+moved into packs (about two weeks, partly beside it), the testing week.
+Open: whether 2.19 still goes out as a pre-release on the way.
+
+1. **The certificate,** bought by the owner in Tech Style's name at least
+   two weeks before the testing week (business validation and issue take
+   days), so the build tested is the build signed. Signing wired into the
+   release (the installer, the update files, Rutba Office.exe and the
+   helpers), checked by the install and update tests.
+2. **The testing week,** on the release candidate, signed:
+   - the full gate, every lane, and the packaged checks;
+   - install, update and uninstall on clean Windows 10 and 11 (a fresh
+     account, no developer tools), from 2.18.0 and an older version;
+     the one-time moves (profiles, the keystore, mail sealing, packs)
+     run on a copy of a real, well-used profile;
+   - every how-to script followed by hand, as a person would, in each
+     app; every fault found fixed and the step rerun;
+   - the real-document set (C3) once the owner approves it: open rate,
+     round trips, layout against Word and Excel, Strict both ways;
+   - Urdu, Arabic and Hindi windows read through, right-to-left layouts;
+   - mail, calendars and contacts against the owner's own accounts,
+     with the owner, never by a builder alone;
+   - the AI tools with a real AI app, every step and confirmation;
+   - SmartScreen and antivirus behaviour of the signed installer;
+   - start time, memory and size measured against 2.18.0.
+3. **Removing beta:** the GitHub release published as a full release
+   (not a pre-release), whatever in the app, the installer and
+   office.rutba.io says beta or preview changed, and the update feed
+   checked so people on pre-releases receive it.
+4. **The release:** notes covering everything since 2.18.0, the site's
+   facts, timeline and privacy page (profiles, keystore, AI tools, mail
+   at the server), then the films and posts in the usual order
+   (content-coordination-chain).
+
 ## What 2.18.0 carries (D-2026-10-25-01; being built since 2026-10-25, D-2026-10-25-02)
 
 1. **The gate,** Part A.
