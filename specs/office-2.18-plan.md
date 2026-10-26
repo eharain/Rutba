@@ -127,9 +127,13 @@ start building the next as well". 2.18.0 was released on 2026-10-25
 8. **The other faults:** A3.3, A3.8, A3.9 (Documents); A4.2 to A4.8
    (Presentations); A5.9 to A5.12 (Worksheets); A7.4 to A7.6, A7.8 to
    A7.12 (PDF, Pictures, Image). Merged 2026-10-26 (80adb99e to 12870a39;
-   translations d36a6378). Left: A7.11 (Copy Text and heavy bold figures,
-   with the text recognition work) and A7.12 (needs the scanned invoice
-   sample).
+   translations d36a6378). A7.11 fixed 2026-10-27 (c283e553): light
+   figures on a dark ground were binarised as outlines, heavy strokes left
+   hollow by a too-narrow window, and one-line crops never scaled; heavy
+   bold prices read exactly 1077 of 1120 (was 659), regular lines 940 of
+   1000 (was 483), nothing worse on white. Left to the model: Gill Sans
+   Ultra Bold's $ and a few Impact digits. Left: A7.12 (needs the
+   scanned invoice sample).
    The full window check over all of it (2026-10-27, 49d59096): 2391 of
    2391 after fixing 21 failures, 19 of them in the checks (two checks
    leaving mail and contacts behind for later ones, three gone stale, a
