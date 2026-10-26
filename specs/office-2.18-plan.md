@@ -586,8 +586,13 @@ picture. The person chooses off, this session or always, and the folders.
    at first; an archive opened in place counts as an account. Read lets
    the tools search and read messages of the ticked accounts (folders
    chosen per account if simple); Read and make lets them write a draft,
-   which waits in Drafts for the person to send. The tools never send a
-   message, delete one or move one (proposed; the owner may widen it).
+   which waits in Drafts for the person to send, or send one: each message
+   the tools want to send is shown in Office first (from, to, subject, the
+   text and attachments) with Send, Keep as draft and Cancel, and nothing
+   leaves until the person presses Send. Each account can instead be set to
+   drafts only, so the tools never ask to send from it (the owner,
+   2026-10-26: "allow sending too, but confirm each message first with
+   choice to create drafts only"). The tools never delete or move a message.
    Attachments are read only from the ticked accounts.
 3. **Calendar and Contacts, by calendar and address book.** Read lists
    events and people of the ticked ones; Read and make adds an event or a
