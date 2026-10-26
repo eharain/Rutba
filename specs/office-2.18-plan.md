@@ -593,6 +593,12 @@ picture. The person chooses off, this session or always, and the folders.
    drafts only, so the tools never ask to send from it (the owner,
    2026-10-26: "allow sending too, but confirm each message first with
    choice to create drafts only"). The tools never delete or move a message.
+   The choice is the email account's own (the owner, 2026-10-26: "so the
+   settings should be email accounts"): each account in Mail's account
+   settings has an AI tools choice, Off (the default), Read, Read and
+   write drafts, or Read, drafts and send (each message confirmed), and
+   the AI Tools window lists the accounts with the same choice, one
+   setting shown in both places.
    Attachments are read only from the ticked accounts.
 3. **Calendar and Contacts, by calendar and address book.** Read lists
    events and people of the ticked ones; Read and make adds an event or a
