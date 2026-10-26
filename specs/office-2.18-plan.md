@@ -43,7 +43,17 @@ start building the next as well". 2.18.0 was released on 2026-10-25
    A2.19 a kept password goes only where it was typed for; C1 the Data
    Files format published; their Urdu, Arabic and Hindi.
 2. **Profiles,** Part D items 1 to 7, with the AI Tools command fixed
-   (item 6). Being built (clone office-profiles).
+   (item 6). Merged on Office main 2026-10-26 (4efff1a9, a3fd1468; Urdu,
+   Arabic and Hindi a0252199): side by side, Manage Profiles, the optional
+   password sealing saved passwords, recent files, calendars, contacts and
+   Talk messages (scrypt, AES-256-GCM), and the AI Tools lines naming a
+   real start file and the profile. Left for 2.19: mail sealed with the
+   password too, as D-2026-10-26-02 says (the mail builder, after its
+   sync work, since it changes the same store); the AI tools reach a
+   protected profile only while it is open with its password (today, set
+   to always, they can read its chosen folders without it); a change of
+   password that a crash midway cannot leave half done. A desktop
+   shortcut per profile was left out.
 3. **AI Tools across the board,** Part E items 1 to 4, 6 and 7 (item 5,
    a choice per AI app, is later). After profiles, as it keeps its
    settings per profile and per account.
