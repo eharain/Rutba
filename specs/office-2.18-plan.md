@@ -15,7 +15,7 @@ fixed, pushed or released until the middle of next week.
 
 | Part | App | Items | The worst of them |
 | --- | --- | --- | --- |
-| A2 | Data Files | 18 | a criterion naming a field returns every record; imported IDs and money |
+| A2 | Data Files | 20 | a criterion naming a field returns every record; imported IDs and money |
 | A3 | Documents | 11 | a tab added per keystroke and saved (the likely cause of the freeze); the Markdown round trip changes a file; page numbers never drawn |
 | A4 | Presentations | 8 | presenter Pause ends the show; notes not typed under the slide; picture ideas cropped |
 | A5 | Worksheets | 12 | conditional formatting's Apply fails on every rule; no filter arrows; charts keep old values |
@@ -168,6 +168,24 @@ Found checking parts 2 to 4 (episodes 8 to 17), the same day:
     time any database is opened here) asks before it reads any source,
     naming each address and path, as a document asks before its macros;
     the answer is kept for that file. Before 2.19's release, with A7.13.
+19. **A stored password goes wherever the file now points** (found writing
+    the format spec, 2026-10-26). Engine passwords and a source's secret
+    headers are kept by the link's id alone (`base-link:<id>`,
+    `base-source:<id>` in main base.js and base-sync.js) while the host or
+    URL comes from the file, so a person's .rbase changed to another host
+    with the same id sends their secret there when opened. Each secret is
+    bound to the destination it was saved for and is not sent elsewhere.
+    With A2.18.
+20. **What the format spec found Office doing to files made elsewhere**
+    (docs/DATA-FILES-FORMAT.md section 11): it opens any SQLite file and
+    adds its design tables and WAL mode to it (open another program's
+    database read only, or ask before making it a Data Files database);
+    it opens a newer design version instead of refusing it; a design change
+    rewrites rutba_fields rows and the query designer rewrites a column
+    from the keys it knows, so a newer version's additions are lost (keep
+    what is not understood); and 2.18.0's synced copies and sources came
+    in without a new design version (raise it to 7, so 2.17 refuses rather
+    than reading a copy as live). For 2.19.
 
 Items 12, 13 and 15 are features rather than fixes (a form designer, an
 editable subform, report totals); they may go into 2.18.0 with the rest.
