@@ -130,6 +130,11 @@ start building the next as well". 2.18.0 was released on 2026-10-25
    translations d36a6378). Left: A7.11 (Copy Text and heavy bold figures,
    with the text recognition work) and A7.12 (needs the scanned invoice
    sample).
+   The full window check over all of it (2026-10-27, 49d59096): 2391 of
+   2391 after fixing 21 failures, 19 of them in the checks (two checks
+   leaving mail and contacts behind for later ones, three gone stale, a
+   fixture, the machine check in a whole run) and two in the app (the
+   profile badge spoken without the name it shows).
 9. **The release:** translations of every new message, the full gate
    (a minor release, D-2026-10-23-01), the release note, the packaged
    checks, install and update tests, the pre-release, office.rutba.io's
