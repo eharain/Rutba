@@ -566,7 +566,7 @@ keys, thumbnails, AI Tools, errors.log).
    window's badge and keep their settings and mail apart, and open a
    protected profile with a wrong then the right password.
 
-## Part E. AI Tools: the person chooses what each app and account allows, for 2.19
+## Part E. AI Tools: everything the tools could reach carries its own setting, for 2.19
 
 The owner, 2026-10-26: "the mcp tool should also let the user choose what
 to allow from apps, what emails accounts to allow to all etc."
@@ -576,36 +576,36 @@ and read files in the folders given, make documents, workbooks and
 presentations, templates, PDF export and combining, and reading text in a
 picture. The person chooses off, this session or always, and the folders.
 
-1. **A choice per app.** The AI Tools window lists each app with Off, Read,
-   or Read and make: Documents, Worksheets, Presentations, PDF, Pictures
-   (text in pictures), Mail, Calendar, Contacts and Data Files. Off by
-   default for every app not reachable today, so nothing widens on its
-   own; the file apps keep what they allow now. Each refusal names the
-   switch that would allow it.
-2. **Mail, by account.** Each mail account is ticked or not, none ticked
-   at first; an archive opened in place counts as an account. Read lets
-   the tools search and read messages of the ticked accounts (folders
-   chosen per account if simple); Read and make lets them write a draft,
-   which waits in Drafts for the person to send, or send one: each message
-   the tools want to send is shown in Office first (from, to, subject, the
-   text and attachments) with Send, Keep as draft and Cancel, and nothing
-   leaves until the person presses Send. Each account can instead be set to
-   drafts only, so the tools never ask to send from it (the owner,
-   2026-10-26: "allow sending too, but confirm each message first with
-   choice to create drafts only"). The tools never delete or move a message.
-   The choice is the email account's own (the owner, 2026-10-26: "so the
-   settings should be email accounts"): each account in Mail's account
-   settings has an AI tools choice, Off (the default), Read, Read and
-   write drafts, or Read, drafts and send (each message confirmed), and
-   the AI Tools window lists the accounts with the same choice, one
-   setting shown in both places.
-   Attachments are read only from the ticked accounts.
-3. **Calendar and Contacts, by calendar and address book.** Read lists
-   events and people of the ticked ones; Read and make adds an event or a
-   contact, never deletes.
-4. **Data Files, by database.** Each database the person names, read or
-   read and change records (never its design), within its roles when it
-   is protected, signed in as the role the person chose for the tools.
+1. **One rule across the board** (the owner, 2026-10-26: "so the settings
+   should be email accounts", then "same for calendars and contacts and
+   across the board"). Every thing the tools could reach carries its own AI
+   tools setting, kept with it and shown in its own settings: each mail
+   account, each calendar, each address book, each Data Files database and
+   each folder of files. The AI Tools window lists them all with the same
+   setting, one setting shown in both places. Everything is Off until the
+   person chooses, except the folders already given today, which keep
+   what they allow. A refusal names the thing and where its setting is.
+2. **The same four steps everywhere:** Off; Read; Read and prepare
+   (drafts, new events and contacts, new files and records, all kept on
+   this computer for the person to look at); Read, prepare and act, where
+   anything that leaves the computer or tells another person (a message
+   sent, an invitation or its answer, a shared file, a change written to a
+   database engine) is shown in Office first, with the action, Keep as
+   draft and Cancel, and happens only when the person presses it (the
+   owner, 2026-10-26: "allow sending too, but confirm each message first
+   with choice to create drafts only"). Deleting or moving anything is
+   never in reach of the tools.
+3. **What each step means, per kind.** Mail: read and search; drafts;
+   send, each message confirmed (an archive opened in place is read only).
+   Calendar: events; new events; invitations sent and answered, each
+   confirmed. Contacts: people; new contacts; contacts kept in step with a
+   server, each change confirmed. Data Files: records; new and changed
+   records (never the design), within the role the person chose for the
+   tools when the database is protected; writes to a linked engine
+   confirmed. Folders: list and read; new files (never overwriting, as
+   now); nothing further.
+4. **Attachments, invitations and linked files** are read only from
+   things the tools may read.
 5. **Per AI app, later.** The window already lists the AI apps that
    connected; a choice per AI app (one AI app may read mail, another not)
    comes after items 1 to 4.
