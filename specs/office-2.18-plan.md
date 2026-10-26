@@ -54,6 +54,19 @@ start building the next as well". 2.18.0 was released on 2026-10-25
    to always, they can read its chosen folders without it); a change of
    password that a crash midway cannot leave half done. A desktop
    shortcut per profile was left out.
+2a. **Saved passwords in each profile's keystore** (D-2026-10-26-09):
+   @tech-style/secure-keystore holds every password a profile saves
+   (mail, calendars and contacts servers, Talk, Data Files' engines and
+   sources, and any other); its key is random, linked to the profile's
+   long id and kept under Windows protection (Keychain or the secret
+   service on other systems; where those give no real protection, as
+   Linux without a keyring, passwords are kept only in a profile with a
+   password); with a profile password, that password protects the key
+   too. A keystore that will not open here (copied from another computer
+   or account, or into another profile) is put aside, Office says once
+   that saved passwords must be typed again, and asks for each as it is
+   needed. Every password stored before, under Windows protection or
+   plain, is moved in once and the old copy removed.
 3. **AI Tools across the board,** Part E items 1 to 4, 6 and 7 (item 5,
    a choice per AI app, is later). After profiles, as it keeps its
    settings per profile and per account.
