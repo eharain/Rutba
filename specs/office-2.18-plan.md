@@ -100,6 +100,28 @@ two days.
    tests, with a key made for the tests. The real signing key is made
    once and kept with the other release secrets, never in the
    repository.
+   Built and merged on Office main 2026-10-26 (9a0bce5d, 9f93e576,
+   e717f32d): tools/app-map.mjs and docs/APP-PACKS.md, the format, the
+   key and pack tools, the loader (packages/office-shell/src/electron/
+   packs.js), 19 tests. What the map found, which changes items 1 and 6
+   of Part F: the app code is about 52 MB, not 90; the core is about 22
+   MB (the shell, the one document service all three document apps
+   share, every Office-file engine, spelling, translations); the packs
+   worth most are text recognition (15.3 MB), Mail (5.6), Data Files
+   (4.1) and PDF (3.0); the document apps' packs are small. Text
+   recognition becomes a pack of its own that five apps and AI Tools
+   use (a soft "uses" beside the hard "needs"). 39 cross-app imports
+   to cut first, each named in the doc; every IPC channel exists
+   whatever is installed today, so the contract and the sandboxed
+   preload become per pack; services reaching each other through
+   main.js (Contacts, Calendar and Talk to Mail) need a guard for an
+   absent pack. Removing an app takes effect at the next start (Windows
+   file locks). The portable build carries every pack.
+   Two savings need no packs: the window checks (3.5 MB of verify-*.js)
+   and mailparser (4.8 MB, imported by nothing) ship today; leave them
+   out of the installed build (after making sure the packaged checks
+   do not need them, and that the mail builder did not start using
+   mailparser).
 2. **After 2.19 is tagged:** each app's main-process code moves into
    its own folder and registers through the loader; the build makes the
    core and the packs; the installer asks which apps; Add or remove apps
