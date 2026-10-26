@@ -92,6 +92,15 @@ start building the next as well". 2.18.0 was released on 2026-10-25
    what C2 finds. C3's real documents: the builder lists candidates with
    their source and licence, and the owner approves the list before any
    is fetched; the measuring follows.
+   A2.20, C2 and C4 merged on Office main 2026-10-26 (91617f65, 6a247b36,
+   b95fe50d; Urdu, Arabic and Hindi 50ff9cf0): another program's SQLite
+   opens read only, a newer design refused, unknown keys kept,
+   DESIGN_VERSION 7; Strict read and written through one mapping layer
+   (packages/ooxml/src/strict.js), Save as Strict Open XML in each app,
+   and Word, Excel and PowerPoint reopen what it writes. Not yet: ISO
+   dates written for edited cells, DrawingML fallbacks for VML, form
+   controls and OLE converted, canvases and ink. C3's 36 candidates are in
+   specs/office-c3-candidates.md, waiting for the owner.
 8. **The other faults:** A3.3, A3.8, A3.9 (Documents); A4.2 to A4.8
    (Presentations); A5.9 to A5.12 (Worksheets); A7.4 to A7.6, A7.8 to
    A7.12 (PDF, Pictures, Image).
