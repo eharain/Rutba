@@ -33,7 +33,24 @@ side in clones, then the gate and the release in about two days.
 5. **Gmail and Outlook sign-in, and Google Sheets as a source,** only if
    the owner's client ids arrive in time; otherwise in 2.22.
 6. **A7.12** (the scanned invoice), only if the owner's sample arrives.
-7. Every fault found while building this, and anything the owner reports
+7. **AI Tools removed and added back** (the owner, 2026-10-27: "first
+   recognition failed second removal visually worked but adding back
+   failed"). Done on Office main, 56fa3b13: an AI app's connection held
+   ai.asar, so a removal took the manifest and left the archive, and Add
+   failed on the held file. A held pack is now left whole, Add takes the
+   removal back, and an archive that is the same bytes is kept. Three
+   tests that hold the file as Electron does, failing on 2.20.0.
+8. **The AI tools under an AI app's private AppData.** The AI desktop
+   app the owner uses is an MSIX package: an MCP server it starts reads and
+   writes a private copy of `%APPDATA%\Rutba Office`, so a stale
+   settings.json there (written 22/10) refused every call while the real
+   one had AI Tools on. The owner's copy was repaired by hand. For 2.21:
+   the server says so plainly when it finds itself in a private copy, and
+   its tools go through the running Rutba Office (a named pipe) rather
+   than the profile's files, so its log and connections show in the AI
+   Tools window too. The owner chose to ship these with 2.21.0 rather than
+   a 2.20.1 ("Fold into 2.21.0"), with fix 1.
+9. Every fault found while building this, and anything the owner reports
    from 2.20.0 in the meantime.
 
 ### Part B. One way to read a picture
