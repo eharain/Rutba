@@ -28,6 +28,40 @@ work (A6.1 Mail's server sync, A3.0 the freeze, A3.1 Markdown, A7.0
 Pictures trashing the wrong file), then what
 is broken outright (A5.1 conditional formatting, A3.10 page numbers).
 
+## Released: 2.20.0, carrying 2.19 and 2.20 (2026-10-27, D-2026-10-27-03)
+
+Published as a pre-release at office 9d7e0691 (tag v2.20.0), built on this
+computer with the packs signed by the release key (id 0fbdf4c8b0d2c0a8,
+kept in private/office-release-tools/keys, never in a repository). Gate:
+3,404 engine tests (3,393 passing, 11 skipped), 12 editing checks, 2,391
+of 2,391 application checks, 14 windows clean. Before publishing,
+candidate.yml proved the installer on a clean runner (2.18.0 upgraded,
+portable, both races, a short list of apps); after it, upgrade.yml from
+2.18.0 passed 4 of 4. office.rutba.io's update is management b2679ce2 on
+dev, waiting for the owner's go through Infra.
+
+Left for later (the owner: "the remaining fixes can be done later"):
+
+1. Gmail and Outlook sign-in and Google Sheets as a source (the client ids).
+2. The repository secret RUTBA_PACK_KEY, so release.yml can build a
+   release (until then a release is built and published on this computer).
+3. The installer is 176 MB against the portable's 120 MB: the packs are
+   probably stored with weaker compression by the installer's File lines.
+4. seed-mail.js is in the core but imports @rutba/mailbox, now in Mail's
+   pack, so the packaged smoke runs Mail unseeded (checks only).
+5. Picture formats (the owner, 2026-10-27, after the Wikipedia list):
+   TIFF everywhere with UTIF.js; EMF drawings and WMF as SVG in all three
+   document apps and Pictures; small formats of our own (QOI, PNM, TGA,
+   PCX, HDR, .cur) and BMP, ICO and TIFF saved by Image; HEIC, RAW and JXR
+   at screen size through Windows' codecs; PSD with ag-psd; later JPEG
+   2000, JPEG XL, AVIF and GIF saving, EMF+. Not: a bundled HEIC decoder
+   (HEVC patents), Ghostscript, CGM, XPS.
+6. EXIF (the owner, 2026-10-27): read from PNG, WebP, HEIC and AVIF too;
+   "remove location only" on export and in batch edit; EXIF kept on more
+   exports; Windows' own stars and tags (EXIF Rating, XMP) read and
+   written; date taken, caption, artist and copyright edited; IPTC.
+7. A7.12 (the scanned invoice), the AI Tools choice per AI app.
+
 ## The last two releases: 2.19 and 2.20 (D-2026-10-26-07)
 
 The owner, 2026-10-26: "in that can we will only ship these two version
