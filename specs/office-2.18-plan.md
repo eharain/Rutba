@@ -224,7 +224,8 @@ perform a complete week of testing to create a first public release and
 remove beta and will have it signed. i assume we are month away from
 that." About four weeks: the rest of 2.19's work (about a week), the apps
 moved into packs (about two weeks, partly beside it), the testing week.
-Open: whether 2.19 still goes out as a pre-release on the way.
+Settled 2026-10-27 (D-2026-10-27-01): 2.19 and 2.20 go out together;
+the owner: "both the versions to go out together."
 
 1. **The certificate,** bought by the owner in Tech Style's name at least
    two weeks before the testing week (business validation and issue take
