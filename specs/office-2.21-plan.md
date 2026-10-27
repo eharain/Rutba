@@ -52,6 +52,17 @@ side in clones, then the gate and the release in about two days.
    a 2.20.1 ("Fold into 2.21.0"), with fix 1.
 9. Every fault found while building this, and anything the owner reports
    from 2.20.0 in the meantime.
+10. **The message being written, laid out.** Owner, 2026-10-27: "in this
+    build we also have to fix the email response screen layout it when its
+    popped out when its dialog and when its docked in like the mail
+    window." To, Cc and Bcc kept their own narrow width beside a
+    full-width Subject; the editor ran off the foot docked and in full
+    view and stopped short in a window of its own. Done on office main
+    76985251: names beside the fields, the editor fills the height, the
+    title and buttons line up with the fields, buttons wrap in a narrow
+    reading pane; a check measures all three places and a narrow window.
+    Done there too: the installer's size (item 2, b7715968, 149 MB from
+    176 MB) and the AI tools through the running copy (item 8, d469a6da).
 
 ### Part B. One way to read a picture
 
