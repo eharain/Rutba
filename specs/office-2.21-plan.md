@@ -4,6 +4,10 @@ The owner, 2026-10-27, after 2.20.0 went out and the survey of picture
 formats and EXIF: "kindly plan a next release with fixes and most of the
 recommended images support included" (D-2026-10-27-04).
 
+**Released 2026-10-27** (D-2026-10-27-10, the owner: "please publish"): tag
+v2.21.0 at office 5a2db52e. Not done in it: items 5 and 6 (no client ids or
+sample came), PSD layers (2.22), and real HEIC, RAW and PSD files untested.
+
 2.21.0 is a minor release (it adds things people can do), so it takes the
 full gate (D-2026-10-23-01). Size: about two weeks, three builders side by
 side in clones, then the gate and the release in about two days.
