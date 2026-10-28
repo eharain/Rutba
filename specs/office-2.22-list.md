@@ -80,3 +80,14 @@ exists (as cars.js does since 07fea90), and no stock below zero.
     the sheets ribbon passes { label: '-' } (renderer ribbon.js about line
     439) where the menu's separator is the bare string '-' (office-ui
     index.js about line 1354). Still so on dev. Seen in Worksheets 2.
+
+## Done on main, for the next release
+
+12. **Mail's taskbar icon blank after an update.** The owner, 2026-10-28:
+    no Mail icon on the taskbar since the update installed with Mail open,
+    though the installed tile was whole. Windows keeps an icon by its path;
+    each app's tile now reaches the taskbar as a copy named by its content
+    in the profile's tiles folder (office afad3577,
+    packages/office-shell/src/electron/taskbar-tile.js), so a changed or
+    once-missed icon is read afresh. Proven on a dev run (Mail made
+    tiles/mail-<hash>.ico); tests/taskbar-tile.test.js.
