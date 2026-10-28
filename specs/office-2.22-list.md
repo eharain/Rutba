@@ -51,3 +51,19 @@ exists (as cars.js does since 07fea90), and no stock below zero.
    (fixed for the KeyTips check in 294c3ff1). Two more carry values:
    verify-ribbon.js's folded-group check (its label) and verify-pwfast.js
    (constants, harmless). Keep run values in the detail, not the name.
+
+## Found while filming, 28 October
+
+8. **Calendar names Kolkata by its old id.** The event's Time zone and
+   View > Second time zone list Asia/Calcutta (and Asia/Saigon), because
+   zoneChoices takes Intl.supportedValuesOf('timeZone') as it comes
+   (apps/desktop/renderer/apps/calendar.js about lines 110-127) and ICU's
+   canonical ids keep the old names. Someone in India sees "Asia/Calcutta
+   (UTC+5:30)" and "in Calcutta". Map the old ids to today's
+   (Asia/Kolkata, Asia/Ho_Chi_Minh, Europe/Kyiv and the rest of the
+   links) and keep matching either.
+9. **Two fields called Number in a print template.** Data Files' print
+   template wizard on the Sales table labels both the ID and the Number
+   field "Number", so a receipt reads "NUMBER 1 NUMBER S1001". The ID
+   wants its own label (or leaving out when a Number field is there).
+   Seen in the Data Files 16 film.
