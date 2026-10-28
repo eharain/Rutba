@@ -67,3 +67,16 @@ exists (as cars.js does since 07fea90), and no stock below zero.
    field "Number", so a receipt reads "NUMBER 1 NUMBER S1001". The ID
    wants its own label (or leaving out when a Number field is there).
    Seen in the Data Files 16 film.
+10. **Mail: a message already in the server's Junk folder never shows.**
+    Delivered to Junk on the server before the start (the stand-in,
+    packages/mailbox/test/imap-server.js, imap.deliver('Junk', raw)), it
+    is not listed when Junk is opened, on the first visit or after Mark as
+    junk; only messages moved there by Mark as junk show. The same seeding
+    into INBOX shows. Cause not found; start at runFetch and syncFolder in
+    apps/desktop/main/mail-sync.js (perhaps Junk is skipped as a special
+    folder on the first sync). Seen in the Mail 3 shoot.
+11. **Worksheets: a "-" item in Home > Cells > Format.** Between AutoFit
+    column width and Protect sheet the menu draws an item reading "-":
+    the sheets ribbon passes { label: '-' } (renderer ribbon.js about line
+    439) where the menu's separator is the bare string '-' (office-ui
+    index.js about line 1354). Still so on dev. Seen in Worksheets 2.
