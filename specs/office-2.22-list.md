@@ -91,3 +91,10 @@ exists (as cars.js does since 07fea90), and no stock below zero.
     packages/office-shell/src/electron/taskbar-tile.js), so a changed or
     once-missed icon is read afresh. Proven on a dev run (Mail made
     tiles/mail-<hash>.ico); tests/taskbar-tile.test.js.
+13. Done on main. Data Files forms: a long list's matches under "Type to
+    find" were drawn behind the fields below, so a click picked the field
+    underneath (found shooting how-to Data Files 13: Larkspur Corner Store,
+    Sale Lines, Sale box, 00012). Each control's transform made it a
+    stacking context of its own; the box being typed in now rises above the
+    rest (office 2c428c76). The form list check asks what is under the
+    first match and fails without the fix.
