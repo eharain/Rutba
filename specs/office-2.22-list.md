@@ -98,3 +98,13 @@ exists (as cars.js does since 07fea90), and no stock below zero.
     stacking context of its own; the box being typed in now rises above the
     rest (office 2c428c76). The form list check asks what is under the
     first match and fails without the fix.
+14. Planned, not before the week of 2 November (D-2026-10-30-06). Recorder
+    tools in the Office MCP (apps/desktop/main/mcp), so a run can drive the
+    Recorder without clicks in its window: list the windows it can cast;
+    start recording one window (screen alone, title line, logo on or off,
+    computer sound on, microphone and camera off, size and fps); stop,
+    returning the file's path and length; read its state (idle, counting
+    down, recording) and its disk warning. Go Live is not a tool: it
+    publishes, so it stays a person's press, and the stream key stays in
+    main/live.js. The usual MCP rules hold: the access setting, the folders
+    the person gave, and the log.
