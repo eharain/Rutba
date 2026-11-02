@@ -98,13 +98,20 @@ exists (as cars.js does since 07fea90), and no stock below zero.
     stacking context of its own; the box being typed in now rises above the
     rest (office 2c428c76). The form list check asks what is under the
     first match and fails without the fix.
-14. Planned, not before the week of 2 November (D-2026-10-30-06). Recorder
-    tools in the Office MCP (apps/desktop/main/mcp), so a run can drive the
-    Recorder without clicks in its window: list the windows it can cast;
-    start recording one window (screen alone, title line, logo on or off,
-    computer sound on, microphone and camera off, size and fps); stop,
-    returning the file's path and length; read its state (idle, counting
-    down, recording) and its disk warning. Go Live is not a tool: it
-    publishes, so it stays a person's press, and the stream key stays in
-    main/live.js. The usual MCP rules hold: the access setting, the folders
-    the person gave, and the log.
+14. Done on main (office 51c0b607, D-2026-10-30-06). Recorder tools in the
+    Office MCP: recorder_windows lists the windows and screens; recorder_start
+    records one into a folder the AI tools may make files in (scene, title
+    line, logo, computer sound on, microphone and camera off unless asked,
+    size and fps, no countdown); recorder_stop returns the file's path, length
+    and size; recorder_state gives the phase, the seconds and the disk
+    warning. The Recorder window records as when Record is pressed and puts
+    the person's own settings back after. AI Tools has a Recorder row, Off
+    until set to "Record windows and screens". Go Live is not a tool.
+    tests/mcp-recorder.test.js; the recorder-tools window check records a
+    Word window for five seconds through an AI app and probes the file.
+15. Done on main (templates bcba993, office 2612f01f). Samples 1 to 3 of the
+    film walks: Trading's stock count took shelves below nought, and an order
+    shipped on a day after today; on some days Trading, the builder and the
+    garage had empty queries and reports (nothing to ship, reorder, chase or
+    owed). Each now has that work in it whatever day it is made; the samples
+    test makes each on every day of a week and fails without the fixes.
