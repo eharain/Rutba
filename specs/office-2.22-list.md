@@ -122,6 +122,20 @@ exists (as cars.js does since 07fea90), and no stock below zero.
     profiles, AI Tools), Help (what's new, keyboard shortcuts, how-to films,
     contact, about); Close Window last. Submenus in the shared Menu by hover,
     click and arrows, mirrored right to left. The app-menu window check (5)
-    and the 185 checks that use the menu pass. Still to do: the Recorder's
-    own rows (Recordings Folder, Recent Recordings, Live Destinations), and
-    its New and Open, which still open a second Recorder and Video.
+    and the 185 checks that use the menu pass. The Recorder's own rows
+    (Open in Video, Recordings Folder, Recent Recordings, Live Destinations,
+    settings; no New) came with item 17 (office 95aad131).
+17. Done on main (office 95aad131, D-2026-11-02-13). The Recorder rebuilt as
+    one studio: screens, windows and cameras clipped, shaped, placed,
+    mirrored, started and stopped the same way from the bar over the share.
+    First line: Picture, Go Live and Record side by side (the last two
+    toggles, red with their time; Record says video or sound), then the
+    Video switch (video, none, placeholder), the Sound switch (sound, none,
+    music) and the settings. The list on the right: previews with icons and
+    buttons, on the share top first, not shown, and the sounds with meters;
+    drag or Alt+arrows reorder. Scenes under the share. Take Picture works
+    while recording or live. Checks: recorder-app 14, recorder-live 7,
+    recorder-tools 4, with app-menu and Record Screen 52/52; node suite
+    3535 pass. Still to do: the viewer count while live (a slot only; needs
+    each platform's sign-in), and the owner's answers on Live as its own
+    product (name, installer, Go Live on the Recorder).
