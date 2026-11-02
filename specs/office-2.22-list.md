@@ -139,3 +139,28 @@ exists (as cars.js does since 07fea90), and no stock below zero.
     3535 pass. Still to do: the viewer count while live (a slot only; needs
     each platform's sign-in), and the owner's answers on Live as its own
     product (name, installer, Go Live on the Recorder).
+18. Done on main (office 56ddffba, D-2026-11-03-01 to -03). Live Broadcast,
+    the fourteenth app (key broadcast, accent #ea580c, its own tile): the
+    Recorder's studio (now shared in renderer/studio/) with Go Live, which
+    has left the Recorder. With two cameras or more, a shot per camera and
+    the wide shot Everyone; Preview beside On air with Cut and Fade (Space);
+    Follow the speaker (a microphone paired per shot from its menu, or in
+    order when the counts match; 1.5 s to switch, 3 s held, wide when two
+    speak or after 2.5 s of quiet; a pick by hand stops it); Rotate every 3
+    to 30 s. Live service and live:status moved to the broadcast pack. Anyone
+    with the Recorder on gets it too until they turn it off (registry
+    FOLLOWS, installer page). Checks: broadcast-shots 8, broadcast-live 7,
+    recorder-app 14 without Go Live (30/30). Still to do: the viewer count
+    (needs each platform's sign-in).
+
+## Released
+
+2.22.0 released 2026-11-03 (D-2026-11-03-04): tag v2.22.0 at office
+18f352f4, GitHub pre-release #432065731 with 21 files, update feed checked.
+Gate on 18f352f4: 3,558 engine tests (3,547 pass, 11 skipped), 12 of 12
+editing checks, 2,464 of 2,464 application checks, 15 of 15 windows; four
+load-flaky checks passed on the end rerun. Candidate run 41516346305 and
+upgrade run 41543238500 (2.21.1 to 2.22.0: portable, installed and both
+race modes) passed. office.rutba.io and rutba.io/office at management
+9cf54468 (fourteen apps, Live Broadcast with its pictures), sent to Infra
+to deploy.
