@@ -115,3 +115,13 @@ exists (as cars.js does since 07fea90), and no stock below zero.
     garage had empty queries and reports (nothing to ship, reorder, chase or
     owed). Each now has that work in it whatever day it is made; the samples
     test makes each on every day of a week and fails without the fixes.
+16. Done on main (office a5b8000b, D-2026-11-02-09). The top-left app menu in
+    one order in every app: New, New from Template, Open, Open Recent (this
+    app's files first, other apps' in a submenu); Save, Save As, Export,
+    Print; the app's own; Window, Settings (theme, language, digits,
+    profiles, AI Tools), Help (what's new, keyboard shortcuts, how-to films,
+    contact, about); Close Window last. Submenus in the shared Menu by hover,
+    click and arrows, mirrored right to left. The app-menu window check (5)
+    and the 185 checks that use the menu pass. Still to do: the Recorder's
+    own rows (Recordings Folder, Recent Recordings, Live Destinations), and
+    its New and Open, which still open a second Recorder and Video.
