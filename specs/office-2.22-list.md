@@ -162,5 +162,6 @@ editing checks, 2,464 of 2,464 application checks, 15 of 15 windows; four
 load-flaky checks passed on the end rerun. Candidate run 41516346305 and
 upgrade run 41543238500 (2.21.1 to 2.22.0: portable, installed and both
 race modes) passed. office.rutba.io and rutba.io/office at management
-9cf54468 (fourteen apps, Live Broadcast with its pictures), sent to Infra
-to deploy.
+9cf54468 (fourteen apps, Live Broadcast with its pictures), live since
+about 00:37 UTC 2026-11-03 (Infra, on the owner's go); /download gives only the
+2.22.0 files, both reach the release.
