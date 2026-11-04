@@ -67,8 +67,12 @@ what is asked, what is there today, and where in the code.
    (build/make-oauth-clients.js) into resources/oauth/clients.json; Mail
    sends the id and secret on the exchange and each refresh, and removing a
    signed-in account now deletes its refresh token (it did not). Tests
-   oauth-clients 7; engine tests 3,546 pass, 0 fail. Waiting: where the
-   build reads the owner's file from (it is at D:\TrustList\private, outside
-   the estate), then a build for the owner to sign in with.
+   oauth-clients 7; engine tests 3,546 pass, 0 fail. The owner chose "Read
+   it where it is": the build reads the file at D:\TrustList\private, and no
+   copy is made. Test build 2.23.0-test.1 (portable, not released) made 4 Nov
+   in apps/desktop/release/gmail-test (private/office-release-tools/
+   gmail-test-build.sh). The packed client was checked, and Mail and Home
+   rendered clean on a scratch profile. Handed to the LinkedIn session for the
+   owner to sign in with eharain@gmail.com.
    Item 3 written in management 736bd055 (dev and main), live with the next
    sites deploy on the owner's go through Infra.
