@@ -59,3 +59,16 @@ what is asked, what is there today, and where in the code.
    mail goes between the computer and Gmail with no Rutba server between;
    signing out deletes the token here; the Google API Limited Use
    statement. Goes live through Infra on the owner's go.
+
+   Item 2 done on Office main 6fa5087c (4 Nov): the client "Rutba Office
+   Mail (desktop)" is in Google Cloud project rutba-office (Testing, test
+   user eharain@gmail.com, scopes mail.google.com, openid, userinfo.email).
+   A release build reads Google's download from RUTBA_GOOGLE_CLIENT_FILE
+   (build/make-oauth-clients.js) into resources/oauth/clients.json; Mail
+   sends the id and secret on the exchange and each refresh, and removing a
+   signed-in account now deletes its refresh token (it did not). Tests
+   oauth-clients 7; engine tests 3,546 pass, 0 fail. Waiting: where the
+   build reads the owner's file from (it is at D:\TrustList\private, outside
+   the estate), then a build for the owner to sign in with.
+   Item 3 written in management 736bd055 (dev and main), live with the next
+   sites deploy on the owner's go through Infra.
