@@ -107,3 +107,29 @@ what is asked, what is there today, and where in the code.
    Planning first (D-2026-11-05-16, owner: "we will build a single decent
    sized release after we have planned it"): nothing is built until the
    whole plan is written and agreed, then one release carries it.
+
+## Home
+
+5. **Two sets side by side: Office and Studio** (D-2026-11-05-17). Owner,
+   5 Nov 2026: "our all aps view has gone very media heavy as well. how about
+   we split that view between two of our core app sets by their
+   functionality as well." Office: Mail, Calendar, Contacts, Talk,
+   Documents, Worksheets, Presentations, PDF, Data Files. Studio: Pictures,
+   Image, Video, Recorder, Live Broadcast. Each column has its tiles and its
+   own Start something; Recent below both; the same names in the app menu,
+   Choose apps, the installer and office.rutba.io. Today: registry.js
+   APP_GROUPS has office (with Pictures) and more (with Talk and Data Files);
+   apps-choice.js titles them "Office apps", "More apps", "Add-ons"; home.js
+   shows one flat grid; Record a screen opens Video.
+
+## Fixes
+
+6. **AI Tools and Live Broadcast packs not starting** (D-2026-11-05-18,
+   looked at in the release build). The released 2.22.0 build (apps/desktop/
+   release/win-unpacked), smoke-run on a fresh profile, and the 2.23.0-test.1
+   build both show "could not be started: protocol.registerSchemesAsPrivileged
+   should be called before app is ready" for the two packs. Both import
+   @rutba/office-shell/electron/main, which registers the scheme when it is
+   evaluated; packs carrying code find the core's packages through
+   office-shell/src/electron/pack-resolve.js. The owner's installed 2.22.0
+   starts all 16 with nothing logged.
