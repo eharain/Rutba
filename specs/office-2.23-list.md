@@ -97,3 +97,7 @@ what is asked, what is there today, and where in the code.
    window source is kept by its capture id, which changes when that window's
    app restarts, so a kept window is lost; there are no named setups, and at
    most 9 scenes. A proposal goes to the owner before any build.
+   Decided: D-2026-11-05-13 (named setups, also as files, shared by both
+   apps) and D-2026-11-05-14 (two panels, Set up and Record, Set up and
+   Live; opens ready on Record or Live). Build order: 1 setups and reliable
+   restore, 2 the two panels, 3 Set up's layout tools and live switching.
