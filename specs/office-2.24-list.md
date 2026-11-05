@@ -90,7 +90,11 @@ what is proposed.
          computers never rewrite the same file.
        - The verbs follow git's: status, log, restore, plus the
          `.rutbalocker` rules in gitignore wording.
-       - How many versions to keep is the person's choice (D-2026-11-05-21).
+       - Owner: "i meant gits way of working but our own way and not many
+         versions kept" (D-2026-11-05-24). Few versions: by default the
+         current one and the two before it, fewer if the person chooses, down
+         to the current one only. Pieces that no kept version uses are removed
+         straight away, so a locker stays close to the size of its files.
    - **Format.** Each file is locked on its own and encrypted in 64 KB chunks
      (AES-256-GCM, a key per file, the master key from the password by
      scrypt), so Dropbox and OneDrive upload only the blocks that changed.
