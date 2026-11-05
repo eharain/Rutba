@@ -110,6 +110,16 @@ with its screens on the owner's design canvas.
    sized release after we have planned it"): nothing is built until the
    whole plan is written and agreed, then one release carries it.
 
+   Web page source (owner, 5 Nov 2026): "what we need in addition to this a
+   screen from Rutba consumer commerce website that can be docked in live
+   streaming as shared screen showing the products by group and user able to
+   flip next and previous product from web CMS group as the display live. this
+   can be products or from social". The page is consumer's ("not yours for
+   consumer end-to-end"), sent to the consumer end-to-end session 5 Nov with a
+   proposed contract (keys, postMessage next/previous/go, a state message
+   back). Office adds a Web page source in Set up and a Previous / Next strip
+   in the Record and Live panels.
+
 ## Home
 
 5. **Two sets side by side: Office and Studio** (D-2026-11-05-17). Owner,
