@@ -73,6 +73,27 @@ what is asked, what is there today, and where in the code.
    in apps/desktop/release/gmail-test (private/office-release-tools/
    gmail-test-build.sh). The packed client was checked, and Mail and Home
    rendered clean on a scratch profile. Handed to the LinkedIn session for the
-   owner to sign in with eharain@gmail.com.
+   owner to sign in with eharain@gmail.com. 5 Nov: the owner said "i can do
+   nothing about gmail test": every app was refused, since the packs were
+   2.22.0 and the core 2.23.0-test.1 (the smoke report missed it). Rebuilt
+   with the packs at 2.23.0-test.1 (private/office-release-tools/
+   make-test-packs.mjs); all 16 packs load, Mail opens, started for the owner
+   with "Try Gmail in Rutba Office.cmd" beside the exe.
    Item 3 written in management 736bd055 (dev and main), live with the next
    sites deploy on the owner's go through Infra.
+
+## Recorder and Live Broadcast
+
+4. **Rethink how both are used.** Owner, 5 Nov 2026: "the recorder and live
+   broadcast user experience need proper rethinking as their current
+   usability imposes lots of limits. there needs to be simplicity and
+   advance use and state saving as well."
+   Today (office main, apps/desktop/renderer/studio/window.js): one studio
+   window for both, every control showing at once (Picture, Go Live, Record,
+   the Video and Sound switches, the source bar, scenes, and in Live
+   Broadcast the Next and On air frames with Cut, Fade, Preview, Follow the
+   speaker and Rotate). What is kept is one stack and one settings set per
+   app (shell.store recorder.stack, recorder.studio), restored on open. A
+   window source is kept by its capture id, which changes when that window's
+   app restarts, so a kept window is lost; there are no named setups, and at
+   most 9 scenes. A proposal goes to the owner before any build.
