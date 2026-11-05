@@ -45,6 +45,52 @@ what is proposed.
      helper, since Electron has no Windows Hello support. A recovery key is
      given at setup. A forgotten password with no recovery key means the files
      cannot be opened, and the Locker says so.
+   - **The engine** (D-2026-11-05-22). Owner: "for actual locking we build
+     c/c++ port of our secure key store and enhance it with cli", then "and use
+     git or some thing more suitable to provide the rest."
+     - Today: @tech-style/secure-keystore 3.0 (MIT, eharain/secure-keystore)
+       has six implementations (JavaScript, Go, .NET, Python, PHP, Rust)
+       written against SPEC.md and checked by conformance/. A store is a
+       directory with a master key unlocked by PBKDF2-SHA256 (600,000 rounds)
+       from the user key, and each value has an HKDF key and is sealed with
+       AES-256-GCM, its context bound in. Office already uses it for each
+       profile's saved passwords, with the key wrapped by DPAPI
+       (packages/office-shell/src/profile-keystore.js).
+     - Then the owner: "we already have js version that can be more suitable
+       for rutba office" (D-2026-11-05-23). So in Office the Locker runs on
+       the JavaScript package Office already ships, extended, using only
+       node:crypto (AES-GCM, PBKDF2, HKDF are all there). Only Windows Hello
+       needs native code, a small addon (WinRT KeyCredentialManager). A C/C++
+       port, a seventh implementation against SPEC.md, stays possible later
+       for opening a locker without Office.
+     - Extensions, as SPEC.md 3.1, made first in the JavaScript package (the
+       other five may decline them):
+       - **Unlockers.** master.json can hold more than one way to open the
+         master key: the password (as today), Windows Hello on this computer,
+         and the recovery key.
+       - **Files.** A file record is a key from HKDF of the master key with
+         the file's own salt. The file is sealed in 64 KB chunks of
+         AES-256-GCM. Each chunk's nonce and associated data carry the file,
+         the chunk's number and a last-chunk flag, so chunks cannot be
+         swapped, reordered or cut off.
+     - The command line: `rutba-locker` (name to confirm) is the package's
+       own command line (it has one today) grown with the Locker's verbs. It
+       is run by Office's own runtime (the Office program started as Node), so
+       nothing else is installed.
+     - **"The rest": git's model, not git** (session-proposed).
+       - Git itself does not suit a folder that OneDrive or Dropbox syncs:
+         a .git folder inside a synced drive corrupts when two computers write
+         it, git keeps each version of a large file whole, and encrypted
+         versions do not shrink to differences.
+       - Instead the engine keeps git's ideas: objects that never change once
+         written and are named by their content; large files cut into pieces
+         at points their content decides (FastCDC, a published algorithm,
+         written in the package; casync is LGPL, so not used); a small list per
+         version of each file, written as a new file each time, so two
+         computers never rewrite the same file.
+       - The verbs follow git's: status, log, restore, plus the
+         `.rutbalocker` rules in gitignore wording.
+       - How many versions to keep is the person's choice (D-2026-11-05-21).
    - **Format.** Each file is locked on its own and encrypted in 64 KB chunks
      (AES-256-GCM, a key per file, the master key from the password by
      scrypt), so Dropbox and OneDrive upload only the blocks that changed.
