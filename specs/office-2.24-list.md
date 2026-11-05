@@ -6,7 +6,12 @@ what is proposed.
 
 ## Locker
 
-1. **A Locker for files that matter** (D-2026-11-05-20, D-2026-11-05-21).
+1. **A Locker for files that matter** (D-2026-11-05-20 to -25). Not tied
+   to 2.24 or any release. Owner: "we will build locker and will only release
+   it once's it fully and completely build and we feel confident that this is
+   the version we can base upon. so no decision on it about version it goes
+   in." It is listed here only because this list is where it was first
+   written down.
    Owner, 5 Nov 2026: "with increasing security threats keeping few important
    files safe is very important so what do you think providing a secure file
    locker in office with ability to lock and unlock files from it with
@@ -104,6 +109,22 @@ what is proposed.
      temporary file and are then swapped in. Pieces never change once written.
      Conflict copies made by a drive are found and shown side by side, never
      merged. The format is to be published.
+   - **Nothing private in the synced folder.** The owner asked whether the
+     drives' own ignore lists could keep our working files out of the cloud.
+     Only some can, and none reads an ignore file we could ship:
+     - Dropbox: a supported per-file marker, `com.dropbox.ignored`.
+     - OneDrive: only through an administrator policy, for work and school
+       accounts.
+     - Google Drive: nothing supported.
+     - iCloud Drive: `.nosync` names, on a Mac.
+
+     So the synced folder holds only locked files and the rules file.
+     Temporary unlocked copies, unlock state, caches and half-written files
+     stay in Office's own profile folder. The finished locked file is swapped
+     in as the only write into the synced folder. Add to locker and saving
+     from Rutba Office write only the locked copy there. Where Dropbox's
+     marker is available, it is set on the Locker's own working files too,
+     as an extra safety net.
    - **Rules.** `.rutbalocker` at the folder's top, in gitignore wording: lines
      say what to lock, `!` makes exceptions, and a subfolder's file overrides
      its parent's. With none, everything but the temporary and system files
