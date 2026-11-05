@@ -1,8 +1,10 @@
 # Rutba Office 2.23: list
 
 Started after 2.22.0 was released (2026-11-03, tag v2.22.0 at office
-18f352f4). Not a plan: the owner has not set 2.23's scope. Each item says
-what is asked, what is there today, and where in the code.
+18f352f4). Each item says what is asked, what is there today, and where in
+the code. The release plan that turns these into one release (5 Nov 2026,
+for the owner's review) is kept locally in private/OFFICE-2.23-RELEASE-PLAN.md,
+with its screens on the owner's design canvas.
 
 ## Video
 
