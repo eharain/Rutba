@@ -101,3 +101,6 @@ what is asked, what is there today, and where in the code.
    apps) and D-2026-11-05-14 (two panels, Set up and Record, Set up and
    Live; opens ready on Record or Live). Build order: 1 setups and reliable
    restore, 2 the two panels, 3 Set up's layout tools and live switching.
+   Talk (D-2026-11-05-15, plan only): Talk contacts as guests in Set up, the
+   studio's picture into a Talk call, recording Talk calls, and web guests
+   later. Setups get no guest slots until the owner says build.
