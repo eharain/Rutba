@@ -119,6 +119,13 @@ with its screens on the owner's design canvas.
    proposed contract (keys, postMessage next/previous/go, a state message
    back). Office adds a Web page source in Set up and a Previous / Next strip
    in the Record and Live panels.
+   More platforms (D-2026-11-06-03, owner, 6 Nov 2026): "in upcoming release we
+   also need to support additional platforms for streaming including tiktok".
+   Today: YouTube, Facebook, Twitch and any RTMP server (packages/stream/src/
+   endpoints.js), wide pictures only (1080p, 720p), one encoder for every
+   destination. Proposed: TikTok, Instagram, LinkedIn, X, Kick and Rumble, each
+   taking a server address and a key from the platform; a tall 1080 x 1920
+   picture with a tall layout per scene; wide and tall at once (owner to decide).
 
 ## Home
 
