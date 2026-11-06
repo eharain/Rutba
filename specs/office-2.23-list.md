@@ -134,6 +134,18 @@ with its screens on the owner's design canvas.
    apps-choice.js titles them "Office apps", "More apps", "Add-ons"; home.js
    shows one flat grid; Record a screen opens Video.
 
+## Profiles
+
+7. **Switching profile keeps you in the same app** (D-2026-11-06-01). Owner,
+   6 Nov 2026: "switching profile on a window of an app should open the same
+   app window of other profile. opening all app view should be an addition
+   menu item there." Today the title bar's profile menu (renderer/profiles.js,
+   profileMenuItems) starts that profile on its Home, or brings it forward if
+   it is running, whichever app it is used from (profiles-service.js, launch,
+   which has no app to pass; `--app=` exists in main.js). Proposed: the same app in that profile, an existing window of it
+   brought forward; "All apps in {name}" for each other profile; this window
+   stays open and its file does not follow.
+
 ## Fixes
 
 6. **AI Tools and Live Broadcast packs not starting** (D-2026-11-05-18,

@@ -433,6 +433,12 @@ Started by session 140cc7e4 (Infra) at the owner's words below, said there; the 
 | D-2026-11-05-09 | X is sold only against credit a customer has topped up in advance, rather than on a flat plan, because X itself now charges per call. No credit, no X. | 2026-11-05, relayed by "LinkedIn and Youtube update" (local_79c183d7) as the owner's own words. **Quoted in full in `private/RELAY-METERED-PRICING.md`, not here:** this register is in a public repository and the owner's words set a margin. | owner on the commercial rule. The mechanism is session-proposed and not yet the owner's. Design, the supplier's own price list and the open questions are all in that private file. | not built; design only |
 | D-2026-11-05-10 | TrustList becomes a destination the Relay publishes to, and the Relay charges for each post or update sent to it. | 2026-11-05, the owner to this session directly. Quoted in full in `private/RELAY-METERED-PRICING.md`, for the same reason as D-2026-11-05-09. | owner. One thing worth saying in public because it is about the catalogue rather than about money: TrustList would be the first destination we own, so it has no third-party app review, no OAuth registration with anybody else and no platform gate, and no status in the catalogue currently fits it. What a post maps onto in TrustList is not known in this session, whose working directory does not include it. | not built; design only |
 
+## 2026-11-06, session ab0af81e (Rutba Office)
+
+| Id | Decision | The owner's words | Status | Recorded in |
+|---|---|---|---|---|
+| D-2026-11-06-01 | Choosing another profile in an app window's profile menu opens the same app in that profile, and the same menu gains an item to open that profile's all-apps view (Home). | 2026-11-06, the owner to this session directly: "switching profile on a window of an app should open the same app window of other profile. opening all app view should be an addition menu item there." | owner. Session-proposed: one "All apps in {name}" item for each other profile; an existing window of the app comes forward rather than a second one opening; this window stays open and its file does not follow; an app turned off in that profile opens its Home with a note. Planned for 2.23, not built | specs/office-2.23-list.md item 7 |
+
 ## 2026-11-05, session ab0af81e (Rutba Office)
 
 | Id | Decision | The owner's words | Status | Recorded in |
