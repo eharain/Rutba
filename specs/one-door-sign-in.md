@@ -103,6 +103,17 @@ At auth.rutba.io, address then password, exactly as today. On the password step:
    user and get no hub, consoles or MFA. Signing out at the realm ends the core
    session as it does today.
 
+   One exception, for Rutba Talk (D-2026-11-09-01). A consumer account signing
+   in from Talk is not handed to the realm, because the realm lands it on its
+   shop and Talk never hears back. The core's answer says whether that
+   instance's administrator allows Talk (Rutba Admin, Organisation, off until
+   turned on). If not, a page says so and Talk hears `access_denied`. If so,
+   the person chooses at that page, Use Talk or Not now. On yes, auth keeps one
+   session behind that one grant (`management/auth/src/oidc/consumer-person.js`).
+   It sets no `rutba_sid` cookie and makes no management account. The id is
+   per workspace, and `email_verified` is false, because a merchant controls
+   the row and could type anybody's address.
+
 The exposure equals today's realm form, which this replaces: the same check
 behind the same brake, now reached only from auth.rutba.io's server.
 `/api/auth/local/any` itself then answers 410 for browsers (section C). The
