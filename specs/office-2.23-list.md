@@ -125,7 +125,9 @@ with its screens on the owner's design canvas.
    endpoints.js), wide pictures only (1080p, 720p), one encoder for every
    destination. Proposed: TikTok, Instagram, LinkedIn, X, Kick and Rumble, each
    taking a server address and a key from the platform; a tall 1080 x 1920
-   picture with a tall layout per scene; wide and tall at once (owner to decide).
+   picture with a tall layout per scene. Wide and tall are each a choice, and
+   turning on both sends both at once (D-2026-11-08-02). YouTube and Facebook stay
+   on the list.
    My streams and where to go live (D-2026-11-06-04, owner, 6 Nov 2026): "the
    live stream key entry screen is very scary and long it should list the the
    configured streams and allow adding additional. also when streaming it should
@@ -133,9 +135,10 @@ with its screens on the owner's design canvas.
    (renderer/apps/broadcast/live-dialog.js) sets up, takes keys and chooses, with
    every new row open at Name, Server and Stream key, and a broadcast goes to every
    row stored as on (main/live.js, start). Proposed: a short My streams list with
-   Add a stream; adding asks only for the platform, the key and an optional name;
-   Go live opens a tick list, kept per setup; while live, each stream stops or starts
-   on its own without ending the broadcast.
+   Add a stream; adding asks only for the platform, the key, a name and the shape.
+   Changed by D-2026-11-08-01: no list on Go live. Icons at the top of the Live panel
+   turn each stream on or off at any time; all off puts everything offline with the
+   broadcast still open; the one Go live and End broadcast button has the final say.
 
 ## Home
 
