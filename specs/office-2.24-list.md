@@ -166,5 +166,4 @@ what is proposed.
      tampering, conflict copies), the rules (gitignore cases) and the
      command line. A verify:apps block that adds a folder, locks a dropped
      file, opens and saves it from Documents, exports it and unlocks it.
-     Upload sizes measured on OneDrive, Google Drive and Dropbox after a small
-     change to a large file.
+     Upload sizes on the cloud drives are not measured (D-2026-11-09-03).
