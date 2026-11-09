@@ -45,6 +45,15 @@ what is proposed.
      worksheets, presentations, PDFs and pictures open into Rutba Office in
      memory, and saves are written straight to the locked file. Other file
      types get a temporary copy, wiped on lock.
+     **Changed 9 Nov 2026 (D-2026-11-09-02):** every file opens as a temporary
+     plain copy in a hidden subfolder beside it, `.rutba-open/<random>/`,
+     readable by this person only. Changes are written back as the file's next
+     version as they are saved, when the program closes and before the keys go
+     at lock. The copy is removed when the program lets go, at lock and on
+     quit. A crash is recovered at the next unlock. There is no code for
+     particular drives. In a folder a cloud drive uploads, the plain copy can
+     be uploaded while the file is open; the person may choose Office's own
+     folder for that folder instead.
    - **Keys.** The password is the master and works on any computer. The PIN
      (Windows Hello) unlocks on this computer only, through a small native
      helper, since Electron has no Windows Hello support. A recovery key is
@@ -109,7 +118,8 @@ what is proposed.
      temporary file and are then swapped in. Pieces never change once written.
      Conflict copies made by a drive are found and shown side by side, never
      merged. The format is to be published.
-   - **Nothing private in the synced folder.** The owner asked whether the
+   - **Nothing private in the synced folder.** (For files open for editing,
+     replaced by D-2026-11-09-02 above.) The owner asked whether the
      drives' own ignore lists could keep our working files out of the cloud.
      Only some can, and none reads an ignore file we could ship:
      - Dropbox: a supported per-file marker, `com.dropbox.ignored`.
